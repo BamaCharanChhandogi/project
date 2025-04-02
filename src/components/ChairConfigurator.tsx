@@ -47,7 +47,7 @@ export const ChairConfigurator: React.FC = () => {
     if (canvasRef.current) {
       // Force a render by waiting for the next frame
       setTimeout(() => {
-        const dataUrl = canvasRef.current.toDataURL('image/png');
+        const dataUrl = canvasRef.current?.toDataURL('image/png') || '';
         if (dataUrl.includes('data:image/png;base64,iVBOR')) { // Check if the image is not empty
           const link = document.createElement('a');
           link.href = dataUrl;
