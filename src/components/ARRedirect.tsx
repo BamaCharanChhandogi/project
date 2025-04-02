@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { QRCodeSVG as QRCode } from 'qrcode.react';
 
 export const ARRedirect: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [arLink, setArLink] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showQRCode, setShowQRCode] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -13,12 +15,12 @@ export const ARRedirect: React.FC = () => {
 
     if (!modelId) {
       console.error('Model ID is required');
-      navigate('/');
+      setError('Model ID is required');
       return;
     }
 
-    const glbModelUrl = '/CushionSeat.glb';
-    const usdzModelUrl = `/CushionSeat.glb`; // Ensure you have USDZ version
+    const glbModelUrl = '/Lion High.glb';
+    const usdzModelUrl = `/lion high.usdz`; // Ensure you have a USDZ version
 
     const userAgent = navigator.userAgent.toLowerCase();
     const isAndroid = /android/i.test(userAgent);
@@ -47,7 +49,6 @@ export const ARRedirect: React.FC = () => {
         .catch(err => {
           console.error('Failed to fetch USDZ file:', err);
           setError('Failed to load AR model for iOS');
-          navigate(`/ar-viewer?modelId=${modelId}`);
         });
     };
 
@@ -56,10 +57,12 @@ export const ARRedirect: React.FC = () => {
     } else if (isIOS) {
       handleIOSAR();
     } else {
-      // Desktop fallback - show QR code instead
-      navigate('/');
+      // Desktop fallback - show QR code
+      setShowQRCode(true);
     }
   }, [location, navigate]);
+
+  const qrCodeValue = `${window.location.origin}${location.pathname}${location.search}`;
 
   if (error) {
     return (
@@ -69,6 +72,26 @@ export const ARRedirect: React.FC = () => {
           <button
             onClick={() => navigate('/')}
             className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors"
+          >
+            Return to Configurator
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (showQRCode) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-100">
+        <div className="bg-white p-6 rounded-lg shadow-lg text-center">
+          <h3 className="text-lg font-bold mb-4">Scan to View in AR</h3>
+          <QRCode value={qrCodeValue} size={200} level="H" includeMargin={true} />
+          <p className="mt-4 text-sm text-gray-600">
+            Scan this QR code with your mobile device to view in AR
+          </p>
+          <button
+            onClick={() => navigate('/')}
+            className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors"
           >
             Return to Configurator
           </button>
@@ -90,6 +113,12 @@ export const ARRedirect: React.FC = () => {
             Click here if AR doesn't start
           </a>
         )}
+        <button
+          onClick={() => navigate('/')}
+          className="mt-4 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md transition-colors"
+        >
+          Return to Configurator
+        </button>
         <div className="w-16 h-16 border-t-4 border-blue-500 border-solid rounded-full animate-spin mx-auto mt-4" />
       </div>
     </div>
