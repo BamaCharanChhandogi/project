@@ -10,7 +10,7 @@
     <link rel="icon" href="/sport-car.png" type="image/png" />
     <title>3D Model Viewer with AR</title>
     <!-- Preload critical assets if needed -->
-    <link rel="preload" href="/src/main.jsx" as="script" />
+    <link rel="preload" href="/src/main.tsx" as="script" />
   </head>
   <body>
     <div id="root"></div>
@@ -20,7 +20,7 @@
     <!-- Load model-viewer asynchronously with fallback -->
     <script
       type="module"
-      src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"
+      src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.0.0/dist/model-viewer.min.js"
       async
       onload="console.log('Model Viewer loaded')"
       onerror="console.error('Failed to load Model Viewer')"
