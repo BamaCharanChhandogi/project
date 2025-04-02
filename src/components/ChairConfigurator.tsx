@@ -28,11 +28,11 @@ export const ChairConfigurator: React.FC = () => {
   };
   const [config, setConfig] = useState<ChairConfig>(defaultConfig);
   const [showQRCode, setShowQRCode] = useState(false);
+  const [showMeasure, setShowMeasure] = useState(false); // State for measurement toggle
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const controlsRef = useRef<any>(null);
 
   const handleARView = () => {
-    // For local testing, use a static GLB file
     const glbModelUrl = `${window.location.origin}/CushionSeat.glb`;
     const arUrl = `${window.location.origin}/ar?modelUrl=${encodeURIComponent(glbModelUrl)}`;
     setShowQRCode(true);
@@ -72,7 +72,7 @@ export const ChairConfigurator: React.FC = () => {
           gl={{ preserveDrawingBuffer: true }}
         >
           <Stage environment="city" intensity={0.5} adjustCamera={false}>
-            <Chair config={config} />
+            <Chair config={config} showDimensions={showMeasure} /> {/* Pass showDimensions to Chair */}
           </Stage>
           <OrbitControls
             ref={controlsRef}
@@ -91,12 +91,11 @@ export const ChairConfigurator: React.FC = () => {
 
         <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-2">
           <button
-            onClick={handleARView}
-            className="bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-md transition-colors flex items-center"
-            title="View in AR"
+            onClick={() => setShowMeasure(!showMeasure)} // Toggle measurement
+            className="bg-gray-500 hover:bg-gray-600 text-white p-3 rounded-md transition-colors flex items-center"
+            title="Measure"
           >
-            <AiOutlineQrcode size={20} className="mr-2" />
-            <span>View in AR</span>
+            <FaRuler size={20} />
           </button>
           <button
             onClick={handleScreenshot}
@@ -104,6 +103,14 @@ export const ChairConfigurator: React.FC = () => {
             title="Take Screenshot"
           >
             <AiOutlineCamera size={20} />
+          </button>
+          <button
+            onClick={handleARView}
+            className="bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-md transition-colors flex items-center"
+            title="View in AR"
+          >
+            <AiOutlineQrcode size={20} className="mr-2" />
+            <span>View in AR</span>
           </button>
           <button
             onClick={handleResetView}

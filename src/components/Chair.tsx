@@ -2,8 +2,8 @@ import { useGLTF } from "@react-three/drei";
 import { useEffect, useRef, memo } from "react";
 import * as THREE from "three";
 import { ChairConfig } from "./ChairConfigurator";
-import { Text } from "@react-three/drei";
 
+// Define URLs for chair parts
 const PARTS_URLS: { [key: string]: string } = {
   Cushion_Seat: "/CushionSeat.glb",
   Legs: "/Legs.glb",
@@ -11,10 +11,13 @@ const PARTS_URLS: { [key: string]: string } = {
   Optional_2: "/Optional2.glb",
 };
 
+// Preload GLTF models
 Object.values(PARTS_URLS).forEach((url) => useGLTF.preload(url));
 
+// Texture loader
 const textureLoader = new THREE.TextureLoader();
 
+// Load fabric textures
 const champlainBaseColor = textureLoader.load('/Champlain_BaseColor.png');
 const champlainNormal = textureLoader.load('/Champlain_Normal.png');
 const champlainRoughness = textureLoader.load('/Champlain_Roughness.png');
@@ -35,12 +38,14 @@ const travellerBaseColor = textureLoader.load('/Hay_Base_color.png');
 const travellerNormal = textureLoader.load('/Hay_Normal.png');
 const travellerRoughness = textureLoader.load('/Hay_Roughness.png');
 
+// Load metal textures
 const antiqueEnglish = textureLoader.load('/Anitque English.jpg');
 const brushedNickel = textureLoader.load('/Brushed nickel.jpg');
 const satinNickel = textureLoader.load('/Satin nickel.jpg');
 const metalMetalness = textureLoader.load('/Metal032_2K_Metalness.jpg');
 const metalNormal = textureLoader.load('/Metal032_2K_Normal.jpg');
 
+// Configure texture properties
 [
   champlainNormal,
   champlainRoughness,
@@ -59,10 +64,18 @@ const metalNormal = textureLoader.load('/Metal032_2K_Normal.jpg');
   texture.encoding = THREE.LinearEncoding;
 });
 
-export const Chair = memo(({ config, showDimensions = false }: { config: ChairConfig; showDimensions?: boolean }) => {
+interface ChairProps {
+  config: ChairConfig;
+  showDimensions?: boolean;
+}
+
+export const Chair = memo(({ config, showDimensions = false }: ChairProps) => {
   const chairRef = useRef<THREE.Group>(null);
   const dimensionLinesRef = useRef<THREE.Group>(null);
+  const originalMaterials = useRef<Record<string, THREE.Material>>({});
+  const plainMaterial = useRef<THREE.MeshStandardMaterial | null>(null);
 
+  // Load and combine chair parts
   const loadedParts = config.parts.map((part) => {
     const { scene } = useGLTF(PARTS_URLS[part]);
     return scene.clone();
@@ -73,11 +86,18 @@ export const Chair = memo(({ config, showDimensions = false }: { config: ChairCo
     combinedScene.add(part);
   });
 
-  const originalMaterials = useRef<Record<string, THREE.Material>>({});
-
+  // Create materials for chair
   useEffect(() => {
     if (!chairRef.current) return;
 
+    // Plain material for measurement mode (no textures)
+    plainMaterial.current = new THREE.MeshStandardMaterial({
+      color: 0x808080, // Gray color
+      roughness: 0.8,
+      metalness: 0.05,
+    });
+
+    // Textured materials for normal mode
     const fabricMaterial = new THREE.MeshStandardMaterial({
       map: config.fabricTexture === 'champlain' ? champlainBaseColor :
            config.fabricTexture === 'huron' ? huronBaseColor :
@@ -112,12 +132,14 @@ export const Chair = memo(({ config, showDimensions = false }: { config: ChairCo
       metalness: 0.9,
     });
 
+    // Store original materials
     chairRef.current.traverse((child) => {
       if (child instanceof THREE.Mesh && child.material && !originalMaterials.current[child.uuid]) {
         originalMaterials.current[child.uuid] = child.material.clone();
       }
     });
 
+    // Apply materials based on showDimensions
     chairRef.current.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         const isFixedMainPart = 
@@ -142,14 +164,21 @@ export const Chair = memo(({ config, showDimensions = false }: { config: ChairCo
           child.name.toLowerCase().includes('optional_2') ||
           child.name.toLowerCase().includes('pillow');
 
-        if (isFixedMainPart) {
-          child.material = fabricMaterial;
-        } else if (isFixedMetalPart) {
-          child.material = backFinishMaterial;
-        } else if (isOptionalPart && originalMaterials.current[child.uuid]) {
-          child.material = originalMaterials.current[child.uuid];
+        if (showDimensions) {
+          // Apply plain material when showing dimensions
+          child.material = plainMaterial.current;
+        } else {
+          // Apply textured materials in normal mode
+          if (isFixedMainPart) {
+            child.material = fabricMaterial;
+          } else if (isFixedMetalPart) {
+            child.material = backFinishMaterial;
+          } else if (isOptionalPart && originalMaterials.current[child.uuid]) {
+            child.material = originalMaterials.current[child.uuid];
+          }
         }
 
+        // Handle back style visibility
         if (child.name.toLowerCase().includes('back')) {
           if (child.name.toLowerCase().includes('standard')) {
             child.visible = config.backStyle === 'standard';
@@ -163,21 +192,31 @@ export const Chair = memo(({ config, showDimensions = false }: { config: ChairCo
       }
     });
 
+    // Cleanup on unmount
     return () => {
       if (fabricMaterial) fabricMaterial.dispose();
       if (backFinishMaterial) backFinishMaterial.dispose();
+      if (plainMaterial.current) plainMaterial.current.dispose();
     };
-  }, [config]);
+  }, [config, showDimensions]);
 
+  // Handle dimension lines and labels
   useEffect(() => {
-    if (!chairRef.current || !showDimensions) return;
+    if (!chairRef.current || !showDimensions) {
+      if (dimensionLinesRef.current) {
+        dimensionLinesRef.current.clear();
+      }
+      return;
+    }
 
+    // Calculate bounding box
     const box = new THREE.Box3().setFromObject(chairRef.current);
     const size = new THREE.Vector3();
     box.getSize(size);
     const center = new THREE.Vector3();
     box.getCenter(center);
 
+    // Initialize dimension group
     if (!dimensionLinesRef.current) {
       dimensionLinesRef.current = new THREE.Group();
       chairRef.current.add(dimensionLinesRef.current);
@@ -185,82 +224,99 @@ export const Chair = memo(({ config, showDimensions = false }: { config: ChairCo
       dimensionLinesRef.current.clear();
     }
 
-    const lineMaterial = new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 2 });
+    // Define line materials
+    const widthLineMaterial = new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 2 }); // Red
+    const depthLineMaterial = new THREE.LineBasicMaterial({ color: 0x00ff00, linewidth: 2 }); // Green
+    const heightLineMaterial = new THREE.LineBasicMaterial({ color: 0x0000ff, linewidth: 2 }); // Blue
 
-    // Width (X-axis)
+    // Width (X-axis) - Red
     const widthLine = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(box.min.x, box.max.y + 0.2, box.max.z + 0.2),
-      new THREE.Vector3(box.max.x, box.max.y + 0.2, box.max.z + 0.2),
+      new THREE.Vector3(box.min.x, box.min.y - 0.2, box.min.z),
+      new THREE.Vector3(box.max.x, box.min.y - 0.2, box.min.z),
     ]);
-    const widthLineObj = new THREE.Line(widthLine, lineMaterial);
+    const widthLineObj = new THREE.Line(widthLine, widthLineMaterial);
     dimensionLinesRef.current.add(widthLineObj);
 
-    const widthText = `${(size.x).toFixed(2)} units`;
-    const widthLabel = (
-      <Text
-        position={[center.x, box.max.y + 0.3, box.max.z + 0.2]}
-        fontSize={0.1}
-        color="red"
-        anchorX="center"
-        anchorY="middle"
-      >
-        {widthText}
-      </Text>
-    );
+    const widthText = `Width: ${(size.x).toFixed(2)}m`;
+    const widthLabel = createTextSprite(widthText, "red");
+    widthLabel.position.set(center.x, box.min.y - 0.5, box.min.z); // Adjusted position to avoid overlap
     dimensionLinesRef.current.add(widthLabel);
 
-    // Height (Y-axis)
-    const heightLine = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(box.max.x + 0.2, box.min.y, box.max.z + 0.2),
-      new THREE.Vector3(box.max.x + 0.2, box.max.y, box.max.z + 0.2),
-    ]);
-    const heightLineObj = new THREE.Line(heightLine, lineMaterial);
-    dimensionLinesRef.current.add(heightLineObj);
-
-    const heightText = `${(size.y).toFixed(2)} units`;
-    const heightLabel = (
-      <Text
-        position={[box.max.x + 0.3, center.y, box.max.z + 0.2]}
-        fontSize={0.1}
-        color="red"
-        anchorX="center"
-        anchorY="middle"
-      >
-        {heightText}
-      </Text>
-    );
-    dimensionLinesRef.current.add(heightLabel);
-
-    // Depth (Z-axis)
+    // Depth (Z-axis) - Green
     const depthLine = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(box.max.x + 0.2, box.max.y + 0.2, box.min.z),
-      new THREE.Vector3(box.max.x + 0.2, box.max.y + 0.2, box.max.z),
+      new THREE.Vector3(box.min.x, box.min.y - 0.2, box.min.z),
+      new THREE.Vector3(box.min.x, box.min.y - 0.2, box.max.z),
     ]);
-    const depthLineObj = new THREE.Line(depthLine, lineMaterial);
+    const depthLineObj = new THREE.Line(depthLine, depthLineMaterial);
     dimensionLinesRef.current.add(depthLineObj);
 
-    const depthText = `${(size.z).toFixed(2)} units`;
-    const depthLabel = (
-      <Text
-        position={[box.max.x + 0.3, box.max.y + 0.3, center.z]}
-        fontSize={0.1}
-        color="red"
-        anchorX="center"
-        anchorY="middle"
-      >
-        {depthText}
-      </Text>
-    );
+    const depthText = `Depth: ${(size.z).toFixed(2)}m`;
+    const depthLabel = createTextSprite(depthText, "green");
+    depthLabel.position.set(box.min.x - 0.5, box.min.y - 0.2, center.z); // Adjusted position
     dimensionLinesRef.current.add(depthLabel);
 
+    // Height (Y-axis) - Blue
+    const heightLine = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(box.min.x, box.min.y, box.min.z),
+      new THREE.Vector3(box.min.x, box.max.y, box.min.z),
+    ]);
+    const heightLineObj = new THREE.Line(heightLine, heightLineMaterial);
+    dimensionLinesRef.current.add(heightLineObj);
+
+    const heightText = `Height: ${(size.y).toFixed(2)}m`;
+    const heightLabel = createTextSprite(heightText, "blue");
+    heightLabel.position.set(box.min.x - 0.5, center.y, box.min.z); // Adjusted position
+    dimensionLinesRef.current.add(heightLabel);
+
+    // Summary label at the top
+    const summaryText = `W: ${(size.x).toFixed(2)}m H: ${(size.y).toFixed(2)}m D: ${(size.z).toFixed(2)}m`;
+    const summaryLabel = createTextSprite(summaryText, "yellow");
+    summaryLabel.position.set(center.x, box.max.y + 0.7, center.z); // Adjusted position
+    dimensionLinesRef.current.add(summaryLabel);
+
+    // Log dimensions for debugging
     console.log('Dimensions:', { width: size.x, height: size.y, depth: size.z });
 
+    // Cleanup on unmount or when showDimensions changes
     return () => {
       if (dimensionLinesRef.current) {
         dimensionLinesRef.current.clear();
       }
+      widthLineMaterial.dispose();
+      depthLineMaterial.dispose();
+      heightLineMaterial.dispose();
     };
-  }, [config, showDimensions]);
+  }, [showDimensions]);
+
+  // Helper function to create a sprite with text
+  const createTextSprite = (text: string, color: string): THREE.Sprite => {
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d")!;
+    canvas.width = 1024; // Increased canvas width for larger text
+    canvas.height = 256; // Increased canvas height for larger text
+
+    // Draw text on the canvas
+    context.font = "80px Arial"; // Increased font size for larger text
+    context.fillStyle = color;
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText(text, canvas.width / 2, canvas.height / 2);
+
+    // Create a texture from the canvas
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+
+    // Create a sprite material with the texture
+    const spriteMaterial = new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true,
+    });
+
+    // Create and return the sprite
+    const sprite = new THREE.Sprite(spriteMaterial);
+    sprite.scale.set(2, 0.5, 1); // Adjusted scale to match larger canvas and make text larger
+    return sprite;
+  };
 
   return (
     <group
@@ -275,7 +331,11 @@ export const Chair = memo(({ config, showDimensions = false }: { config: ChairCo
   );
 });
 
-const arePropsEqual = (prevProps: { config: ChairConfig; showDimensions?: boolean }, nextProps: { config: ChairConfig; showDimensions?: boolean }) => {
+// Memoization comparison function
+const arePropsEqual = (
+  prevProps: { config: ChairConfig; showDimensions?: boolean },
+  nextProps: { config: ChairConfig; showDimensions?: boolean }
+) => {
   return (
     prevProps.config.backStyle === nextProps.config.backStyle &&
     prevProps.config.fabricColor === nextProps.config.fabricColor &&
