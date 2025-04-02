@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="View 3D models in AR on iOS and Android" />
+    <meta name="apple-mobile-web-app-capable" content="yes" /> <!-- For iOS AR compatibility -->
+    <meta name="mobile-web-app-capable" content="yes" /> <!-- For Android -->
+    <meta name="theme-color" content="#ffffff" /> <!-- Customize for your app -->
+    <link rel="icon" href="/sport-car.png" type="image/png" />
+    <title>3D Model Viewer with AR</title>
+    <!-- Preload critical assets if needed -->
+    <link rel="preload" href="/src/main.jsx" as="script" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      JavaScript is required to view 3D models and AR experiences. Please enable it in your browser.
+    </noscript>
+    <!-- Load model-viewer asynchronously with fallback -->
+    <script
+      type="module"
+      src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"
+      async
+      onload="console.log('Model Viewer loaded')"
+      onerror="console.error('Failed to load Model Viewer')"
+    ></script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
