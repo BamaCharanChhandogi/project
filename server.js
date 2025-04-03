@@ -1,36 +1,16 @@
+// server.js
 import express from 'express';
-import concat from 'concat-stream';
-import cors from 'cors';
-
+import multer from 'multer';
+import path from 'path';
 const app = express();
-const port = process.env.PORT || 4000;
-let models = {};
 
-app.use(express.raw({ type: 'application/octet-stream', limit: '50mb' }));
-app.use(cors({ origin: '*' }));
+const upload = multer({ dest: 'public/models/' });
 
-app.post('/upload', (req, res) => {
-  const modelId = Date.now().toString();
-  req.pipe(concat((data) => {
-    models[modelId] = data;
-    const url = `${req.protocol}://${req.get('host')}/model/${modelId}`;
-    console.log('Generated URL:', url);
-    res.json({ url });
-  }));
+app.use(express.static('public'));
+
+app.post('/api/upload', upload.single('model'), (req, res) => {
+  const fileUrl = `${req.protocol}://${req.get('host')}/models/${req.file.filename}`;
+  res.json({ url: fileUrl });
 });
 
-app.get('/model/:id', (req, res) => {
-  const modelId = req.params.id;
-  const modelData = models[modelId];
-  if (modelData) {
-    res.set('Content-Type', 'model/gltf-binary'); // Correct MIME type for .glb
-    res.set('Content-Disposition', 'inline; filename="model.glb"'); // Optional: suggest filename
-    res.send(modelData);
-  } else {
-    res.status(404).send('Model not found');
-  }
-});
-
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Server running on port ${port}`);
-});
+app.listen(3000, () => console.log('Server running on port 3000'));

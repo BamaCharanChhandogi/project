@@ -35,28 +35,34 @@ export const ChairConfigurator: React.FC = () => {
   const controlsRef = useRef<any>(null);
   const chairRef = useRef<THREE.Group>(null);
 
-  const handleSaveDesign = useCallback(() => {
+  const handleSaveDesign = useCallback(async () => {
     if (!chairRef.current) {
       setError('No chair model to save');
       return;
     }
-
+  
     const exporter = new GLTFExporter();
     exporter.parse(
       chairRef.current,
-      (gltf) => {
+      async (gltf) => {
         const blob = new Blob([gltf], { type: 'application/octet-stream' });
-        const sizeInMB = (blob.size / (1024 * 1024)).toFixed(2);
-        console.log(`Blob size: ${blob.size} bytes (${sizeInMB} MB)`);
-
-        // Create a local URL for the Blob
-        const localUrl = URL.createObjectURL(blob);
-        setArModelUrl(localUrl);
-        setShowQRCode(true);
-        setError(null);
-
-        // Clean up the URL when the component unmounts or a new model is generated
-        return () => URL.revokeObjectURL(localUrl);
+        const formData = new FormData();
+        formData.append('model', blob, 'custom-chair.glb');
+  
+        try {
+          const response = await fetch('http://localhost:3000/api/upload', {
+            method: 'POST',
+            body: formData,
+          });
+          const data = await response.json();
+          const publicModelUrl = data.url; // e.g., "http://localhost:3000/models/custom-chair.glb"
+          setArModelUrl(publicModelUrl);
+          setShowQRCode(true);
+          setError(null);
+        } catch (err) {
+          console.error('Upload error:', err);
+          setError('Failed to save model to server');
+        }
       },
       (error) => {
         console.error('GLTF Export error:', error);
@@ -66,21 +72,27 @@ export const ChairConfigurator: React.FC = () => {
     );
   }, []);
 
-// In ChairConfigurator.tsx
-const handleARView = () => {
-  if (arModelUrl) {
-    const isAndroid = /android/i.test(navigator.userAgent.toLowerCase());
-    if (isAndroid) {
-      // Direct URL approach instead of intent
-      const sceneViewerUrl = `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(arModelUrl)}&mode=ar_preferred&title=3D Chair Viewer`;
-      window.location.href = sceneViewerUrl;
+  const handleARView = useCallback(() => {
+    if (arModelUrl) {
+      const isAndroid = /android/i.test(navigator.userAgent.toLowerCase());
+      if (isAndroid) {
+        const sceneViewerUrl = `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(arModelUrl)}&mode=ar_preferred&title=Custom Chair`;
+        window.location.href = sceneViewerUrl;
+
+        // Fallback if AR doesn't launch
+        setTimeout(() => {
+          if (document.hasFocus()) {
+            setError('Failed to launch AR. Please ensure Google Scene Viewer is installed.');
+            setShowQRCode(true);
+          }
+        }, 2000);
+      } else {
+        setShowQRCode(true); // Fallback to QR code for non-Android devices
+      }
     } else {
-      setShowQRCode(true); // Fallback to QR code for non-Android devices
+      handleSaveDesign(); // Save and then show AR
     }
-  } else {
-    handleSaveDesign();
-  }
-};
+  }, [arModelUrl, handleSaveDesign]);
 
   const handleScreenshot = useCallback(() => {
     if (canvasRef.current) {
@@ -97,9 +109,8 @@ const handleARView = () => {
   };
 
   const qrCodeValue = arModelUrl
-  ? `${window.location.origin}/ar?modelUrl=${encodeURIComponent(arModelUrl)}`
-  : `${window.location.origin}/ar`;
-  
+    ? `${window.location.origin}/ar?modelUrl=${encodeURIComponent(arModelUrl)}`
+    : `${window.location.origin}/ar`;
 
   return (
     <div className="flex h-screen">
