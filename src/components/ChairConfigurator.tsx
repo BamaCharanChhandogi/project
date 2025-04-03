@@ -45,21 +45,22 @@ export const ChairConfigurator: React.FC = () => {
       exporter.parse(
         chairRef.current,
         (gltf) => {
-          const blob = new Blob([gltf as ArrayBuffer], { type: 'model/gltf-binary' });
+          const output = JSON.stringify(gltf); // Export as GLTF JSON first
+          const blob = new Blob([output], { type: 'application/json' });
           const url = URL.createObjectURL(blob);
-          console.log('Generated Blob URL:', url);
-  
-          // Temporary: Download the GLB file to test its validity
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = 'exported-chair.glb';
-          link.click();
-  
+          console.log('Generated GLTF URL:', url);
           setArModelUrl(url);
           setShowQRCode(true);
         },
-        (error) => console.error('Export error:', error),
-        { binary: true, embedImages: true } // Ensure textures are embedded
+        (error) => {
+          console.error('GLTF Export error:', error);
+          setError('Failed to export model');
+        },
+        { 
+          binary: false, // Use JSON format instead of binary for better compatibility
+          trs: true,    // Include translation, rotation, scale
+          embedImages: true // Embed texture images
+        }
       );
     }
   };
@@ -88,9 +89,9 @@ export const ChairConfigurator: React.FC = () => {
   };
 
   // Ensure the QR code points to the /ar route with the modelUrl query param
-  const qrCodeValue = arModelUrl
-    ? `${window.location.origin}/ar?modelUrl=${encodeURIComponent(arModelUrl)}`
-    : `${window.location.origin}/ar?modelUrl=${encodeURIComponent(`${window.location.origin}/CushionSeat.glb`)}`;
+  const qrCodeValue = arModelUrl 
+  ? `${window.location.origin}/ar?modelUrl=${encodeURIComponent(arModelUrl)}`
+  : `${window.location.origin}/ar?modelUrl=${encodeURIComponent(defaultConfig.parts[0])}`;
 
   return (
     <div className="flex h-screen">
