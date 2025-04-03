@@ -3,9 +3,13 @@ import express from 'express';
 const app = express();
 const port = process.env.PORT || 4000; // Use environment port for deployment
 import concat from 'concat-stream'; 
+import cors from 'cors';
 let models = {};
 
 app.use(express.raw({ type: 'application/octet-stream', limit: '50mb' }));
+app.use(cors({
+    origin: '*'
+}));
 
 app.post('/upload', (req, res) => {
   const modelId = Date.now().toString();
