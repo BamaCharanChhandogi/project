@@ -4,5 +4,21 @@
         "source": "/(.*)",
         "destination": "/index.html"
       }
-    ]
+    ],
+    "builds": [
+    {
+      "src": "src/index.tsx",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/upload",
+      "dest": "/api/upload.ts"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "src/index.tsx"
+    }
+  ]
   }
