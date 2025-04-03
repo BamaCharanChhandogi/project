@@ -40,21 +40,26 @@ export const ChairConfigurator: React.FC = () => {
       setError('No chair model to save');
       return;
     }
-
+  
     const exporter = new GLTFExporter();
     exporter.parse(
       chairRef.current,
       async (gltf) => {
         const blob = new Blob([gltf], { type: 'application/octet-stream' });
-        const fileName = `custom-chair-${Date.now()}.glb`; // Unique filename
+        const fileName = `custom-chair-${Date.now()}.glb`;
         const formData = new FormData();
         formData.append('model', blob, fileName);
-
+  
         try {
           const response = await fetch('/api/upload', {
             method: 'POST',
             body: formData,
           });
+  
+          if (!response.ok) {
+            throw new Error(`Server responded with status ${response.status}: ${await response.text()}`);
+          }
+  
           const data = await response.json();
           if (data.url) {
             setArModelUrl(data.url);
@@ -65,7 +70,7 @@ export const ChairConfigurator: React.FC = () => {
           }
         } catch (err) {
           console.error('Upload error:', err);
-          setError('Failed to save model to server');
+          setError(`Failed to save model to server: ${err.message}`);
         }
       },
       (error) => {
