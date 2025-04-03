@@ -35,61 +35,52 @@ export const ChairConfigurator: React.FC = () => {
   const controlsRef = useRef<any>(null);
   const chairRef = useRef<THREE.Group>(null);
 
-// In your component (e.g., DesignPage.tsx)
-const handleSaveDesign = useCallback(async () => {
-  const exporter = new GLTFExporter();
-  exporter.parse(
-    chairRef.current,
-    async (gltf) => {
-      // Convert GLTF data to a Blob
-      const blob = new Blob([gltf], { type: 'application/octet-stream' });
-
-      try {
-        // Send the Blob to the local server
-        const response = await fetch('https://project-j7v3.onrender.com/upload', {
-          method: 'POST',
-          body: blob,
-          headers: {
-            'Content-Type': 'application/octet-stream',
-          },
-        });
-
-        if (!response.ok) throw new Error('Upload failed');
-        const { url } = await response.json();
-        
-        // Set the URL for the QR code
-        setArModelUrl(url); // Assuming setArModelUrl is your state setter
-        setShowQRCode(true); // Assuming this triggers QR code display
-      } catch (err) {
-        console.error('Upload error:', err);
-        setError('Failed to upload model'); // Assuming setError is your error handler
-      }
-    },
-    { binary: true }, // Use binary GLTF for smaller file size
-    (error) => {
-      console.error('Export error:', error);
-      setError('Failed to export model');
+  const handleSaveDesign = useCallback(() => {
+    if (!chairRef.current) {
+      setError('No chair model to save');
+      return;
     }
-  );
-}, [chairRef]);
+
+    const exporter = new GLTFExporter();
+    exporter.parse(
+      chairRef.current,
+      (gltf) => {
+        const blob = new Blob([gltf], { type: 'application/octet-stream' });
+        const sizeInMB = (blob.size / (1024 * 1024)).toFixed(2);
+        console.log(`Blob size: ${blob.size} bytes (${sizeInMB} MB)`);
+
+        // Create a local URL for the Blob
+        const localUrl = URL.createObjectURL(blob);
+        setArModelUrl(localUrl);
+        setShowQRCode(true);
+        setError(null);
+
+        // Clean up the URL when the component unmounts or a new model is generated
+        return () => URL.revokeObjectURL(localUrl);
+      },
+      (error) => {
+        console.error('GLTF Export error:', error);
+        setError('Failed to export model');
+      },
+      { binary: true, trs: true, embedImages: true }
+    );
+  }, []);
 
 // In ChairConfigurator.tsx
 const handleARView = () => {
   if (arModelUrl) {
     const isAndroid = /android/i.test(navigator.userAgent.toLowerCase());
-    
     if (isAndroid) {
-      // Use our /ar route for more controlled handling
-      window.location.href = `${window.location.origin}/ar?modelUrl=${encodeURIComponent(arModelUrl)}`;
+      // Direct URL approach instead of intent
+      const sceneViewerUrl = `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(arModelUrl)}&mode=ar_preferred&title=3D Chair Viewer`;
+      window.location.href = sceneViewerUrl;
     } else {
-      // Fallback to QR code for iOS or desktop
-      setShowQRCode(true);
+      setShowQRCode(true); // Fallback to QR code for non-Android devices
     }
   } else {
-    // Generate the model first
     handleSaveDesign();
   }
-}
+};
 
   const handleScreenshot = useCallback(() => {
     if (canvasRef.current) {
