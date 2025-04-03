@@ -16,22 +16,32 @@ export const ARRedirect: React.FC = () => {
       return;
     }
 
-    console.log('Received modelUrl:', modelUrl); // Debug log
+    console.log('Received modelUrl:', modelUrl);
 
     const userAgent = navigator.userAgent.toLowerCase();
     const isAndroid = /android/i.test(userAgent);
     const isIOS = /iphone|ipad|ipod/i.test(userAgent);
 
     const handleAndroidAR = () => {
-      const intentUrl = `intent://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(modelUrl)}&mode=ar_preferred#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url=${encodeURIComponent(window.location.origin)};end;`;
-      console.log('Android Intent URL:', intentUrl); // Debug log
+      // Ensure the modelUrl is properly encoded
+      const encodedModelUrl = encodeURIComponent(modelUrl);
+      const intentUrl = `intent://arvr.google.com/scene-viewer/1.0?file=${encodedModelUrl}&mode=ar_preferred#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url=${encodeURIComponent(`${window.location.origin}/ar-fallback`)};end;`;
+      console.log('Android Intent URL:', intentUrl);
+
+      // Attempt to launch AR
       window.location.href = intentUrl;
+
+      // Fallback if AR fails
+      setTimeout(() => {
+        if (document.hasFocus()) {
+          setError('AR failed to launch. Ensure Google Scene Viewer is installed.');
+        }
+      }, 2000);
     };
 
     const handleIOSAR = () => {
-      // For local testing with Blob URLs, iOS AR won't work without USDZ
       setError('iOS AR requires a USDZ file, which is not supported locally with Blob URLs. Test on Android.');
-      setTimeout(() => navigate('/'), 3000); // Redirect back after showing error
+      setTimeout(() => navigate('/'), 3000);
     };
 
     if (isAndroid) {
@@ -39,8 +49,7 @@ export const ARRedirect: React.FC = () => {
     } else if (isIOS) {
       handleIOSAR();
     } else {
-      setError('AR is only supported on mobile devices. Scan the QR code from your phone or click the link.');
-      // Don't navigate away immediately; let the user see the error and click the link
+      setError('AR is only supported on mobile devices. Scan the QR code from your phone.');
     }
   }, [location, navigate]);
 

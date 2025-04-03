@@ -39,7 +39,7 @@ export const ChairConfigurator: React.FC = () => {
     const newConfig = { ...config, id: Date.now().toString() };
     savedConfigs.push(newConfig);
     localStorage.setItem('chairConfigs', JSON.stringify(savedConfigs));
-
+  
     if (chairRef.current) {
       const exporter = new GLTFExporter();
       exporter.parse(
@@ -47,12 +47,19 @@ export const ChairConfigurator: React.FC = () => {
         (gltf) => {
           const blob = new Blob([gltf as ArrayBuffer], { type: 'model/gltf-binary' });
           const url = URL.createObjectURL(blob);
-          console.log('Generated Blob URL:', url); // Debug log
+          console.log('Generated Blob URL:', url);
+  
+          // Temporary: Download the GLB file to test its validity
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = 'exported-chair.glb';
+          link.click();
+  
           setArModelUrl(url);
           setShowQRCode(true);
         },
         (error) => console.error('Export error:', error),
-        { binary: true }
+        { binary: true, embedImages: true } // Ensure textures are embedded
       );
     }
   };

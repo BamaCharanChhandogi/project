@@ -97,36 +97,36 @@ export const Chair = memo(
 
     // Create textured materials
     fabricMaterialRef.current = new THREE.MeshStandardMaterial({
-      map: config.fabricTexture === 'champlain' ? champlainBaseColor :
-           config.fabricTexture === 'huron' ? huronBaseColor :
-           config.fabricTexture === 'kaleidoscope' ? kaleidoscopeBaseColor :
-           config.fabricTexture === 'lugano' ? luganoBaseColor :
-           config.fabricTexture === 'traveller' ? travellerBaseColor :
-           champlainBaseColor,
-      normalMap: config.fabricTexture === 'champlain' ? champlainNormal :
-                 config.fabricTexture === 'huron' ? huronNormal :
-                 config.fabricTexture === 'kaleidoscope' ? kaleidoscopeNormal :
-                 config.fabricTexture === 'lugano' ? luganoNormal :
-                 config.fabricTexture === 'traveller' ? travellerNormal :
-                 champlainNormal,
-      roughnessMap: config.fabricTexture === 'champlain' ? champlainRoughness :
-                    config.fabricTexture === 'huron' ? huronRoughness :
-                    config.fabricTexture === 'kaleidoscope' ? kaleidoscopeRoughness :
-                    config.fabricTexture === 'lugano' ? luganoRoughness :
-                    config.fabricTexture === 'traveller' ? travellerRoughness :
-                    champlainRoughness,
+      map: config.fabricTexture === 'champlain' ? champlainBaseColor.clone() :
+           config.fabricTexture === 'huron' ? huronBaseColor.clone() :
+           config.fabricTexture === 'kaleidoscope' ? kaleidoscopeBaseColor.clone() :
+           config.fabricTexture === 'lugano' ? luganoBaseColor.clone() :
+           config.fabricTexture === 'traveller' ? travellerBaseColor.clone() :
+           champlainBaseColor.clone(),
+      normalMap: config.fabricTexture === 'champlain' ? champlainNormal.clone() :
+                 config.fabricTexture === 'huron' ? huronNormal.clone() :
+                 config.fabricTexture === 'kaleidoscope' ? kaleidoscopeNormal.clone() :
+                 config.fabricTexture === 'lugano' ? luganoNormal.clone() :
+                 config.fabricTexture === 'traveller' ? travellerNormal.clone() :
+                 champlainNormal.clone(),
+      roughnessMap: config.fabricTexture === 'champlain' ? champlainRoughness.clone() :
+                    config.fabricTexture === 'huron' ? huronRoughness.clone() :
+                    config.fabricTexture === 'kaleidoscope' ? kaleidoscopeRoughness.clone() :
+                    config.fabricTexture === 'lugano' ? luganoRoughness.clone() :
+                    config.fabricTexture === 'traveller' ? travellerRoughness.clone() :
+                    champlainRoughness.clone(),
       roughness: 0.8,
       metalness: 0.05,
       color: config.fabricColor,
     });
-
+  
     backFinishMaterialRef.current = new THREE.MeshStandardMaterial({
-      map: config.backFinishTexture === 'antique' ? antiqueEnglish :
-           config.backFinishTexture === 'brushed' ? brushedNickel :
-           config.backFinishTexture === 'satin' ? satinNickel :
-           antiqueEnglish,
-      metalnessMap: metalMetalness,
-      normalMap: metalNormal,
+      map: config.backFinishTexture === 'antique' ? antiqueEnglish.clone() :
+           config.backFinishTexture === 'brushed' ? brushedNickel.clone() :
+           config.backFinishTexture === 'satin' ? satinNickel.clone() :
+           antiqueEnglish.clone(),
+      metalnessMap: metalMetalness.clone(),
+      normalMap: metalNormal.clone(),
       roughness: 0.4,
       metalness: 0.9,
       color: config.backFinish,
