@@ -10,10 +10,17 @@ export const ARRedirect: React.FC = () => {
 useEffect(() => {
   const params = new URLSearchParams(location.search);
   const modelUrl = params.get('modelUrl');
-
   if (modelUrl) {
-    const intentUrl = `intent://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(modelUrl)}&mode=ar_preferred#Intent;scheme=https;package=com.google.ar.core;action=android.intent.action.VIEW;end;`;
+    const intentUrl = `intent://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(modelUrl)}&mode=ar_preferred&title=Chair%20Model#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url=${encodeURIComponent(window.location.origin + '/ar-fallback')};end;`;
+    console.log('Intent URL:', intentUrl); // Debug log
     window.location.href = intentUrl;
+
+    // Fallback if AR doesn't launch
+    setTimeout(() => {
+      if (document.hasFocus()) {
+        setError('Failed to launch AR. Ensure Google Scene Viewer is installed.');
+      }
+    }, 3000);
   } else {
     setError('No model URL provided');
   }
