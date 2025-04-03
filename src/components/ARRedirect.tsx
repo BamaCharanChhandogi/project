@@ -9,7 +9,8 @@ export const ARRedirect: React.FC = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const modelUrl = params.get('modelUrl');
-
+    console.log('Model URL:', modelUrl); // Debug log
+    
     if (!modelUrl) {
       setError('Model URL is missing');
       setTimeout(() => navigate('/'), 2000);
@@ -22,19 +23,27 @@ export const ARRedirect: React.FC = () => {
 
     const launchAR = () => {
       if (isAndroid) {
-        // Simplified intent URL
-        const sceneViewerUrl = `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(modelUrl)}&mode=ar_preferred`;
-        const intentUrl = `intent://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(modelUrl)}#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url=${encodeURIComponent(window.location.origin + '/ar-fallback')};end;`;
-
-        console.log('Launching AR with intent:', intentUrl); // Debug log
-        window.location.href = intentUrl;
-
-        // Check if the intent failed after a delay
+        // Direct Scene Viewer URL (no intent)
+        const sceneViewerUrl = `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(modelUrl)}&mode=ar_preferred&title=3D Chair Viewer`;
+        
+        console.log('Launching AR with URL:', sceneViewerUrl); // Debug log
+        window.location.href = sceneViewerUrl;
+        
+        // Fallback only if needed
         setTimeout(() => {
           if (document.hasFocus()) {
-            setError('Failed to launch AR. Ensure Google Scene Viewer is installed.');
+            console.log('Scene viewer failed to launch, trying intent...');
+            const intentUrl = `intent://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(modelUrl)}&mode=ar_preferred&title=3D Chair Viewer#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url=${encodeURIComponent(window.location.origin)};end;`;
+            window.location.href = intentUrl;
+            
+            // Final fallback
+            setTimeout(() => {
+              if (document.hasFocus()) {
+                setError('Failed to launch AR. Ensure Google Scene Viewer is installed.');
+              }
+            }, 2000);
           }
-        }, 2500);
+        }, 2000);
       } else if (isIOS) {
         setError('iOS AR requires a USDZ file, not supported with local GLTF. Test on Android.');
         setTimeout(() => navigate('/'), 3000);

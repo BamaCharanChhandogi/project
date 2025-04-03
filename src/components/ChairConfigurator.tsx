@@ -71,8 +71,9 @@ const handleARView = () => {
   if (arModelUrl) {
     const isAndroid = /android/i.test(navigator.userAgent.toLowerCase());
     if (isAndroid) {
-      const intentUrl = `intent://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(arModelUrl)}#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url=${encodeURIComponent(window.location.origin + '/ar-fallback')};end;`;
-      window.location.href = intentUrl;
+      // Direct URL approach instead of intent
+      const sceneViewerUrl = `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(arModelUrl)}&mode=ar_preferred&title=3D Chair Viewer`;
+      window.location.href = sceneViewerUrl;
     } else {
       setShowQRCode(true); // Fallback to QR code for non-Android devices
     }
@@ -96,8 +97,9 @@ const handleARView = () => {
   };
 
   const qrCodeValue = arModelUrl
-    ? `${window.location.origin}/ar?modelUrl=${encodeURIComponent(arModelUrl)}`
-    : `${window.location.origin}/ar`;
+  ? `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(arModelUrl)}&mode=ar_preferred&title=3D Chair Viewer`
+  : `${window.location.origin}/ar`;
+  
 
   return (
     <div className="flex h-screen">
