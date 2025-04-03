@@ -7,7 +7,7 @@ export const ARViewer: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   
   // Assuming your model is in public/models folder
-  const modelUrl = `${window.location.origin}/Lion High.glb`;
+  const modelUrl = `${window.location.origin}/custom-chair.glb`;
 
   const launchAR = () => {
     const userAgent = navigator.userAgent.toLowerCase();
