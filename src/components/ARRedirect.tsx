@@ -22,19 +22,21 @@ export const ARRedirect: React.FC = () => {
 
     const launchAR = () => {
       if (isAndroid) {
+        // Simplified intent URL
         const sceneViewerUrl = `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(modelUrl)}&mode=ar_preferred`;
-        const intentUrl = `intent://${sceneViewerUrl.replace('https://', '')}#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url=${encodeURIComponent(window.location.origin + '/ar-fallback')};end;`;
+        const intentUrl = `intent://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(modelUrl)}#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url=${encodeURIComponent(window.location.origin + '/ar-fallback')};end;`;
+
+        console.log('Launching AR with intent:', intentUrl); // Debug log
         window.location.href = intentUrl;
 
+        // Check if the intent failed after a delay
         setTimeout(() => {
           if (document.hasFocus()) {
             setError('Failed to launch AR. Ensure Google Scene Viewer is installed.');
           }
         }, 2500);
       } else if (isIOS) {
-        // iOS requires USDZ, which we can't generate easily from GLTF locally.
-        // For now, show an error or use a pre-existing USDZ file if available.
-        setError('iOS AR requires a USDZ file, which is not supported in this local setup. Test on Android instead.');
+        setError('iOS AR requires a USDZ file, not supported with local GLTF. Test on Android.');
         setTimeout(() => navigate('/'), 3000);
       } else {
         setError('AR is only supported on mobile devices.');

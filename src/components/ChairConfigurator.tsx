@@ -66,13 +66,20 @@ export const ChairConfigurator: React.FC = () => {
     );
   }, []);
 
-  const handleARView = () => {
-    if (arModelUrl) {
-      setShowQRCode(true);
+// In ChairConfigurator.tsx
+const handleARView = () => {
+  if (arModelUrl) {
+    const isAndroid = /android/i.test(navigator.userAgent.toLowerCase());
+    if (isAndroid) {
+      const intentUrl = `intent://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(arModelUrl)}#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url=${encodeURIComponent(window.location.origin + '/ar-fallback')};end;`;
+      window.location.href = intentUrl;
     } else {
-      handleSaveDesign();
+      setShowQRCode(true); // Fallback to QR code for non-Android devices
     }
-  };
+  } else {
+    handleSaveDesign();
+  }
+};
 
   const handleScreenshot = useCallback(() => {
     if (canvasRef.current) {
