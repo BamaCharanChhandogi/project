@@ -46,7 +46,7 @@ const handleSaveDesign = useCallback(async () => {
 
       try {
         // Send the Blob to the local server
-        const response = await fetch('http://192.168.1.100:4000/upload', {
+        const response = await fetch('https://project-j7v3.onrender.com/upload', {
           method: 'POST',
           body: blob,
           headers: {
