@@ -35,28 +35,33 @@ export const ChairConfigurator: React.FC = () => {
   const controlsRef = useRef<any>(null);
   const chairRef = useRef<THREE.Group>(null);
 
-  const handleSaveDesign = useCallback(() => {
+  const handleSaveDesign = useCallback(async () => {
     if (!chairRef.current) {
       setError('No chair model to save');
       return;
     }
-
+  
     const exporter = new GLTFExporter();
     exporter.parse(
       chairRef.current,
-      (gltf) => {
+      async (gltf) => {
         const blob = new Blob([gltf], { type: 'application/octet-stream' });
-        const sizeInMB = (blob.size / (1024 * 1024)).toFixed(2);
-        console.log(`Blob size: ${blob.size} bytes (${sizeInMB} MB)`);
-
-        // Create a local URL for the Blob
-        const localUrl = URL.createObjectURL(blob);
-        setArModelUrl(localUrl);
-        setShowQRCode(true);
-        setError(null);
-
-        // Clean up the URL when the component unmounts or a new model is generated
-        return () => URL.revokeObjectURL(localUrl);
+        try {
+          // Example: Upload to a server (replace with your endpoint)
+          const formData = new FormData();
+          formData.append('file', blob, 'chair.glb');
+          const response = await fetch('https://your-server.com/upload', {
+            method: 'POST',
+            body: formData,
+          });
+          const { url } = await response.json(); // Assume server returns { url: 'https://...' }
+          setArModelUrl(url);
+          setShowQRCode(true);
+          setError(null);
+        } catch (err) {
+          console.error('Upload error:', err);
+          setError('Failed to upload model');
+        }
       },
       (error) => {
         console.error('GLTF Export error:', error);
