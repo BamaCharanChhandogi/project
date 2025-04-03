@@ -1,9 +1,8 @@
 // server.js
-const express = require('express');
+import express from 'express';
 const app = express();
 const port = process.env.PORT || 4000; // Use environment port for deployment
-const concat = require('concat-stream');
-
+import concat from 'concat-stream'; 
 let models = {};
 
 app.use(express.raw({ type: 'application/octet-stream', limit: '50mb' }));
