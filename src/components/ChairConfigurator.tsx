@@ -46,36 +46,26 @@ export const ChairConfigurator: React.FC = () => {
       chairRef.current,
       async (gltf) => {
         const blob = new Blob([gltf], { type: 'application/octet-stream' });
-        const fileName = `custom-chair-${Date.now()}.glb`;
         const formData = new FormData();
-        formData.append('model', blob, fileName);
+        formData.append('model', blob, 'custom-chair.glb');
   
         try {
-          const response = await fetch('/api/upload', {
+          const response = await fetch('https://project-j7v3.onrender.com/api/upload', {
             method: 'POST',
             body: formData,
           });
-  
-          if (!response.ok) {
-            throw new Error(`Server responded with status ${response.status}: ${await response.text()}`);
-          }
-  
           const data = await response.json();
-          if (data.url) {
-            setArModelUrl(data.url);
-            setShowQRCode(true);
-            setError(null);
-          } else {
-            setError('Failed to get model URL from server');
-          }
+          setArModelUrl(data.url); // e.g., "http://localhost:3000/models/custom-chair.glb"
+          setShowQRCode(true);
+          setError(null);
         } catch (err) {
           console.error('Upload error:', err);
-          setError(`Failed to save model to server: ${err.message}`);
+          setError('Failed to save model to server');
         }
       },
       (error) => {
         console.error('GLTF Export error:', error);
-        setError(`Failed to export model: ${error.message}`);
+        setError('Failed to export model');
       },
       { binary: true, trs: true, embedImages: true }
     );
@@ -85,20 +75,21 @@ export const ChairConfigurator: React.FC = () => {
     if (arModelUrl) {
       const isAndroid = /android/i.test(navigator.userAgent.toLowerCase());
       if (isAndroid) {
-        const sceneViewerUrl = `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(arModelUrl)}&mode=ar_preferred&title=Custom Chair&t=${Date.now()}`;
+        const sceneViewerUrl = `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(arModelUrl)}&mode=ar_preferred&title=Custom Chair`;
         window.location.href = sceneViewerUrl;
 
+        // Fallback if AR doesn't launch
         setTimeout(() => {
           if (document.hasFocus()) {
-            setError('Failed to launch AR. Ensure Google Scene Viewer is installed.');
+            setError('Failed to launch AR. Please ensure Google Scene Viewer is installed.');
             setShowQRCode(true);
           }
         }, 2000);
       } else {
-        setShowQRCode(true);
+        setShowQRCode(true); // Fallback to QR code for non-Android devices
       }
     } else {
-      handleSaveDesign();
+      handleSaveDesign(); // Save and then show AR
     }
   }, [arModelUrl, handleSaveDesign]);
 

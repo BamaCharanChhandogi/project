@@ -28,7 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const blob = await put(fileName, fileBuffer, {
       access: 'public',
-      token: process.env.BLOB_READ_WRITE_TOKEN,
+      token: 'vercel_blob_rw_znGik1I1ZsRdMjlT_vSU6Osm95Y8IIuechf9VENWnoofTBf',
     });
 
     return res.status(200).json({ url: blob.url });
