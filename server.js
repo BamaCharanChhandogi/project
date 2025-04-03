@@ -8,12 +8,12 @@ import cors from 'cors';
 const upload = multer({ dest: 'public/models/' });
 
 app.use(express.static('public'));
-app.use(cors({
-  origin: '*'
-}));
 
 app.post('/api/upload', upload.single('model'), (req, res) => {
-  const fileUrl = `${req.protocol}://${req.get('host')}/models/${req.file.filename}`;
+  const fileName = 'custom-chair.glb';
+  const filePath = path.join(__dirname, 'public/models', fileName);
+  require('fs').renameSync(req.file.path, filePath); // Rename to custom-chair.glb
+  const fileUrl = `${req.protocol}://${req.get('host')}/models/${fileName}`;
   res.json({ url: fileUrl });
 });
 
