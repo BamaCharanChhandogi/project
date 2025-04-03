@@ -1,6 +1,6 @@
 import { put } from '@vercel/blob';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { parse } from 'formidable'; // Use formidable to parse multipart/form-data
+import { parse } from 'formidable';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -8,7 +8,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // Parse the incoming form-data
     const form = new Promise<{ fields: any; files: any }>((resolve, reject) => {
       const parser = new parse.Formidable();
       parser.parse(req, (err, fields, files) => {
@@ -18,16 +17,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     const { files } = await form;
-    const file = files.model?.[0]; // `model` is the field name from your FormData
+    const file = files.model?.[0]; // 'model' matches the FormData key in frontend
 
     if (!file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
     const fileName = file.originalFilename || `custom-chair-${Date.now()}.glb`;
-    const fileBuffer = require('fs').readFileSync(file.filepath); // Read file from temp path
+    const fileBuffer = require('fs').readFileSync(file.filepath);
 
-    // Upload to Vercel Blob Storage
     const blob = await put(fileName, fileBuffer, {
       access: 'public',
       token: process.env.BLOB_READ_WRITE_TOKEN,
@@ -42,6 +40,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
 export const config = {
   api: {
-    bodyParser: false, // Disable Vercel's default body parser for multipart/form-data
+    bodyParser: false, // Required for multipart/form-data
   },
 };
