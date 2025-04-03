@@ -38,9 +38,10 @@ const backFinishTextures = [
 interface ConfigPanelProps {
   config: ChairConfig;
   setConfig: (config: ChairConfig) => void;
+  onSave: () => void;
 }
 
-export function ConfigPanel({ config, setConfig }: ConfigPanelProps) {
+export function ConfigPanel({ config, setConfig, onSave }: ConfigPanelProps) {
   const toggleOptionalPart = (part: string) => {
     const fixedParts = ['Cushion_Seat', 'Legs'];
     const currentOptional = config.parts.filter((p) => !fixedParts.includes(p))[0]; // Get current optional part, if any
@@ -218,7 +219,7 @@ export function ConfigPanel({ config, setConfig }: ConfigPanelProps) {
         <div className="text-sm text-gray-500">
           <span className="font-medium">Configuration:</span> Standard
         </div>
-        <button className="px-4 py-2 bg-gray-800 text-white rounded-md text-sm hover:bg-gray-700 transition">
+        <button onClick={onSave} className="px-4 py-2 bg-gray-800 text-white rounded-md text-sm hover:bg-gray-700 transition">
           Save Design
         </button>
       </div>

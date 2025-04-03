@@ -2,6 +2,7 @@ import { useGLTF } from "@react-three/drei";
 import { useEffect, useRef, memo } from "react";
 import * as THREE from "three";
 import { ChairConfig } from "./ChairConfigurator";
+import { forwardRef, useImperativeHandle } from 'react';
 
 // Define URLs for chair parts
 const PARTS_URLS: { [key: string]: string } = {
@@ -69,11 +70,15 @@ interface ChairProps {
   showDimensions?: boolean;
 }
 
-export const Chair = memo(({ config, showDimensions = false }: ChairProps) => {
+export const Chair = memo(
+  forwardRef<THREE.Group, ChairProps>(({ config, showDimensions = false }, ref) => {
   const chairRef = useRef<THREE.Group>(null);
   const dimensionLinesRef = useRef<THREE.Group>(null);
-  const originalMaterials = useRef<Record<string, THREE.Material>>({});
-  const plainMaterial = useRef<THREE.MeshStandardMaterial | null>(null);
+  const materialCache = useRef<Record<string, THREE.Material>>({});
+  
+  // Store material references for each mesh
+  const fabricMaterialRef = useRef<THREE.MeshStandardMaterial | null>(null);
+  const backFinishMaterialRef = useRef<THREE.MeshStandardMaterial | null>(null);
 
   // Load and combine chair parts
   const loadedParts = config.parts.map((part) => {
@@ -90,15 +95,8 @@ export const Chair = memo(({ config, showDimensions = false }: ChairProps) => {
   useEffect(() => {
     if (!chairRef.current) return;
 
-    // Plain material for measurement mode (no textures)
-    plainMaterial.current = new THREE.MeshStandardMaterial({
-      color: 0x808080, // Gray color
-      roughness: 0.8,
-      metalness: 0.05,
-    });
-
-    // Textured materials for normal mode
-    const fabricMaterial = new THREE.MeshStandardMaterial({
+    // Create textured materials
+    fabricMaterialRef.current = new THREE.MeshStandardMaterial({
       map: config.fabricTexture === 'champlain' ? champlainBaseColor :
            config.fabricTexture === 'huron' ? huronBaseColor :
            config.fabricTexture === 'kaleidoscope' ? kaleidoscopeBaseColor :
@@ -119,9 +117,10 @@ export const Chair = memo(({ config, showDimensions = false }: ChairProps) => {
                     champlainRoughness,
       roughness: 0.8,
       metalness: 0.05,
+      color: config.fabricColor,
     });
 
-    const backFinishMaterial = new THREE.MeshStandardMaterial({
+    backFinishMaterialRef.current = new THREE.MeshStandardMaterial({
       map: config.backFinishTexture === 'antique' ? antiqueEnglish :
            config.backFinishTexture === 'brushed' ? brushedNickel :
            config.backFinishTexture === 'satin' ? satinNickel :
@@ -130,18 +129,15 @@ export const Chair = memo(({ config, showDimensions = false }: ChairProps) => {
       normalMap: metalNormal,
       roughness: 0.4,
       metalness: 0.9,
+      color: config.backFinish,
     });
 
-    // Store original materials
+    // Store original materials if not already done
     chairRef.current.traverse((child) => {
-      if (child instanceof THREE.Mesh && child.material && !originalMaterials.current[child.uuid]) {
-        originalMaterials.current[child.uuid] = child.material.clone();
-      }
-    });
+      if (child instanceof THREE.Mesh && child.material && !materialCache.current[child.uuid]) {
+        materialCache.current[child.uuid] = child.material.clone();
 
-    // Apply materials based on showDimensions
-    chairRef.current.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
+        // Apply appropriate materials from the start
         const isFixedMainPart = 
           (child.name.toLowerCase().includes('seat') ||
            child.name.toLowerCase().includes('cushion') ||
@@ -157,25 +153,11 @@ export const Chair = memo(({ config, showDimensions = false }: ChairProps) => {
           !(child.name.toLowerCase().includes('optional') || 
             child.name.toLowerCase().includes('pillow'));
 
-        const isOptionalPart = 
-          child.name.toLowerCase().includes('optional1') || 
-          child.name.toLowerCase().includes('optional_1') ||
-          child.name.toLowerCase().includes('optional2') || 
-          child.name.toLowerCase().includes('optional_2') ||
-          child.name.toLowerCase().includes('pillow');
-
-        if (showDimensions) {
-          // Apply plain material when showing dimensions
-          child.material = plainMaterial.current;
-        } else {
-          // Apply textured materials in normal mode
-          if (isFixedMainPart) {
-            child.material = fabricMaterial;
-          } else if (isFixedMetalPart) {
-            child.material = backFinishMaterial;
-          } else if (isOptionalPart && originalMaterials.current[child.uuid]) {
-            child.material = originalMaterials.current[child.uuid];
-          }
+        // Apply materials based on part type
+        if (isFixedMainPart && fabricMaterialRef.current) {
+          child.material = fabricMaterialRef.current;
+        } else if (isFixedMetalPart && backFinishMaterialRef.current) {
+          child.material = backFinishMaterialRef.current;
         }
 
         // Handle back style visibility
@@ -194,20 +176,26 @@ export const Chair = memo(({ config, showDimensions = false }: ChairProps) => {
 
     // Cleanup on unmount
     return () => {
-      if (fabricMaterial) fabricMaterial.dispose();
-      if (backFinishMaterial) backFinishMaterial.dispose();
-      if (plainMaterial.current) plainMaterial.current.dispose();
+      if (fabricMaterialRef.current) fabricMaterialRef.current.dispose();
+      if (backFinishMaterialRef.current) backFinishMaterialRef.current.dispose();
+      Object.values(materialCache.current).forEach(material => material.dispose());
     };
-  }, [config, showDimensions]);
+  }, [config]);
 
   // Handle dimension lines and labels
   useEffect(() => {
-    if (!chairRef.current || !showDimensions) {
-      if (dimensionLinesRef.current) {
-        dimensionLinesRef.current.clear();
-      }
-      return;
+    if (!chairRef.current) return;
+    
+    // Initialize or clear dimension group
+    if (!dimensionLinesRef.current) {
+      dimensionLinesRef.current = new THREE.Group();
+      chairRef.current.add(dimensionLinesRef.current);
+    } else {
+      dimensionLinesRef.current.clear();
     }
+    
+    // If not showing dimensions, just exit
+    if (!showDimensions) return;
 
     // Calculate bounding box
     const box = new THREE.Box3().setFromObject(chairRef.current);
@@ -215,14 +203,6 @@ export const Chair = memo(({ config, showDimensions = false }: ChairProps) => {
     box.getSize(size);
     const center = new THREE.Vector3();
     box.getCenter(center);
-
-    // Initialize dimension group
-    if (!dimensionLinesRef.current) {
-      dimensionLinesRef.current = new THREE.Group();
-      chairRef.current.add(dimensionLinesRef.current);
-    } else {
-      dimensionLinesRef.current.clear();
-    }
 
     // Define line materials
     const widthLineMaterial = new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 2 }); // Red
@@ -317,7 +297,7 @@ export const Chair = memo(({ config, showDimensions = false }: ChairProps) => {
     sprite.scale.set(2, 0.5, 1); // Adjusted scale to match larger canvas and make text larger
     return sprite;
   };
-
+  useImperativeHandle(ref, () => chairRef.current!);
   return (
     <group
       ref={chairRef}
@@ -329,7 +309,8 @@ export const Chair = memo(({ config, showDimensions = false }: ChairProps) => {
       <primitive object={combinedScene} />
     </group>
   );
-});
+}),
+)
 
 // Memoization comparison function
 const arePropsEqual = (
