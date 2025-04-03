@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Stage } from '@react-three/drei';
 import { AiOutlineQrcode, AiOutlineCamera, AiOutlineReload } from 'react-icons/ai';
@@ -26,48 +26,48 @@ export const ChairConfigurator: React.FC = () => {
     fabricTexture: 'champlain',
     backFinishTexture: 'antique',
   };
-  const [config, setConfig] = useState<ChairConfig>(defaultConfig);
+  const [chairConfig, setChairConfig] = useState<ChairConfig>(defaultConfig);
   const [showQRCode, setShowQRCode] = useState(false);
   const [showMeasure, setShowMeasure] = useState(false);
   const [arModelUrl, setArModelUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const controlsRef = useRef<any>(null);
   const chairRef = useRef<THREE.Group>(null);
 
-  const handleSaveDesign = () => {
-    const savedConfigs = JSON.parse(localStorage.getItem('chairConfigs') || '[]');
-    const newConfig = { ...config, id: Date.now().toString() };
-    savedConfigs.push(newConfig);
-    localStorage.setItem('chairConfigs', JSON.stringify(savedConfigs));
-  
-    if (chairRef.current) {
-      const exporter = new GLTFExporter();
-      exporter.parse(
-        chairRef.current,
-        (gltf) => {
-          const output = JSON.stringify(gltf); // Export as GLTF JSON first
-          const blob = new Blob([output], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          console.log('Generated GLTF URL:', url);
-          setArModelUrl(url);
-          setShowQRCode(true);
-        },
-        (error) => {
-          console.error('GLTF Export error:', error);
-          setError('Failed to export model');
-        },
-        { 
-          binary: false, // Use JSON format instead of binary for better compatibility
-          trs: true,    // Include translation, rotation, scale
-          embedImages: true // Embed texture images
-        }
-      );
+  const handleSaveDesign = useCallback(() => {
+    if (!chairRef.current) {
+      setError('No chair model to save');
+      return;
     }
-  };
+
+    const exporter = new GLTFExporter();
+    exporter.parse(
+      chairRef.current,
+      (gltf) => {
+        const blob = new Blob([gltf], { type: 'application/octet-stream' });
+        const sizeInMB = (blob.size / (1024 * 1024)).toFixed(2);
+        console.log(`Blob size: ${blob.size} bytes (${sizeInMB} MB)`);
+
+        // Create a local URL for the Blob
+        const localUrl = URL.createObjectURL(blob);
+        setArModelUrl(localUrl);
+        setShowQRCode(true);
+        setError(null);
+
+        // Clean up the URL when the component unmounts or a new model is generated
+        return () => URL.revokeObjectURL(localUrl);
+      },
+      (error) => {
+        console.error('GLTF Export error:', error);
+        setError('Failed to export model');
+      },
+      { binary: true, trs: true, embedImages: true }
+    );
+  }, []);
 
   const handleARView = () => {
     if (arModelUrl) {
-      console.log('Using existing AR URL:', arModelUrl); // Debug log
       setShowQRCode(true);
     } else {
       handleSaveDesign();
@@ -88,10 +88,9 @@ export const ChairConfigurator: React.FC = () => {
     if (controlsRef.current) controlsRef.current.reset();
   };
 
-  // Ensure the QR code points to the /ar route with the modelUrl query param
-  const qrCodeValue = arModelUrl 
-  ? `${window.location.origin}/ar?modelUrl=${encodeURIComponent(arModelUrl)}`
-  : `${window.location.origin}/ar?modelUrl=${encodeURIComponent(defaultConfig.parts[0])}`;
+  const qrCodeValue = arModelUrl
+    ? `${window.location.origin}/ar?modelUrl=${encodeURIComponent(arModelUrl)}`
+    : `${window.location.origin}/ar`;
 
   return (
     <div className="flex h-screen">
@@ -103,7 +102,7 @@ export const ChairConfigurator: React.FC = () => {
           gl={{ preserveDrawingBuffer: true }}
         >
           <Stage environment="city" intensity={0.5} adjustCamera={false}>
-            <Chair config={config} showDimensions={showMeasure} ref={chairRef} />
+            <Chair config={chairConfig} showDimensions={showMeasure} ref={chairRef} />
           </Stage>
           <OrbitControls
             ref={controlsRef}
@@ -121,17 +120,33 @@ export const ChairConfigurator: React.FC = () => {
         </Canvas>
 
         <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-2">
-          <button onClick={() => setShowMeasure(!showMeasure)} className="bg-gray-500 hover:bg-gray-600 text-white p-3 rounded-md transition-colors flex items-center" title="Measure">
+          <button
+            onClick={() => setShowMeasure(!showMeasure)}
+            className="bg-gray-500 hover:bg-gray-600 text-white p-3 rounded-md transition-colors flex items-center"
+            title="Measure"
+          >
             <FaRuler size={20} />
           </button>
-          <button onClick={handleScreenshot} className="bg-gray-500 hover:bg-gray-600 text-white p-3 rounded-md transition-colors flex items-center" title="Take Screenshot">
+          <button
+            onClick={handleScreenshot}
+            className="bg-gray-500 hover:bg-gray-600 text-white p-3 rounded-md transition-colors flex items-center"
+            title="Take Screenshot"
+          >
             <AiOutlineCamera size={20} />
           </button>
-          <button onClick={handleARView} className="bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-md transition-colors flex items-center" title="View in AR">
+          <button
+            onClick={handleARView}
+            className="bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-md transition-colors flex items-center"
+            title="View in AR"
+          >
             <AiOutlineQrcode size={20} className="mr-2" />
             <span>View in AR</span>
           </button>
-          <button onClick={handleResetView} className="bg-gray-500 hover:bg-gray-600 text-white p-3 rounded-md transition-colors flex items-center" title="Reset View">
+          <button
+            onClick={handleResetView}
+            className="bg-gray-500 hover:bg-gray-600 text-white p-3 rounded-md transition-colors flex items-center"
+            title="Reset View"
+          >
             <AiOutlineReload size={20} />
           </button>
         </div>
@@ -148,14 +163,23 @@ export const ChairConfigurator: React.FC = () => {
                 </a>{' '}
                 to view in AR
               </p>
-              <button onClick={() => setShowQRCode(false)} className="mt-4 bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md transition-colors">
+              <button
+                onClick={() => setShowQRCode(false)}
+                className="mt-4 bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md transition-colors"
+              >
                 Close
               </button>
             </div>
           </div>
         )}
+
+        {error && (
+          <div className="absolute top-4 left-4 bg-red-500 text-white p-4 rounded-lg shadow-lg">
+            {error}
+          </div>
+        )}
       </div>
-      <ConfigPanel config={config} setConfig={setConfig} onSave={handleSaveDesign} />
+      <ConfigPanel config={chairConfig} setConfig={setChairConfig} onSave={handleSaveDesign} />
     </div>
   );
 };

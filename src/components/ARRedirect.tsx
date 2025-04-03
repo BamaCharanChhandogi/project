@@ -1,5 +1,4 @@
-// ARRedirect.tsx
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 export const ARRedirect: React.FC = () => {
@@ -17,38 +16,28 @@ export const ARRedirect: React.FC = () => {
       return;
     }
 
-    console.log('Received modelUrl:', modelUrl);
-
     const userAgent = navigator.userAgent.toLowerCase();
     const isAndroid = /android/i.test(userAgent);
     const isIOS = /iphone|ipad|ipod/i.test(userAgent);
 
     const launchAR = () => {
-      // Updated Android Scene Viewer intent
-      const sceneViewerUrl = `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(modelUrl)}&mode=ar_preferred&resizable=true&title=Chair%20Model`;
-      
-      // For Android
       if (isAndroid) {
+        const sceneViewerUrl = `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(modelUrl)}&mode=ar_preferred`;
         const intentUrl = `intent://${sceneViewerUrl.replace('https://', '')}#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url=${encodeURIComponent(window.location.origin + '/ar-fallback')};end;`;
-        
-        console.log('Launching AR with Intent:', intentUrl);
         window.location.href = intentUrl;
 
-        // Check if AR launched successfully
         setTimeout(() => {
           if (document.hasFocus()) {
-            setError('Failed to launch AR. Please ensure Google Scene Viewer is installed and try again.');
+            setError('Failed to launch AR. Ensure Google Scene Viewer is installed.');
           }
         }, 2500);
-      } 
-      // For iOS (Note: Blob URLs won't work natively with iOS AR Quick Look)
-      else if (isIOS) {
-        // For iOS, we need a USDZ file served from a proper URL, not a Blob
-        setError('iOS AR requires a USDZ file. Please test on Android or use a hosted GLB file.');
+      } else if (isIOS) {
+        // iOS requires USDZ, which we can't generate easily from GLTF locally.
+        // For now, show an error or use a pre-existing USDZ file if available.
+        setError('iOS AR requires a USDZ file, which is not supported in this local setup. Test on Android instead.');
         setTimeout(() => navigate('/'), 3000);
-      } 
-      else {
-        setError('AR is only supported on mobile devices. Please scan the QR code from your Android device.');
+      } else {
+        setError('AR is only supported on mobile devices.');
         setTimeout(() => navigate('/'), 3000);
       }
     };
