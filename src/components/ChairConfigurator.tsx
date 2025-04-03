@@ -35,34 +35,36 @@ export const ChairConfigurator: React.FC = () => {
   const controlsRef = useRef<any>(null);
   const chairRef = useRef<THREE.Group>(null);
 
-  const handleSaveDesign = useCallback(async () => {
+  const handleSaveDesign = useCallback(() => {
     if (!chairRef.current) {
       setError('No chair model to save');
       return;
     }
-  
+
     const exporter = new GLTFExporter();
     exporter.parse(
       chairRef.current,
-      async (gltf) => {
+      (gltf) => {
         const blob = new Blob([gltf], { type: 'application/octet-stream' });
-        const formData = new FormData();
-        formData.append('model', blob, 'custom-chair.glb');
-  
-        try {
-          const response = await fetch('https://project-j7v3.onrender.com/api/upload', {
-            method: 'POST',
-            body: formData,
-          });
-          const data = await response.json();
-          const publicModelUrl = data.url; // e.g., "http://localhost:3000/models/custom-chair.glb"
-          setArModelUrl(publicModelUrl);
-          setShowQRCode(true);
-          setError(null);
-        } catch (err) {
-          console.error('Upload error:', err);
-          setError('Failed to save model to server');
-        }
+        const sizeInMB = (blob.size / (1024 * 1024)).toFixed(2);
+        console.log(`Blob size: ${blob.size} bytes (${sizeInMB} MB)`);
+
+        // Create a Blob URL for the exported model
+        const blobUrl = URL.createObjectURL(blob);
+        setArModelUrl(blobUrl);
+        setShowQRCode(true);
+        setError(null);
+
+        // Trigger download to save locally
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = 'custom-chair.glb';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Clean up Blob URL when component unmounts or new model is generated
+        return () => URL.revokeObjectURL(blobUrl);
       },
       (error) => {
         console.error('GLTF Export error:', error);
@@ -77,6 +79,7 @@ export const ChairConfigurator: React.FC = () => {
       const isAndroid = /android/i.test(navigator.userAgent.toLowerCase());
       if (isAndroid) {
         const sceneViewerUrl = `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(arModelUrl)}&mode=ar_preferred&title=Custom Chair`;
+        console.log('Launching AR with URL:', sceneViewerUrl); // Debug log
         window.location.href = sceneViewerUrl;
 
         // Fallback if AR doesn't launch
@@ -87,7 +90,7 @@ export const ChairConfigurator: React.FC = () => {
           }
         }, 2000);
       } else {
-        setShowQRCode(true); // Fallback to QR code for non-Android devices
+        setShowQRCode(true); // Show QR code for non-Android devices
       }
     } else {
       handleSaveDesign(); // Save and then show AR
@@ -111,6 +114,13 @@ export const ChairConfigurator: React.FC = () => {
   const qrCodeValue = arModelUrl
     ? `${window.location.origin}/ar?modelUrl=${encodeURIComponent(arModelUrl)}`
     : `${window.location.origin}/ar`;
+
+  // Cleanup Blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      if (arModelUrl) URL.revokeObjectURL(arModelUrl);
+    };
+  }, [arModelUrl]);
 
   return (
     <div className="flex h-screen">
