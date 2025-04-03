@@ -35,41 +35,43 @@ export const ChairConfigurator: React.FC = () => {
   const controlsRef = useRef<any>(null);
   const chairRef = useRef<THREE.Group>(null);
 
-  const handleSaveDesign = useCallback(async () => {
-    if (!chairRef.current) {
-      setError('No chair model to save');
-      return;
+// In your component (e.g., DesignPage.tsx)
+const handleSaveDesign = useCallback(async () => {
+  const exporter = new GLTFExporter();
+  exporter.parse(
+    chairRef.current,
+    async (gltf) => {
+      // Convert GLTF data to a Blob
+      const blob = new Blob([gltf], { type: 'application/octet-stream' });
+
+      try {
+        // Send the Blob to the local server
+        const response = await fetch('http://192.168.1.100:4000/upload', {
+          method: 'POST',
+          body: blob,
+          headers: {
+            'Content-Type': 'application/octet-stream',
+          },
+        });
+
+        if (!response.ok) throw new Error('Upload failed');
+        const { url } = await response.json();
+        
+        // Set the URL for the QR code
+        setArModelUrl(url); // Assuming setArModelUrl is your state setter
+        setShowQRCode(true); // Assuming this triggers QR code display
+      } catch (err) {
+        console.error('Upload error:', err);
+        setError('Failed to upload model'); // Assuming setError is your error handler
+      }
+    },
+    { binary: true }, // Use binary GLTF for smaller file size
+    (error) => {
+      console.error('Export error:', error);
+      setError('Failed to export model');
     }
-  
-    const exporter = new GLTFExporter();
-    exporter.parse(
-      chairRef.current,
-      async (gltf) => {
-        const blob = new Blob([gltf], { type: 'application/octet-stream' });
-        try {
-          // Example: Upload to a server (replace with your endpoint)
-          const formData = new FormData();
-          formData.append('file', blob, 'chair.glb');
-          const response = await fetch('https://your-server.com/upload', {
-            method: 'POST',
-            body: formData,
-          });
-          const { url } = await response.json(); // Assume server returns { url: 'https://...' }
-          setArModelUrl(url);
-          setShowQRCode(true);
-          setError(null);
-        } catch (err) {
-          console.error('Upload error:', err);
-          setError('Failed to upload model');
-        }
-      },
-      (error) => {
-        console.error('GLTF Export error:', error);
-        setError('Failed to export model');
-      },
-      { binary: true, trs: true, embedImages: true }
-    );
-  }, []);
+  );
+}, [chairRef]);
 
 // In ChairConfigurator.tsx
 const handleARView = () => {

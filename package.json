@@ -13,6 +13,8 @@
     "@react-three/drei": "^9.99.0",
     "@react-three/fiber": "^8.15.16",
     "appwrite": "^17.0.1",
+    "concat-stream": "^2.0.0",
+    "express": "^5.1.0",
     "lil-gui": "^0.20.0",
     "lucide-react": "^0.344.0",
     "qrcode.react": "^4.2.0",
