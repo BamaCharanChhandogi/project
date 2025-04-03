@@ -70,17 +70,19 @@ export const ChairConfigurator: React.FC = () => {
 const handleARView = () => {
   if (arModelUrl) {
     const isAndroid = /android/i.test(navigator.userAgent.toLowerCase());
+    
     if (isAndroid) {
-      // Direct URL approach instead of intent
-      const sceneViewerUrl = `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(arModelUrl)}&mode=ar_preferred&title=3D Chair Viewer`;
-      window.location.href = sceneViewerUrl;
+      // Use our /ar route for more controlled handling
+      window.location.href = `${window.location.origin}/ar?modelUrl=${encodeURIComponent(arModelUrl)}`;
     } else {
-      setShowQRCode(true); // Fallback to QR code for non-Android devices
+      // Fallback to QR code for iOS or desktop
+      setShowQRCode(true);
     }
   } else {
+    // Generate the model first
     handleSaveDesign();
   }
-};
+}
 
   const handleScreenshot = useCallback(() => {
     if (canvasRef.current) {
@@ -97,7 +99,7 @@ const handleARView = () => {
   };
 
   const qrCodeValue = arModelUrl
-  ? `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(arModelUrl)}&mode=ar_preferred&title=3D Chair Viewer`
+  ? `${window.location.origin}/ar?modelUrl=${encodeURIComponent(arModelUrl)}`
   : `${window.location.origin}/ar`;
   
 
