@@ -1,24 +1,26 @@
 {
-    "rewrites": [
-      {
-        "source": "/(.*)",
-        "destination": "/index.html"
-      }
-    ],
-    "builds": [
+  "version": 2,
+  "builds": [
     {
-      "src": "src/index.tsx",
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    },
+    {
+      "src": "api/upload.ts",
       "use": "@vercel/node"
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/upload",
-      "dest": "/api/upload.ts"
+      "source": "/api/upload",
+      "destination": "/api/upload.ts"
     },
     {
-      "src": "/(.*)",
-      "dest": "src/index.tsx"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
-  }
+}
