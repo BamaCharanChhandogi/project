@@ -21,7 +21,7 @@ export interface ChairConfig {
 // Initialize Appwrite client
 const client = new Client()
   .setEndpoint('https://cloud.appwrite.io/v1')
-  .setProject('67e54122002b48ebf3d1'); // Removed brackets
+  .setProject('67e54122002b48ebf3d1');
 
 const storage = new Storage(client);
 const account = new Account(client);
@@ -44,19 +44,31 @@ export const ChairConfigurator: React.FC = () => {
   const controlsRef = useRef<any>(null);
   const chairRef = useRef<THREE.Group>(null);
 
-  // Set up anonymous session on component mount
+  // Set up anonymous session only if none exists
   useEffect(() => {
     const setupAnonymousSession = async () => {
       try {
-        await account.createAnonymousSession();
-        console.log('Anonymous session created');
-      } catch (err) {
-        console.error('Failed to create anonymous session:', err);
-        setError('Authentication failed. Please try again.');
+        // Check if a session already exists
+        await account.get();
+        console.log('Existing session found');
+      } catch (err: any) {
+        // If no session exists (401 or similar), create an anonymous one
+        if (err.code === 401) {
+          try {
+            await account.createAnonymousSession();
+            console.log('Anonymous session created');
+          } catch (sessionErr: any) {
+            console.error('Failed to create anonymous session:', sessionErr);
+            setError(`Authentication failed: ${sessionErr.message}`);
+          }
+        } else {
+          console.error('Unexpected error checking session:', err);
+          setError(`Unexpected error: ${err.message}`);
+        }
       }
     };
     setupAnonymousSession();
-  }, []);
+  }, []); // Empty dependency array ensures this runs only once on mount
 
   const handleSaveDesign = useCallback(async () => {
     if (!chairRef.current) {
@@ -72,21 +84,18 @@ export const ChairConfigurator: React.FC = () => {
         const file = new File([blob], 'custom-chair.glb', { type: 'application/octet-stream' });
 
         try {
-          // Upload file to Appwrite Storage
           const response = await storage.createFile(
-            '67e541df000fda7737de', // Removed brackets
-            'unique()', // Generates a unique ID for the file
+            '67e541df000fda7737de',
+            'unique()',
             file
           );
-
-          // Generate a public URL for the file
           const fileUrl = `${client.config.endpoint}/storage/buckets/67e541df000fda7737de/files/${response.$id}/view?project=67e54122002b48ebf3d1`;
           setArModelUrl(fileUrl);
           setShowQRCode(true);
           setError(null);
         } catch (err: any) {
           console.error('Appwrite upload error:', err);
-          setError(`Failed to save model to Appwrite: ${err.message || 'Unknown error'}`);
+          setError(`Failed to save model: ${err.message || 'Unknown error'}`);
         }
       },
       (error) => {
@@ -111,10 +120,10 @@ export const ChairConfigurator: React.FC = () => {
           }
         }, 2000);
       } else {
-        setShowQRCode(true); // Fallback to QR code for non-Android devices
+        setShowQRCode(true);
       }
     } else {
-      handleSaveDesign(); // Save and then show AR
+      handleSaveDesign();
     }
   }, [arModelUrl, handleSaveDesign]);
 

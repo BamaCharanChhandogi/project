@@ -56,7 +56,7 @@ const metalNormal = textureLoader.load('/Metal032_2K_Normal.jpg');
   metalNormal,
 ].forEach((texture) => {
   texture.flipY = false;
-  texture.encoding = THREE.LinearEncoding;
+  texture.colorSpace = THREE.LinearSRGBColorSpace;
 });
 
 interface ChairProps {
