@@ -5,11 +5,13 @@ import { QRCodeSVG as QRCode } from 'qrcode.react';
 export const ARViewer: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [arLink, setArLink] = useState<string | null>(null);
   const [showQRCode, setShowQRCode] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const queryParams = new URLSearchParams(location.search);
   const modelUrl = queryParams.get('modelUrl') || `${window.location.origin}/custom-chair.glb`;
+  const usdzUrl = queryParams.get('usdzUrl');
 
   const launchAR = () => {
     const userAgent = navigator.userAgent.toLowerCase();
@@ -27,8 +29,29 @@ export const ARViewer: React.FC = () => {
         }
       }, 2000);
     } else if (isIOS) {
-      setError('iOS requires USDZ format. Using QR code fallback.');
-      setShowQRCode(true);
+      if (usdzUrl) {
+        // Fetch the USDZ file and create a blob URL with the correct MIME type
+        fetch(usdzUrl)
+          .then((response) => response.blob())
+          .then((blob) => {
+            const blobUrl = URL.createObjectURL(
+              new Blob([blob], { type: 'model/vnd.+zip' })
+            );
+            const iosArUrl = `${blobUrl}#allowsContentScaling=1&ar`;
+            setArLink(iosArUrl);
+            setTimeout(() => {
+              window.location.href = iosArUrl;
+            }, 500);
+          })
+          .catch((err) => {
+            console.error('Failed to fetch USDZ file:', err);
+            setError('Failed to load AR model for iOS.');
+            setShowQRCode(true);
+          });
+      } else {
+        setError('No USDZ file available for iOS.');
+        setShowQRCode(true);
+      }
     } else {
       setShowQRCode(true);
     }
@@ -38,7 +61,9 @@ export const ARViewer: React.FC = () => {
     launchAR();
   }, []);
 
-  const qrCodeValue = `${window.location.origin}/ar?modelUrl=${encodeURIComponent(modelUrl)}`;
+  const qrCodeValue = usdzUrl
+    ? `${window.location.origin}/ar?modelUrl=${encodeURIComponent(modelUrl)}&usdzUrl=${encodeURIComponent(usdzUrl)}`
+    : `${window.location.origin}/ar?modelUrl=${encodeURIComponent(modelUrl)}`;
 
   return (
     <div className="flex items-center justify-center h-screen">
@@ -61,9 +86,16 @@ export const ARViewer: React.FC = () => {
               Back
             </button>
           </>
-        ) : (
+        ) : arLink ? (
           <>
             <p className="mb-4">Launching AR experience...</p>
+            <a href={arLink} rel="ar" className="text-blue-500 underline">
+              Click here if AR doesn’t start automatically
+            </a>
+          </>
+        ) : (
+          <>
+            <p className="mb-4">Preparing AR experience...</p>
             <div className="w-16 h-16 border-t-4 border-blue-500 border-solid rounded-full animate-spin mx-auto" />
           </>
         )}

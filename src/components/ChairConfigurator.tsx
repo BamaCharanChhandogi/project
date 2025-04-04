@@ -37,9 +37,9 @@ export const ChairConfigurator: React.FC = () => {
   const [chairConfig, setChairConfig] = useState<ChairConfig>(defaultConfig);
   const [showQRCode, setShowQRCode] = useState(false);
   const [showMeasure, setShowMeasure] = useState(false);
-  const [arModelUrl, setArModelUrl] = useState<string | null>(null);
+  const [arModelUrl, setArModelUrl] = useState<{ glb: string; usdz?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false); // New loading state
+  const [isSaving, setIsSaving] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const controlsRef = useRef<any>(null);
   const chairRef = useRef<THREE.Group>(null);
@@ -73,46 +73,83 @@ export const ChairConfigurator: React.FC = () => {
       return;
     }
 
-    setIsSaving(true); // Show loading spinner
-    setError(null); // Clear previous errors
+    setIsSaving(true);
+    setError(null);
 
     const exporter = new GLTFExporter();
     exporter.parse(
       chairRef.current,
       async (gltf) => {
         const blob = new Blob([gltf], { type: 'application/octet-stream' });
-        const file = new File([blob], 'custom-chair.glb', { type: 'application/octet-stream' });
+        const glbFile = new File([blob], 'custom-chair.glb', { type: 'application/octet-stream' });
 
         try {
-          const response = await storage.createFile(
+          // Save GLB to Appwrite
+          const glbResponse = await storage.createFile(
             '67e541df000fda7737de',
             'unique()',
-            file
+            glbFile
           );
-          const fileUrl = `${client.config.endpoint}/storage/buckets/67e541df000fda7737de/files/${response.$id}/view?project=67e54122002b48ebf3d1`;
-          setArModelUrl(fileUrl);
+          const glbFileUrl = `${client.config.endpoint}/storage/buckets/67e541df000fda7737de/files/${glbResponse.$id}/view?project=67e54122002b48ebf3d1}`;
+
+          // Trigger USDZ conversion via Appwrite Function
+          const usdzFileId = await triggerUsdzConversion(glbResponse.$id);
+          const usdzFileUrl = usdzFileId
+            ? `${client.config.endpoint}/storage/buckets/67e541df000fda7737de/files/${usdzFileId}/view?project=67e54122002b48ebf3d1}`
+            : null;
+
+          setArModelUrl({ glb: glbFileUrl, usdz: usdzFileUrl });
           setShowQRCode(true);
         } catch (err: any) {
           console.error('Appwrite upload error:', err);
           setError(`Failed to save model: ${err.message || 'Unknown error'}`);
         } finally {
-          setIsSaving(false); // Hide loading spinner
+          setIsSaving(false);
         }
       },
       (error) => {
         console.error('GLTF Export error:', error);
         setError('Failed to export model');
-        setIsSaving(false); // Hide loading spinner on export failure
+        setIsSaving(false);
       },
       { binary: true, trs: true, embedImages: true }
     );
   }, []);
 
+  const triggerUsdzConversion = async (glbFileId: string): Promise<string | null> => {
+    try {
+      const response = await fetch(
+        `${client.config.endpoint}/functions/67ef997f002931317a12/executions`, // Replace with your Function ID
+        {
+          method: 'POST',
+          headers: {
+            'X-Appwrite-Project': '67e54122002b48ebf3d1',
+            'X-Appwrite-Key': 'standard_e8c88530fddfd66fd4390a11bea496507099d44fc2854e915e628dc68a10608cf7236825ebcd03e741bf36ee7b049bb1dc8811f5cb46a481656fd853666434ed8520b7942569f1ac362285ce291c3eb9807b6632c5f7849ebd0de7169a63602b3c775c6e839be7772073a8af2d827892edee4dbe3b3244059bb25941b90d07ca', // Replace with your API key
+          },
+          body: JSON.stringify({ glbFileId }),
+        }
+      );
+      const result = await response.json();
+      if (result.usdzFileId) {
+        return result.usdzFileId;
+      } else {
+        throw new Error('Conversion failed: No USDZ file ID returned');
+      }
+    } catch (err) {
+      console.error('Failed to trigger USDZ conversion:', err);
+      setError('Failed to convert GLB to USDZ');
+      return null;
+    }
+  };
+
   const handleARView = useCallback(() => {
     if (arModelUrl) {
-      const isAndroid = /android/i.test(navigator.userAgent.toLowerCase());
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isAndroid = /android/i.test(userAgent);
+      const isIOS = /iphone|ipad|ipod/i.test(userAgent);
+
       if (isAndroid) {
-        const sceneViewerUrl = `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(arModelUrl)}&mode=ar_preferred&title=Custom Chair`;
+        const sceneViewerUrl = `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(arModelUrl.glb)}&mode=ar_preferred&title=Custom Chair`;
         window.location.href = sceneViewerUrl;
 
         setTimeout(() => {
@@ -121,6 +158,21 @@ export const ChairConfigurator: React.FC = () => {
             setShowQRCode(true);
           }
         }, 2000);
+      } else if (isIOS && arModelUrl.usdz) {
+        fetch(arModelUrl.usdz)
+          .then((response) => response.blob())
+          .then((blob) => {
+            const blobUrl = URL.createObjectURL(
+              new Blob([blob], { type: 'model/vnd.usdz+zip' })
+            );
+            const iosArUrl = `${blobUrl}#allowsContentScaling=1&ar`;
+            window.location.href = iosArUrl;
+          })
+          .catch((err) => {
+            console.error('Failed to fetch USDZ file:', err);
+            setError('Failed to load AR model for iOS.');
+            setShowQRCode(true);
+          });
       } else {
         setShowQRCode(true);
       }
@@ -144,7 +196,9 @@ export const ChairConfigurator: React.FC = () => {
   };
 
   const qrCodeValue = arModelUrl
-    ? `${window.location.origin}/ar?modelUrl=${encodeURIComponent(arModelUrl)}`
+    ? `${window.location.origin}/ar?modelUrl=${encodeURIComponent(arModelUrl.glb)}${
+        arModelUrl.usdz ? `&usdzUrl=${encodeURIComponent(arModelUrl.usdz)}` : ''
+      }`
     : `${window.location.origin}/ar`;
 
   return (
