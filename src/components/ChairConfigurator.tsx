@@ -7,6 +7,7 @@ import { Chair } from './Chair';
 import { ConfigPanel } from './ConfigPanel';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
+import { Client, Storage, Account } from 'appwrite';
 
 export interface ChairConfig {
   backStyle: 'standard' | 'welted';
@@ -16,6 +17,14 @@ export interface ChairConfig {
   fabricTexture: 'champlain' | 'huron' | 'kaleidoscope' | 'lugano' | 'traveller';
   backFinishTexture: 'antique' | 'brushed' | 'satin';
 }
+
+// Initialize Appwrite client
+const client = new Client()
+  .setEndpoint('https://cloud.appwrite.io/v1')
+  .setProject('67e54122002b48ebf3d1'); // Removed brackets
+
+const storage = new Storage(client);
+const account = new Account(client);
 
 export const ChairConfigurator: React.FC = () => {
   const defaultConfig: ChairConfig = {
@@ -35,32 +44,49 @@ export const ChairConfigurator: React.FC = () => {
   const controlsRef = useRef<any>(null);
   const chairRef = useRef<THREE.Group>(null);
 
+  // Set up anonymous session on component mount
+  useEffect(() => {
+    const setupAnonymousSession = async () => {
+      try {
+        await account.createAnonymousSession();
+        console.log('Anonymous session created');
+      } catch (err) {
+        console.error('Failed to create anonymous session:', err);
+        setError('Authentication failed. Please try again.');
+      }
+    };
+    setupAnonymousSession();
+  }, []);
+
   const handleSaveDesign = useCallback(async () => {
     if (!chairRef.current) {
       setError('No chair model to save');
       return;
     }
-  
+
     const exporter = new GLTFExporter();
     exporter.parse(
       chairRef.current,
       async (gltf) => {
         const blob = new Blob([gltf], { type: 'application/octet-stream' });
-        const formData = new FormData();
-        formData.append('model', blob, 'custom-chair.glb');
-  
+        const file = new File([blob], 'custom-chair.glb', { type: 'application/octet-stream' });
+
         try {
-          const response = await fetch('https://project-j7v3.onrender.com/api/upload', {
-            method: 'POST',
-            body: formData,
-          });
-          const data = await response.json();
-          setArModelUrl(data.url); // e.g., "http://localhost:3000/models/custom-chair.glb"
+          // Upload file to Appwrite Storage
+          const response = await storage.createFile(
+            '67e541df000fda7737de', // Removed brackets
+            'unique()', // Generates a unique ID for the file
+            file
+          );
+
+          // Generate a public URL for the file
+          const fileUrl = `${client.config.endpoint}/storage/buckets/67e541df000fda7737de/files/${response.$id}/view?project=67e54122002b48ebf3d1`;
+          setArModelUrl(fileUrl);
           setShowQRCode(true);
           setError(null);
-        } catch (err) {
-          console.error('Upload error:', err);
-          setError('Failed to save model to server');
+        } catch (err: any) {
+          console.error('Appwrite upload error:', err);
+          setError(`Failed to save model to Appwrite: ${err.message || 'Unknown error'}`);
         }
       },
       (error) => {
@@ -78,7 +104,6 @@ export const ChairConfigurator: React.FC = () => {
         const sceneViewerUrl = `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(arModelUrl)}&mode=ar_preferred&title=Custom Chair`;
         window.location.href = sceneViewerUrl;
 
-        // Fallback if AR doesn't launch
         setTimeout(() => {
           if (document.hasFocus()) {
             setError('Failed to launch AR. Please ensure Google Scene Viewer is installed.');
