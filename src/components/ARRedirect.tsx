@@ -41,30 +41,51 @@ export const ARViewer: React.FC = () => {
   const qrCodeValue = `${window.location.origin}/ar?modelUrl=${encodeURIComponent(modelUrl)}`;
 
   return (
-    <div className="flex items-center justify-center h-screen">
-      <div className="bg-white p-6 rounded-lg shadow-lg text-center">
-        {error && <div className="text-red-500 mb-4">{error}</div>}
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-blue-50 to-gray-100 p-4">
+      <div className="bg-white p-6 rounded-xl shadow-xl text-center max-w-sm w-full">
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">
+            {error}
+          </div>
+        )}
+        
         {showQRCode ? (
           <>
-            <h3 className="text-lg font-bold mb-4">Scan to View in AR</h3>
-            <QRCode value={qrCodeValue} size={200} level="H" includeMargin={true} />
-            <p className="mt-4 text-sm text-gray-600">
-              Scan this QR code or{' '}
-              <a href={qrCodeValue} className="text-blue-500 underline">
-                click here
-              </a>
+            <h2 className="text-xl font-bold mb-6 text-gray-800">View Chair in AR</h2>
+            <div className="bg-white p-2 border border-gray-200 rounded-lg inline-block mb-4">
+              <QRCode value={qrCodeValue} size={200} level="H" includeMargin={true} />
+            </div>
+            <p className="mb-6 text-sm text-gray-600">
+              Scan this QR code with your mobile device or{' '}
+              <a href={qrCodeValue} className="text-blue-500 underline font-medium">
+                open directly
+              </a>{' '}
+              on your AR-capable device
             </p>
-            <button
-              onClick={() => navigate('/')}
-              className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md"
-            >
-              Back
-            </button>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => navigate('/')}
+                className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg transition-colors text-sm font-medium"
+              >
+                Return to Editor
+              </button>
+              <button
+                onClick={() => window.open(modelUrl, '_blank')}
+                className="flex-1 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-sm font-medium"
+              >
+                Download Model
+              </button>
+            </div>
           </>
         ) : (
           <>
-            <p className="mb-4">Launching AR experience...</p>
-            <div className="w-16 h-16 border-t-4 border-blue-500 border-solid rounded-full animate-spin mx-auto" />
+            <h2 className="text-xl font-bold mb-4 text-gray-800">Launching AR</h2>
+            <div className="flex flex-col items-center justify-center space-y-4">
+              <div className="w-16 h-16 border-t-4 border-blue-500 border-solid rounded-full animate-spin" />
+              <p className="text-gray-600 text-sm">
+                Opening AR viewer on your device...
+              </p>
+            </div>
           </>
         )}
       </div>
