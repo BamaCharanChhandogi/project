@@ -19,9 +19,9 @@ const champlainBaseColor = textureLoader.load('/Champlain_BaseColor.png');
 const champlainNormal = textureLoader.load('/Champlain_Normal.png');
 const champlainRoughness = textureLoader.load('/Champlain_Roughness.png');
 
-const huronBaseColor = textureLoader.load('/Huron_BaseColor.png');
-const huronNormal = textureLoader.load('/Huron_Normal.png');
-const huronRoughness = textureLoader.load('/Huron_Roughness.png');
+const huronBaseColor = textureLoader.load('/HURON_BaseColor.png');
+const huronNormal = textureLoader.load('/HURON_Normal.png');
+const huronRoughness = textureLoader.load('/HURON_Roughness.png');
 
 const kaleidoscopeBaseColor = textureLoader.load('/Bazaar_Base_color.png');
 const kaleidoscopeNormal = textureLoader.load('/Bazaar_Normal.png');
@@ -56,7 +56,7 @@ const metalNormal = textureLoader.load('/Metal032_2K_Normal.jpg');
   metalNormal,
 ].forEach((texture) => {
   texture.flipY = false;
-  texture.colorSpace = THREE.LinearSRGBColorSpace;
+  texture.colorSpace = THREE.LinearSRGBColorSpace; // Updated from .encoding
 });
 
 interface ChairProps {
@@ -69,8 +69,6 @@ export const Chair = memo(
     const chairRef = useRef<THREE.Group>(null);
     const dimensionLinesRef = useRef<THREE.Group>(null);
     const materialCache = useRef<Record<string, THREE.Material>>({});
-    const fabricMaterialRef = useRef<THREE.MeshStandardMaterial | null>(null);
-    const backFinishMaterialRef = useRef<THREE.MeshStandardMaterial | null>(null);
 
     const loadedParts = config.parts.map((part) => {
       const { scene } = useGLTF(PARTS_URLS[part]);
@@ -85,7 +83,7 @@ export const Chair = memo(
     useEffect(() => {
       if (!chairRef.current) return;
 
-      fabricMaterialRef.current = new THREE.MeshStandardMaterial({
+      const fabricMaterial = new THREE.MeshStandardMaterial({
         map:
           config.fabricTexture === 'champlain'
             ? champlainBaseColor
@@ -127,7 +125,7 @@ export const Chair = memo(
         color: config.fabricColor,
       });
 
-      backFinishMaterialRef.current = new THREE.MeshStandardMaterial({
+      const backFinishMaterial = new THREE.MeshStandardMaterial({
         map:
           config.backFinishTexture === 'antique'
             ? antiqueEnglish
@@ -144,8 +142,10 @@ export const Chair = memo(
       });
 
       chairRef.current.traverse((child) => {
-        if (child instanceof THREE.Mesh && child.material && !materialCache.current[child.uuid]) {
-          materialCache.current[child.uuid] = child.material.clone();
+        if (child instanceof THREE.Mesh && child.material) {
+          if (!materialCache.current[child.uuid]) {
+            materialCache.current[child.uuid] = child.material.clone();
+          }
 
           const isFixedMainPart =
             (child.name.toLowerCase().includes('seat') ||
@@ -160,10 +160,10 @@ export const Chair = memo(
               child.name.toLowerCase().includes('base')) &&
             !(child.name.toLowerCase().includes('optional') || child.name.toLowerCase().includes('pillow'));
 
-          if (isFixedMainPart && fabricMaterialRef.current) {
-            child.material = fabricMaterialRef.current;
-          } else if (isFixedMetalPart && backFinishMaterialRef.current) {
-            child.material = backFinishMaterialRef.current;
+          if (isFixedMainPart) {
+            child.material = fabricMaterial.clone(); // Clone to avoid reuse issues
+          } else if (isFixedMetalPart) {
+            child.material = backFinishMaterial.clone(); // Clone to avoid reuse issues
           }
 
           if (child.name.toLowerCase().includes('back')) {
@@ -180,11 +180,11 @@ export const Chair = memo(
       });
 
       return () => {
-        if (fabricMaterialRef.current) fabricMaterialRef.current.dispose();
-        if (backFinishMaterialRef.current) backFinishMaterialRef.current.dispose();
-        Object.values(materialCache.current).forEach((material) => material.dispose());
+        fabricMaterial.dispose();
+        backFinishMaterial.dispose();
+        // No need to dispose cached materials here; they’re reused
       };
-    }, [config]);
+    }, [config]); // Dependency on full config ensures updates
 
     useEffect(() => {
       if (!chairRef.current) return;

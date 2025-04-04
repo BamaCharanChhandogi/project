@@ -18,7 +18,6 @@ export interface ChairConfig {
   backFinishTexture: 'antique' | 'brushed' | 'satin';
 }
 
-// Initialize Appwrite client
 const client = new Client()
   .setEndpoint('https://cloud.appwrite.io/v1')
   .setProject('67e54122002b48ebf3d1');
@@ -40,19 +39,17 @@ export const ChairConfigurator: React.FC = () => {
   const [showMeasure, setShowMeasure] = useState(false);
   const [arModelUrl, setArModelUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false); // New loading state
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const controlsRef = useRef<any>(null);
   const chairRef = useRef<THREE.Group>(null);
 
-  // Set up anonymous session only if none exists
   useEffect(() => {
     const setupAnonymousSession = async () => {
       try {
-        // Check if a session already exists
         await account.get();
         console.log('Existing session found');
       } catch (err: any) {
-        // If no session exists (401 or similar), create an anonymous one
         if (err.code === 401) {
           try {
             await account.createAnonymousSession();
@@ -68,13 +65,16 @@ export const ChairConfigurator: React.FC = () => {
       }
     };
     setupAnonymousSession();
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, []);
 
   const handleSaveDesign = useCallback(async () => {
     if (!chairRef.current) {
       setError('No chair model to save');
       return;
     }
+
+    setIsSaving(true); // Show loading spinner
+    setError(null); // Clear previous errors
 
     const exporter = new GLTFExporter();
     exporter.parse(
@@ -92,15 +92,17 @@ export const ChairConfigurator: React.FC = () => {
           const fileUrl = `${client.config.endpoint}/storage/buckets/67e541df000fda7737de/files/${response.$id}/view?project=67e54122002b48ebf3d1`;
           setArModelUrl(fileUrl);
           setShowQRCode(true);
-          setError(null);
         } catch (err: any) {
           console.error('Appwrite upload error:', err);
           setError(`Failed to save model: ${err.message || 'Unknown error'}`);
+        } finally {
+          setIsSaving(false); // Hide loading spinner
         }
       },
       (error) => {
         console.error('GLTF Export error:', error);
         setError('Failed to export model');
+        setIsSaving(false); // Hide loading spinner on export failure
       },
       { binary: true, trs: true, embedImages: true }
     );
@@ -222,6 +224,15 @@ export const ChairConfigurator: React.FC = () => {
               >
                 Close
               </button>
+            </div>
+          </div>
+        )}
+
+        {isSaving && (
+          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div className="bg-white p-6 rounded-lg shadow-lg text-center">
+              <p className="mb-4">Saving design to Database...</p>
+              <div className="w-16 h-16 border-t-4 border-blue-500 border-solid rounded-full animate-spin mx-auto" />
             </div>
           </div>
         )}
