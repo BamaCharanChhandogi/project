@@ -282,7 +282,7 @@ export const Chair = memo(
         ref={chairRef}
         dispose={null}
         scale={[1, 1, 1]}
-        position={[0, 0.5, 0]}
+        position={[0, 0.9, -1]}
         rotation={[0, Math.PI / 4, 0]}
       >
         <primitive object={combinedScene} />

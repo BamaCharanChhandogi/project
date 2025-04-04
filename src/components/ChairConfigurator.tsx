@@ -153,7 +153,7 @@ export const ChairConfigurator: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-screen w-full relative overflow-hidden">
+    <div className="flex flex-col md:flex-row h-screen w-full relative overflow-hidden bg-gray-900">
       {/* Mobile Config Toggle Button */}
       <button 
         onClick={toggleMobileConfig}
@@ -189,11 +189,11 @@ export const ChairConfigurator: React.FC = () => {
         </Canvas>
 
         {/* Top Banner - Product Info */}
-        <div className="absolute top-0 left-0 right-0 bg-white bg-opacity-90 p-3 md:p-4 flex justify-between items-center z-10">
-          <div>
+        <div className="absolute top-0 left-0 right-0 bg-gray-900 bg-opacity-90 p-3 md:p-4 flex justify-between items-center z-10">
+          {/* <div>
             <h1 className="text-lg md:text-xl font-bold text-gray-800">Rhythm Round Chair</h1>
             <p className="text-xs md:text-sm text-gray-500">Banquet Chair Configurator</p>
-          </div>
+          </div> */}
           {/* <div className="hidden md:block">
             <button
               onClick={handleSaveDesign}
@@ -205,7 +205,7 @@ export const ChairConfigurator: React.FC = () => {
         </div>
 
         {/* Bottom Control Bar */}
-        <div className="absolute bottom-4 left-0 right-0 flex justify-center z-10">
+        <div className="absolute bottom-20 left-0 right-0 flex justify-center z-10">
           <div className="bg-black bg-opacity-50 backdrop-blur-sm p-2 rounded-full flex space-x-1 md:space-x-3">
             <button
               onClick={() => setShowMeasure(!showMeasure)}

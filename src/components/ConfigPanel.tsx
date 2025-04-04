@@ -44,7 +44,7 @@ export function ConfigPanel({ config, setConfig, onSave, onClose }: ConfigPanelP
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col max-h-screen">
       {/* Header */}
       <div className="p-4 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10">
         <div>
