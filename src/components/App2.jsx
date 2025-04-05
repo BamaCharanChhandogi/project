@@ -167,13 +167,6 @@ function App2() {
             <Scene />
           </Canvas>
           <MaterialControls onMaterialChange={handleMaterialChange} />
-          
-          {/* Instructions overlay */}
-          <div className="absolute bottom-4 left-4 bg-black bg-opacity-50 text-white p-3 rounded backdrop-blur-sm text-sm">
-            <p>👆 Click and drag to rotate</p>
-            <p>👌 Pinch to zoom</p>
-            <p>✌️ Two fingers to pan</p>
-          </div>
         </ErrorBoundary>
       </div>
     </div>

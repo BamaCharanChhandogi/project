@@ -248,13 +248,6 @@ function ChairModel() {
             onTextureChange={handleTextureChange} 
           />
           
-          {/* Instructions overlay */}
-          <div className="absolute bottom-4 left-4 bg-black bg-opacity-50 text-white p-3 rounded backdrop-blur-sm text-sm">
-            <p>👆 Click and drag to rotate</p>
-            <p>👌 Pinch to zoom</p>
-            <p>✌️ Two fingers to pan</p>
-          </div>
-          
           {/* AR button */}
           <button 
             className="absolute bottom-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700 transition-colors flex items-center shadow-lg"
