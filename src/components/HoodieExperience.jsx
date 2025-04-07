@@ -1,5 +1,5 @@
 import React, { useRef, Suspense, useEffect, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useLoader } from '@react-three/fiber';
 import { 
   OrbitControls, 
   Decal, 
@@ -12,11 +12,15 @@ import {
 } from '@react-three/drei';
 import { useControls } from 'leva';
 import * as THREE from 'three';
+import { TextureLoader } from 'three';
 
-// Improved MugModel component with multiple texture options
-function MugModel() {
+// Improved MugModel component with logo upload
+function MugModel({ customLogo }) {
   const { scene } = useGLTF('/Hoodie/tggrg.glb');
-  const logoTexture = useTexture('/Hoodie/logoPrint.jpeg');
+  const defaultLogoTexture = useTexture('/Hoodie/logoPrint.jpeg');
+  
+  // Use the custom logo if provided, otherwise use the default
+  const logoTexture = customLogo || defaultLogoTexture;
   
   // Load five different fabric textures
   const textures = useTexture({
@@ -100,7 +104,7 @@ function MugModel() {
     });
 
     setAvailableMeshes(meshNames);
-  }, [scene, selectedMeshName, textures, selectedTexture, roughness, metalness, textureScale]);
+  }, [scene, selectedMeshName, selectedTexture, roughness, metalness, textureScale]);
 
   return (
     <Float rotationIntensity={0.2} floatIntensity={0.5} speed={1.5}>
@@ -194,11 +198,16 @@ function SimpleMug() {
   );
 }
 
-// MugViewer component with corrected typo
+// MugViewer component with logo upload and download
 function MugViewer() {
   const controlsRef = useRef();
-  const [useMugModel, setUseMugModel] = useState(true); // Fixed typo here
-  
+  const canvasRef = useRef();
+  const [useMugModel, setUseMugModel] = useState(true);
+  const [customLogo, setCustomLogo] = useState(null);
+  const [renderer, setRenderer] = useState(null);
+  const [scene, setScene] = useState(null);
+  const [camera, setCamera] = useState(null);
+
   const { background, environment, intensity, shadowOpacity, shadowBlur } = useControls('Scene Settings', {
     environment: {
       options: ['sunset', 'dawn', 'night', 'warehouse', 'forest', 'apartment', 'studio', 'city', 'park', 'lobby'],
@@ -213,13 +222,117 @@ function MugViewer() {
   useControls('Model Selection', {
     'Use imported model': {
       value: true,
-      onChange: (value) => setUseMugModel(value) // Correct function reference
+      onChange: (value) => setUseMugModel(value)
     }
   });
 
+  // Store renderer, scene, and camera when canvas initializes
+  useEffect(() => {
+    if (canvasRef.current) {
+      setRenderer(canvasRef.current.gl);
+      setScene(canvasRef.current.scene);
+      setCamera(canvasRef.current.camera);
+    }
+  }, []);
+
+  const handleLogoUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.src = e.target.result;
+        img.onload = () => {
+          const texture = new THREE.Texture(img);
+          texture.needsUpdate = true;
+          setCustomLogo(texture);
+        };
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleDownload = () => {
+    if (!renderer || !scene || !camera) {
+      console.error('Required components not available for rendering');
+      return;
+    }
+
+    try {
+      // Ensure the renderer preserves the drawing buffer
+      const originalPreserve = renderer.preserveDrawingBuffer;
+      renderer.preserveDrawingBuffer = true;
+
+      // Force a render with current view
+      renderer.render(scene, camera);
+
+      // Capture the canvas
+      const dataURL = renderer.domElement.toDataURL('image/png');
+
+      // Create download link
+      const link = document.createElement('a');
+      link.download = 'custom_mug_design.png';
+      link.href = dataURL;
+      link.click();
+
+      // Restore original preserveDrawingBuffer setting
+      renderer.preserveDrawingBuffer = originalPreserve;
+    } catch (error) {
+      console.error('Error during download:', error);
+    }
+  };
+
+  // Button styles (unchanged)
+  const buttonStyle = {
+    padding: '12px 24px',
+    margin: '0 10px',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '16px',
+    fontWeight: '500',
+    transition: 'all 0.3s ease',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+  };
+
+  const uploadButtonStyle = {
+    ...buttonStyle,
+    backgroundColor: '#2196F3',
+    color: 'white',
+    position: 'absolute',
+    top: '20px',
+    left: '20px',
+  };
+
+  const downloadButtonStyle = {
+    ...buttonStyle,
+    backgroundColor: '#4CAF50',
+    color: 'white',
+    position: 'absolute',
+    top: '20px',
+    left: '180px',
+  };
+
+  const hoverStyle = {
+    ':hover': {
+      filter: 'brightness(110%)',
+      transform: 'translateY(-2px)',
+      boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+    }
+  };
+
   return (
-    <div style={{ width: '100%', height: '100vh', background: '#f0f0f0' }}>
-      <Canvas shadows>
+    <div style={{ width: '100%', height: '100vh', background: '#f0f0f0', position: 'relative' }}>
+      <Canvas
+        ref={canvasRef}
+        shadows
+        gl={{ preserveDrawingBuffer: false, antialias: true }}
+        onCreated={({ gl, scene, camera }) => {
+          setRenderer(gl);
+          setScene(scene);
+          setCamera(camera);
+        }}
+      >
         <PerspectiveCamera makeDefault position={[0, 0, 2]} fov={45} />
         
         <Suspense fallback={
@@ -230,7 +343,7 @@ function MugViewer() {
         }>
           <ambientLight intensity={intensity * 0.5} />
           
-          {useMugModel ? <MugModel /> : <SimpleMug />}
+          {useMugModel ? <MugModel customLogo={customLogo} /> : <SimpleMug />}
           
           <ContactShadows 
             position={[0, -0.5, 0]} 
@@ -250,6 +363,34 @@ function MugViewer() {
           />
         </Suspense>
       </Canvas>
+
+      {/* Upload Button */}
+      <label 
+        style={{ 
+          ...uploadButtonStyle,
+          ...hoverStyle,
+          display: 'inline-block'
+        }}
+      >
+        Upload Logo
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleLogoUpload}
+          style={{ display: 'none' }}
+        />
+      </label>
+
+      {/* Download Button */}
+      <button
+        onClick={handleDownload}
+        style={{
+          ...downloadButtonStyle,
+          ...hoverStyle
+        }}
+      >
+        Download Design
+      </button>
     </div>
   );
 }
