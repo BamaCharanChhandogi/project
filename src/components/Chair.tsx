@@ -12,6 +12,8 @@ const PARTS_URLS: { [key: string]: string } = {
 };
 
 Object.values(PARTS_URLS).forEach((url) => useGLTF.preload(url));
+const bama=useGLTF('/Chair.glb');
+console.log(bama);
 
 const textureLoader = new THREE.TextureLoader();
 

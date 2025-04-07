@@ -90,9 +90,9 @@
     ],
     "functions": [
         {
-            "$id": "67ef997f002931317a12",
-            "name": "convertGlbToUsdz",
-            "runtime": "node-16.0",
+            "$id": "67f108e60019a2f9148f",
+            "name": "convertToUsdz",
+            "runtime": "node-22",
             "specification": "s-0.5vcpu-512mb",
             "execute": [
                 "any"
@@ -107,7 +107,33 @@
             "logging": true,
             "entrypoint": "src/main.js",
             "commands": "npm install",
-            "path": "functions/convertGlbToUsdz"
+            "path": "functions/convertToUsdz",
+            "variables": {
+                "APPWRITE_FUNCTION_API_KEY": "standard_e8c88530fddfd66fd4390a11bea496507099d44fc2854e915e628dc68a10608cf7236825ebcd03e741bf36ee7b049bb1dc8811f5cb46a481656fd853666434ed8520b7942569f1ac362285ce291c3eb9807b6632c5f7849ebd0de7169a63602b3c775c6e839be7772073a8af2d827892edee4dbe3b3244059bb25941b90d07c"
+            }
+        },
+        {
+            "$id": "67f10c5d000e0b742677",
+            "name": "deleteExpiredFiles",
+            "runtime": "node-22",
+            "specification": "s-0.5vcpu-512mb",
+            "execute": [
+                "any"
+            ],
+            "events": [],
+            "scopes": [
+                "users.read"
+            ],
+            "schedule": "",
+            "timeout": 15,
+            "enabled": true,
+            "logging": true,
+            "entrypoint": "src/main.js",
+            "commands": "npm install",
+            "path": "functions/deleteExpiredFiles",
+            "variables": {
+                "APPWRITE_FUNCTION_API_KEY": "standard_e8c88530fddfd66fd4390a11bea496507099d44fc2854e915e628dc68a10608cf7236825ebcd03e741bf36ee7b049bb1dc8811f5cb46a481656fd853666434ed8520b7942569f1ac362285ce291c3eb9807b6632c5f7849ebd0de7169a63602b3c775c6e839be7772073a8af2d827892edee4dbe3b3244059bb25941b90d07c"
+            }
         }
     ]
 }

@@ -1,4 +1,4 @@
-# convertGlbToUsdz
+# convertToUsdz
 
 ## 🧰 Usage
 

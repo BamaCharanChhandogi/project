@@ -3,14 +3,12 @@
   "version": "1.0.0",
   "description": "",
   "main": "src/main.js",
-  "type": "module",
+  "type": "commonjs",
   "scripts": {
     "format": "prettier --write ."
   },
-"dependencies": {
-    "appwrite": "^15.0.0",
-    "node-fetch": "^2.6.1",
-    "@gltf-transform/cli": "^3.11.1"
+  "dependencies": {
+    "node-appwrite": "^14.2.0"
   },
   "devDependencies": {
     "prettier": "^3.2.5"
