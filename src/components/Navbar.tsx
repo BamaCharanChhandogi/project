@@ -43,6 +43,12 @@ export const Navbar = () => {
                 }`}>
                 Chair Model
               </Link>
+              <Link to="/model/hoodie"
+                className={`px-3 py-2 rounded-md text-sm font-medium ${
+                  isActive('/model/chair') ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                }`}>
+                T-Shirts
+              </Link>
               {/* <Link to="/ar"
                 className={`px-3 py-2 rounded-md text-sm font-medium ${
                   isActive('/ar') ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'

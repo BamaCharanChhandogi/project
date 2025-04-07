@@ -152,7 +152,6 @@ export function Model(props) {
       materials.Fabric.roughnessMap.wrapT = THREE.RepeatWrapping; // Vertical wrapping
 
       materials.Fabric.roughnessMap.repeat.set(2, 2); // Increase repeat to 2x2 for denser fabric (adjust as needed)
-      
       materials.Fabric.map.needsUpdate = true;
 
     }
