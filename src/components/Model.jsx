@@ -44,7 +44,7 @@ export function Model(props) {
   });
 
   const fabricTextures = useTexture({
-    map: "/Fabric.jpg", // Use Fabric.jpg as the base color (ensure it matches the speckled pattern)
+    map: "/Fabric.jpg",
     normalMap: "/Fabric_Normal.jpg",
     roughnessMap: "/Fabric_Roughness.png",
   });
@@ -76,9 +76,7 @@ export function Model(props) {
     }
 
     // Logo material - Use Logo.png for both base color and opacity, and rotate to correct orientation
-    // Logo material - Use Logo.png for both base color and opacity, and rotate to correct orientation
     if (materials.Logo) {
-      // Rotate the texture by 180 degrees to flip it upright
       logoTextures.map.rotation = Math.PI; // 180 degrees in radians
       logoTextures.map.center.set(0.5, 0.5); // Center the rotation
       logoTextures.map.repeat.x = -1; // Flip horizontally
@@ -118,18 +116,46 @@ export function Model(props) {
     if (materials["Inner stitches"]) {
       materials["Inner stitches"].map = stitchesTextures.map;
       materials["Inner stitches"].normalMap = stitchesTextures.normalMap;
+
+      // Enable texture wrapping and repeat for denser stitches
+      stitchesTextures.map.wrapS = THREE.RepeatWrapping; // Horizontal wrapping
+      stitchesTextures.map.wrapT = THREE.RepeatWrapping; // Vertical wrapping
+      stitchesTextures.map.repeat.set(2, 2); // Increase repeat to 2x2 for denser stitches (adjust as needed)
+
+      // Update the texture matrix to apply the repeat
+      stitchesTextures.map.needsUpdate = true;
+
       materials["Inner stitches"].needsUpdate = true;
     }
 
     // Fabric material
- // Fabric material
-if (materials.Fabric) {
-  materials.Fabric.map = fabricTextures.map; // Use Fabric.jpg as the base color (ensure it matches the speckled pattern)
-  materials.Fabric.normalMap = fabricTextures.normalMap; // Use Fabric_Normal.jpg for surface detail
-  materials.Fabric.roughnessMap = fabricTextures.roughnessMap; // Use Fabric_Roughness.png for roughness
-  materials.Fabric.roughness = 0.7; // Adjust roughness to emphasize texture
-  materials.Fabric.needsUpdate = true;
-}
+    if (materials.Fabric) {
+      materials.Fabric.map = fabricTextures.map;
+      materials.Fabric.normalMap = fabricTextures.normalMap;
+      materials.Fabric.roughnessMap = fabricTextures.roughnessMap;
+      materials.Fabric.roughness = 0.7;
+      materials.Fabric.needsUpdate = true;
+
+      materials.Fabric.map.wrapS = THREE.RepeatWrapping; // Horizontal wrapping
+      materials.Fabric.map.wrapT = THREE.RepeatWrapping; // Vertical wrapping
+      materials.Fabric.map.repeat.set(2, 2); // Increase repeat to 2x2 for denser fabric (adjust as needed)
+// normal map
+      materials.Fabric.normalMap.wrapS = THREE.RepeatWrapping; // Horizontal wrapping
+      
+      materials.Fabric.normalMap.wrapT = THREE.RepeatWrapping; // Vertical wrapping
+
+      materials.Fabric.normalMap.repeat.set(2, 2); // Increase repeat to 2x2 for denser fabric (adjust as needed)
+
+      // roughness map
+      materials.Fabric.roughnessMap.wrapS = THREE.RepeatWrapping; // Horizontal wrapping
+
+      materials.Fabric.roughnessMap.wrapT = THREE.RepeatWrapping; // Vertical wrapping
+
+      materials.Fabric.roughnessMap.repeat.set(2, 2); // Increase repeat to 2x2 for denser fabric (adjust as needed)
+      
+      materials.Fabric.map.needsUpdate = true;
+
+    }
   }, [
     materials,
     blueTextures,

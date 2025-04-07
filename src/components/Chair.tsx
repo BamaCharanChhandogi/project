@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { ChairConfig } from './ChairConfigurator';
 import { forwardRef, useImperativeHandle } from 'react';
 
+// Preload GLTF models
 const PARTS_URLS: { [key: string]: string } = {
   Cushion_Seat: '/CushionSeat.glb',
   Legs: '/Legs.glb',
@@ -13,8 +14,10 @@ const PARTS_URLS: { [key: string]: string } = {
 
 Object.values(PARTS_URLS).forEach((url) => useGLTF.preload(url));
 
+// Texture loader
 const textureLoader = new THREE.TextureLoader();
 
+// Load textures
 const champlainBaseColor = textureLoader.load('/Champlain_BaseColor.png');
 const champlainNormal = textureLoader.load('/Champlain_Normal.png');
 const champlainRoughness = textureLoader.load('/Champlain_Roughness.png');
@@ -41,6 +44,29 @@ const satinNickel = textureLoader.load('/Satin nickel.jpg');
 const metalMetalness = textureLoader.load('/Metal032_2K_Metalness.jpg');
 const metalNormal = textureLoader.load('/Metal032_2K_Normal.jpg');
 
+// Configure texture wrapping
+huronBaseColor.wrapS = THREE.RepeatWrapping;
+huronBaseColor.wrapT = THREE.RepeatWrapping
+huronBaseColor.repeat.set(10,10); 
+huronNormal.wrapS = THREE.RepeatWrapping;
+huronNormal.wrapT = THREE.RepeatWrapping
+huronNormal.repeat.set(10,10); 
+huronRoughness.wrapS = THREE.RepeatWrapping;
+huronRoughness.wrapT = THREE.RepeatWrapping
+huronRoughness.repeat.set(10,10);
+
+// Configure other textures
+kaleidoscopeBaseColor.wrapS = THREE.RepeatWrapping;
+kaleidoscopeBaseColor.wrapT = THREE.RepeatWrapping;
+kaleidoscopeBaseColor.repeat.set(2, 2);
+// kaleidoscopeNormal.wrapS = THREE.RepeatWrapping;
+// kaleidoscopeNormal.wrapT = THREE.RepeatWrapping;
+// kaleidoscopeNormal.repeat.set(10, 10);
+// kaleidoscopeRoughness.wrapS = THREE.RepeatWrapping;
+// kaleidoscopeRoughness.wrapT = THREE.RepeatWrapping;
+// kaleidoscopeRoughness.repeat.set(10, 10);
+
+// Normalize other textures
 [
   champlainNormal,
   champlainRoughness,
@@ -56,7 +82,7 @@ const metalNormal = textureLoader.load('/Metal032_2K_Normal.jpg');
   metalNormal,
 ].forEach((texture) => {
   texture.flipY = false;
-  texture.colorSpace = THREE.LinearSRGBColorSpace; // Updated from .encoding
+  texture.colorSpace = THREE.LinearSRGBColorSpace;
 });
 
 interface ChairProps {
@@ -161,9 +187,9 @@ export const Chair = memo(
             !(child.name.toLowerCase().includes('optional') || child.name.toLowerCase().includes('pillow'));
 
           if (isFixedMainPart) {
-            child.material = fabricMaterial.clone(); // Clone to avoid reuse issues
+            child.material = fabricMaterial.clone();
           } else if (isFixedMetalPart) {
-            child.material = backFinishMaterial.clone(); // Clone to avoid reuse issues
+            child.material = backFinishMaterial.clone();
           }
 
           if (child.name.toLowerCase().includes('back')) {
@@ -182,9 +208,8 @@ export const Chair = memo(
       return () => {
         fabricMaterial.dispose();
         backFinishMaterial.dispose();
-        // No need to dispose cached materials here; they’re reused
       };
-    }, [config]); // Dependency on full config ensures updates
+    }, [config]);
 
     useEffect(() => {
       if (!chairRef.current) return;

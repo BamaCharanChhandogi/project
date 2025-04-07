@@ -4,9 +4,6 @@ import * as THREE from "three";
 
 export function Model(props) {
   const { nodes, materials } = useGLTF("/chairModel/Chair.glb");
-  const scence = useGLTF("/chairModel/Chair.glb");
-//   console.log(scence);
-  
 
   // Load textures
   const fabricTextures = useTexture({
@@ -18,8 +15,6 @@ export function Model(props) {
     map: "/chairModel/Floral.jpg",
     normalMap: "/chairModel/Floral Normal.jpg",
   });
-  console.log(floralTextures);
-  
 
   const woodTextures = useTexture({
     map: "/chairModel/Wood.jpg",
@@ -29,23 +24,38 @@ export function Model(props) {
     map: "/chairModel/Leather.jpg",
   });
 
-  const aoTexture = useTexture({
-    aoMap: "/chairModel/ambientOcclusion.jpg",
-  });
+  // Load AO texture directly
+  const aoTexture = useTexture("/chairModel/ambientOcclusion.jpg");
 
-  // Set UV channel and color space for textures
-  useEffect(() => { 
-    floralTextures.map.encoding = THREE.sRGBEncoding;
-    floralTextures.normalMap.encoding = THREE.LinearEncoding;
-    // aoTexture.aoMap.encoding = THREE.LinearEncoding;
-    fabricTextures.map.encoding = THREE.sRGBEncoding;
-    fabricTextures.normalMap.encoding = THREE.LinearEncoding;
-    [fabricTextures.map, fabricTextures.normalMap, floralTextures.map, floralTextures.normalMap, aoTexture.aoMap].forEach(texture => {
+  // Set properties for textures
+  useEffect(() => {
+    // Process regular textures
+    [fabricTextures.map, fabricTextures.normalMap, floralTextures.map, floralTextures.normalMap].forEach(texture => {
       if (texture) {
-        texture.channel = 1; // Use the second UV channel (UVMap001)
+        texture.encoding = THREE.sRGBEncoding;
+        if (texture === fabricTextures.normalMap || texture === floralTextures.normalMap) {
+          texture.encoding = THREE.LinearEncoding;
+        }
+        texture.channel = 1;
         texture.needsUpdate = true;
       }
     });
+    
+    // Process AO texture with correct flipping
+    if (aoTexture) {
+      aoTexture.encoding = THREE.LinearEncoding;
+      aoTexture.channel = 1;
+      
+      // These two properties together should properly flip the texture
+      aoTexture.flipY = true;
+      aoTexture.wrapT = THREE.MirroredRepeatWrapping;
+      
+      // Alternative approach: transform the UV coordinates directly
+      aoTexture.matrix = new THREE.Matrix3().scale(1, -1).translate(0, 1);
+      aoTexture.matrixAutoUpdate = false;
+      
+      aoTexture.needsUpdate = true;
+    }
   }, [fabricTextures, floralTextures, aoTexture]);
 
   // Store textures in window for texture switching
@@ -63,36 +73,36 @@ export function Model(props) {
   // Create a standard material for the fabric
   const fabricMaterial = useMemo(() => {
     const mat = new THREE.MeshStandardMaterial({
-      map: floralTextures.map,
-      aoMap: aoTexture.aoMap,
-      aoMapIntensity: 0.3,
-      normalMap: floralTextures.normalMap,
-      normalScale: new THREE.Vector2(1.0, 1.0),
+      map: fabricTextures.map,
+      aoMap: aoTexture,
+      aoMapIntensity: 1.0,
+      normalMap: fabricTextures.normalMap,
+      normalScale: new THREE.Vector2(0.5, 0.5),
       roughness: 1.0,
       metalness: 0.0,
       envMap: props.envMap,
       envMapIntensity: 1.0,
       side: THREE.DoubleSide,
     });
-    mat.name = 'FABRIC'; // Set material name for identification
+    mat.name = "FABRIC";
     return mat;
-  }, [floralTextures, aoTexture, props.envMap]);
+  }, [fabricTextures, aoTexture, props.envMap]);
 
-  // Expose materials to window and configure WOOD.001
+  // Configure materials
   useEffect(() => {
     window.chairMaterials = {
       FABRIC: fabricMaterial,
-      'WOOD.001': materials['WOOD.001'],
+      "WOOD.001": materials["WOOD.001"],
     };
 
-    if (materials['WOOD.001']) {
-      materials['WOOD.001'].map = woodTextures.map;
-      materials['WOOD.001'].roughness = 0.82;
-      materials['WOOD.001'].metalness = 0.5;
-      materials['WOOD.001'].envMap = props.envMap;
-      materials['WOOD.001'].envMapIntensity = 1;
-      materials['WOOD.001'].side = THREE.DoubleSide;
-      materials['WOOD.001'].needsUpdate = true;
+    if (materials["WOOD.001"]) {
+      materials["WOOD.001"].map = woodTextures.map;
+      materials["WOOD.001"].roughness = 0.82;
+      materials["WOOD.001"].metalness = 0.5;
+      materials["WOOD.001"].envMap = props.envMap;
+      materials["WOOD.001"].envMapIntensity = 1;
+      materials["WOOD.001"].side = THREE.DoubleSide;
+      materials["WOOD.001"].needsUpdate = true;
     }
   }, [materials, fabricMaterial, woodTextures, props.envMap]);
 
@@ -109,11 +119,11 @@ export function Model(props) {
           castShadow
           receiveShadow
           geometry={nodes.Mesh001_1.geometry}
-          material={materials['WOOD.001']}
+          material={materials["WOOD.001"]}
         />
       </group>
     </group>
   );
 }
 
-useGLTF.preload('/chairModel/Chair.glb');
+useGLTF.preload("/chairModel/Chair.glb");
