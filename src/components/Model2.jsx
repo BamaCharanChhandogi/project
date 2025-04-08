@@ -4,6 +4,7 @@ import * as THREE from "three";
 
 export function Model(props) {
   const { nodes, materials } = useGLTF("/chairModel/Chair.glb");
+  console.log(nodes);
 
   // Load textures
   const fabricTextures = useTexture({

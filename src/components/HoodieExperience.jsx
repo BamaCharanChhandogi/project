@@ -1,5 +1,5 @@
 import React, { useRef, Suspense, useEffect, useState } from 'react';
-import { Canvas, useLoader } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { 
   OrbitControls, 
   Decal, 
@@ -12,17 +12,14 @@ import {
 } from '@react-three/drei';
 import { useControls } from 'leva';
 import * as THREE from 'three';
-import { TextureLoader } from 'three';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter';
 
-// Improved MugModel component with logo upload
-function MugModel({ customLogo }) {
+function HoodieModel({ customLogo, onDownloadImage, onDownloadGLB, controlsRef }) {
   const { scene } = useGLTF('/Hoodie/tggrg.glb');
   const defaultLogoTexture = useTexture('/Hoodie/logoPrint.jpeg');
-  
-  // Use the custom logo if provided, otherwise use the default
   const logoTexture = customLogo || defaultLogoTexture;
+  const { raycaster, camera, mouse, gl: renderer, scene: fullScene } = useThree();
   
-  // Load five different fabric textures
   const textures = useTexture({
     cotton: '/Hoodie/Alpaca_BaseColor.png',
     fleece: '/Hoodie/Fabric Upholstery Pyramids_diffuse.png',
@@ -31,12 +28,12 @@ function MugModel({ customLogo }) {
     leather: '/Hoodie/Floral.jpg'
   });
 
-  const mugRef = useRef();
-  const [decalParent, setDecalParent] = useState(null);
+  const hoodieRef = useRef();
   const [availableMeshes, setAvailableMeshes] = useState([]);
   const [selectedMeshName, setSelectedMeshName] = useState('Main003');
+  const [decalMeshes, setDecalMeshes] = useState([]);
+  const [logoMeshRefs, setLogoMeshRefs] = useState([]);
 
-  // Controls including texture selection
   const { 
     posX, posY, posZ, 
     rotX, rotY, rotZ, 
@@ -46,7 +43,9 @@ function MugModel({ customLogo }) {
     roughness,
     metalness,
     textureScale,
-    selectedTexture
+    selectedTexture,
+    enableMultiMeshDecal,
+    set: setControlValues
   } = useControls('Logo Decal', {
     meshName: {
       options: availableMeshes,
@@ -68,150 +67,261 @@ function MugModel({ customLogo }) {
     selectedTexture: {
       options: ['cotton', 'fleece', 'knit', 'denim', 'leather'],
       value: 'cotton'
-    }
+    },
+    enableMultiMeshDecal: { value: true, label: 'Enable Full Surface Logo' }
   });
 
-  // Apply selected texture and find meshes
+  const [isDragging, setIsDragging] = useState(false);
+  const [decalPosition, setDecalPosition] = useState([posX, posY, posZ]);
+  
+  // Check if click is on logo decal
+  const isClickOnLogo = (event) => {
+    raycaster.setFromCamera(mouse, camera);
+    
+    // First check if we're clicking on the decal meshes specifically
+    const decalIntersects = raycaster.intersectObjects(logoMeshRefs);
+    if (decalIntersects.length > 0) {
+      return true;
+    }
+    
+    // If not directly on decal mesh, check if near the decal position
+    const meshIntersects = raycaster.intersectObjects(decalMeshes);
+    if (meshIntersects.length > 0) {
+      const intersect = meshIntersects[0];
+      const clickPosition = intersect.point;
+      const decalPosVector = new THREE.Vector3(...decalPosition);
+      
+      // Check if click is within a threshold distance of the decal
+      const distance = clickPosition.distanceTo(decalPosVector);
+      const threshold = Math.max(scaleX, scaleY) * 0.5; // Adjust based on decal size
+      
+      if (distance < threshold) {
+        return true;
+      }
+    }
+    
+    return false;
+  };
+
+  useEffect(() => {
+    const handlePointerDown = (event) => {
+      if (isClickOnLogo(event)) {
+        setIsDragging(true);
+        if (controlsRef.current) {
+          controlsRef.current.enabled = false; // Disable OrbitControls when logo is clicked
+        }
+      }
+    };
+
+    const handlePointerUp = () => {
+      if (isDragging) {
+        setIsDragging(false);
+        if (controlsRef.current) {
+          controlsRef.current.enabled = true; // Re-enable OrbitControls
+        }
+      }
+    };
+    
+    const handlePointerMove = (event) => {
+      if (!isDragging) return;
+      
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(decalMeshes);
+      
+      if (intersects.length > 0) {
+        const intersect = intersects[0];
+        const newPosition = intersect.point.clone().add(
+          intersect.face.normal.multiplyScalar(0.01)
+        );
+        
+        setDecalPosition([newPosition.x, newPosition.y, newPosition.z]);
+        setControlValues({
+          posX: newPosition.x,
+          posY: newPosition.y,
+          posZ: newPosition.z
+        });
+      }
+    };
+    
+    window.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointermove', handlePointerMove);
+    
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointermove', handlePointerMove);
+    };
+  }, [raycaster, camera, mouse, isDragging, decalMeshes, logoMeshRefs, setControlValues, decalPosition, scaleX, scaleY, controlsRef, isClickOnLogo]);
+
   useEffect(() => {
     if (!scene) return;
 
     const meshNames = [];
-    console.log('Scanning scene for mesh options...');
-    
+    const meshList = [];
     const currentTexture = textures[selectedTexture];
     currentTexture.repeat.set(textureScale, textureScale);
     currentTexture.wrapS = currentTexture.wrapT = THREE.RepeatWrapping;
 
     scene.traverse((child) => {
       if (child.isMesh) {
-        console.log(`Found mesh: ${child.name}`);
         meshNames.push(child.name);
+        meshList.push(child);
         
-        // Apply selected texture to all meshes
         const material = new THREE.MeshStandardMaterial({
           map: currentTexture,
           roughness: roughness,
           metalness: metalness
         });
         child.material = material;
-
-        // Set decal parent
-        if (child.name === selectedMeshName) {
-          console.log(`Selected ${child.name} as decal parent`);
-          setDecalParent(child);
-        }
+        child.material.needsUpdate = true;
       }
     });
 
     setAvailableMeshes(meshNames);
-  }, [scene, selectedMeshName, selectedTexture, roughness, metalness, textureScale]);
+    setDecalMeshes(meshList);
+  }, [scene, selectedTexture, roughness, metalness, textureScale, textures]);
+
+  // Download handlers
+  useEffect(() => {
+    if (onDownloadImage) {
+      renderer.render(fullScene, camera);
+      const dataURL = renderer.domElement.toDataURL('image/png');
+      onDownloadImage(dataURL);
+    }
+  }, [onDownloadImage, renderer, fullScene, camera]);
+
+  useEffect(() => {
+    if (onDownloadGLB) {
+      const exportScene = new THREE.Scene();
+      const hoodieGroup = hoodieRef.current;
+      
+      if (!hoodieGroup) {
+        console.error('Hoodie group not found via ref');
+        return;
+      }
+
+      const hoodieClone = hoodieGroup.clone();
+      exportScene.add(hoodieClone);
+
+      exportScene.traverse((child) => {
+        if (child.isMesh && child.material) {
+          child.material = child.material.clone();
+          if (customLogo) {
+            child.material.map = customLogo;
+            child.material.needsUpdate = true;
+          }
+        }
+      });
+
+      const exporter = new GLTFExporter();
+      exporter.parse(
+        exportScene,
+        (gltf) => {
+          const blob = new Blob([gltf], { type: 'application/octet-stream' });
+          const url = URL.createObjectURL(blob);
+          onDownloadGLB(url);
+        },
+        (error) => {
+          console.error('Error exporting GLB:', error);
+        },
+        { binary: true }
+      );
+    }
+  }, [onDownloadGLB, fullScene, customLogo]);
+
+  // Store refs to logo mesh instances
+  const storeLogoMeshRef = (ref) => {
+    if (ref && !logoMeshRefs.includes(ref)) {
+      setLogoMeshRefs(prev => [...prev, ref]);
+    }
+  };
+
+  // Clear logo mesh refs when selection changes
+  useEffect(() => {
+    setLogoMeshRefs([]);
+  }, [selectedMeshName, enableMultiMeshDecal]);
 
   return (
     <Float rotationIntensity={0.2} floatIntensity={0.5} speed={1.5}>
-      <group ref={mugRef} position={[0, 0, 0]} rotation={[0, 0, 0]}>
+      <group ref={hoodieRef} name="HoodieGroup" position={[0, 0, 0]} rotation={[0, 0, 0]}>
         <primitive object={scene} />
-        {decalParent && (
-          <mesh geometry={decalParent.geometry}>
-            <Decal
-              debug={debug}
-              position={[posX, posY, posZ]}
-              rotation={[rotX, rotY, rotZ]}
-              scale={[scaleX, scaleY, 1]}
-              map={logoTexture}
-              polygonOffset
-              polygonOffsetFactor={-10}
-              transparent
-            >
-              <meshStandardMaterial
+        
+        {enableMultiMeshDecal ? (
+          decalMeshes.map((mesh, index) => (
+            <mesh key={index} geometry={mesh.geometry}>
+              <Decal
+                ref={storeLogoMeshRef}
+                debug={debug}
+                position={decalPosition}
+                rotation={[rotX, rotY, rotZ]}
+                scale={[scaleX, scaleY, 1]}
                 map={logoTexture}
-                transparent
-                opacity={1}
-                depthTest={true}
-                depthWrite={false}
-                polygonOffset={true}
+                polygonOffset
                 polygonOffsetFactor={-10}
-                roughness={roughness}
-                metalness={metalness}
-              />
-            </Decal>
-          </mesh>
+                transparent
+              >
+                <meshStandardMaterial
+                  map={logoTexture}
+                  transparent
+                  opacity={1}
+                  depthTest={true}
+                  depthWrite={false}
+                  polygonOffset={true}
+                  polygonOffsetFactor={-10}
+                  roughness={roughness}
+                  metalness={metalness}
+                />
+              </Decal>
+            </mesh>
+          ))
+        ) : (
+          decalMeshes.map((mesh, index) => (
+            mesh.name === selectedMeshName && (
+              <mesh key={index} geometry={mesh.geometry}>
+                <Decal
+                  ref={storeLogoMeshRef}
+                  debug={debug}
+                  position={decalPosition}
+                  rotation={[rotX, rotY, rotZ]}
+                  scale={[scaleX, scaleY, 1]}
+                  map={logoTexture}
+                  polygonOffset
+                  polygonOffsetFactor={-10}
+                  transparent
+                >
+                  <meshStandardMaterial
+                    map={logoTexture}
+                    transparent
+                    opacity={1}
+                    depthTest={true}
+                    depthWrite={false}
+                    polygonOffset={true}
+                    polygonOffsetFactor={-10}
+                    roughness={roughness}
+                    metalness={metalness}
+                  />
+                </Decal>
+              </mesh>
+            )
+          ))
         )}
       </group>
     </Float>
   );
 }
 
-// Simple Mug component (unchanged)
-function SimpleMug() {
-  const texture = useTexture('/Hoodie/logoPrint1.png');
-  const mugRef = useRef();
-  const bodyMeshRef = useRef();
-
-  const { posX, posY, posZ, rotX, rotY, rotZ, scaleX, scaleY, debug, mugColor } = useControls('Simple Mug', {
-    posX: { value: 0, min: -1, max: 1, step: 0.01 },
-    posY: { value: 0, min: -1, max: 1, step: 0.01 },
-    posZ: { value: 0.51, min: 0, max: 1, step: 0.01 },
-    rotX: { value: 0, min: 0, max: Math.PI * 2, step: 0.01 },
-    rotY: { value: 0, min: 0, max: Math.PI * 2, step: 0.01 },
-    rotZ: { value: 0, min: 0, max: Math.PI * 2, step: 0.01 },
-    scaleX: { value: 0.3, min: 0.1, max: 1, step: 0.01 },
-    scaleY: { value: 0.3, min: 0.1, max: 1, step: 0.01 },
-    debug: { value: false },
-    mugColor: { value: '#2d8a58' }
-  });
-
-  return (
-    <Float rotationIntensity={0.2} floatIntensity={0.5} speed={1.5}>
-      <group ref={mugRef}>
-        <mesh ref={bodyMeshRef} position={[0, 0, 0]} castShadow receiveShadow>
-          <cylinderGeometry args={[0.4, 0.4, 0.8, 32]} />
-          <meshStandardMaterial color={mugColor} roughness={0.3} metalness={0.1} />
-          <Decal
-            debug={debug}
-            position={[posX, posY, posZ]}
-            rotation={[rotX, rotY, rotZ]}
-            scale={[scaleX, scaleY, 1]}
-            map={texture}
-            polygonOffset
-            polygonOffsetFactor={-1}
-            transparent
-          />
-        </mesh>
-        <mesh position={[0, 0, 0]}>
-          <cylinderGeometry args={[0.35, 0.35, 0.75, 32]} />
-          <meshStandardMaterial color={mugColor} side={THREE.BackSide} roughness={0.3} metalness={0.1} />
-        </mesh>
-        <mesh position={[0, -0.4, 0]} rotation={[Math.PI / 2, 0, 0]}>
-          <circleGeometry args={[0.4, 32]} />
-          <meshStandardMaterial color={mugColor} roughness={0.3} metalness={0.1} />
-        </mesh>
-        <mesh position={[0.55, 0, 0]} castShadow>
-          <torusGeometry args={[0.15, 0.07, 16, 32, Math.PI]} />
-          <meshStandardMaterial color={mugColor} roughness={0.3} metalness={0.1} />
-        </mesh>
-        <mesh position={[0, -0.2, 0]} castShadow receiveShadow>
-          <cylinderGeometry args={[0.4, 0.4, 0.4, 32]} />
-          <meshStandardMaterial color="white" roughness={0.2} metalness={0.05} />
-        </mesh>
-      </group>
-    </Float>
-  );
-}
-
-// MugViewer component with logo upload and download
-function MugViewer() {
+function HoodieViewer() {
   const controlsRef = useRef();
-  const canvasRef = useRef();
-  const [useMugModel, setUseMugModel] = useState(true);
   const [customLogo, setCustomLogo] = useState(null);
-  const [renderer, setRenderer] = useState(null);
-  const [scene, setScene] = useState(null);
-  const [camera, setCamera] = useState(null);
+  const [dragInstructions, setDragInstructions] = useState(true);
+  const [downloadImageTrigger, setDownloadImageTrigger] = useState(null);
+  const [downloadGLBTrigger, setDownloadGLBTrigger] = useState(null);
 
   const { background, environment, intensity, shadowOpacity, shadowBlur } = useControls('Scene Settings', {
     environment: {
       options: ['sunset', 'dawn', 'night', 'warehouse', 'forest', 'apartment', 'studio', 'city', 'park', 'lobby'],
-      value: 'sunset'
+      value: 'studio'
     },
     background: { value: true },
     intensity: { value: 0.7, min: 0, max: 2, step: 0.1 },
@@ -219,20 +329,9 @@ function MugViewer() {
     shadowBlur: { value: 2, min: 0, max: 10, step: 0.5 }
   });
 
-  useControls('Model Selection', {
-    'Use imported model': {
-      value: true,
-      onChange: (value) => setUseMugModel(value)
-    }
-  });
-
-  // Store renderer, scene, and camera when canvas initializes
   useEffect(() => {
-    if (canvasRef.current) {
-      setRenderer(canvasRef.current.gl);
-      setScene(canvasRef.current.scene);
-      setCamera(canvasRef.current.camera);
-    }
+    const timer = setTimeout(() => setDragInstructions(false), 5000);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleLogoUpload = (event) => {
@@ -252,37 +351,35 @@ function MugViewer() {
     }
   };
 
-  const handleDownload = () => {
-    if (!renderer || !scene || !camera) {
-      console.error('Required components not available for rendering');
-      return;
-    }
+  const handleImageDownload = () => {
+    setDownloadImageTrigger(Date.now());
+  };
 
-    try {
-      // Ensure the renderer preserves the drawing buffer
-      const originalPreserve = renderer.preserveDrawingBuffer;
-      renderer.preserveDrawingBuffer = true;
+  const handleGLBDownload = () => {
+    setDownloadGLBTrigger(Date.now());
+  };
 
-      // Force a render with current view
-      renderer.render(scene, camera);
-
-      // Capture the canvas
-      const dataURL = renderer.domElement.toDataURL('image/png');
-
-      // Create download link
+  const handleImageDownloadComplete = (dataURL) => {
+    if (dataURL) {
       const link = document.createElement('a');
-      link.download = 'custom_mug_design.png';
+      link.download = 'custom_hoodie_design.png';
       link.href = dataURL;
       link.click();
-
-      // Restore original preserveDrawingBuffer setting
-      renderer.preserveDrawingBuffer = originalPreserve;
-    } catch (error) {
-      console.error('Error during download:', error);
+      setDownloadImageTrigger(null);
     }
   };
 
-  // Button styles (unchanged)
+  const handleGLBDownloadComplete = (url) => {
+    if (url) {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'custom_hoodie.glb';
+      link.click();
+      URL.revokeObjectURL(url);
+      setDownloadGLBTrigger(null);
+    }
+  };
+
   const buttonStyle = {
     padding: '12px 24px',
     margin: '0 10px',
@@ -304,7 +401,7 @@ function MugViewer() {
     left: '20px',
   };
 
-  const downloadButtonStyle = {
+  const imageDownloadButtonStyle = {
     ...buttonStyle,
     backgroundColor: '#4CAF50',
     color: 'white',
@@ -313,25 +410,35 @@ function MugViewer() {
     left: '180px',
   };
 
-  const hoverStyle = {
-    ':hover': {
-      filter: 'brightness(110%)',
-      transform: 'translateY(-2px)',
-      boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
-    }
+  const glbDownloadButtonStyle = {
+    ...buttonStyle,
+    backgroundColor: '#FF9800',
+    color: 'white',
+    position: 'absolute',
+    top: '20px',
+    left: '360px',
+  };
+
+  const instructionsStyle = {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    color: 'white',
+    padding: '20px',
+    borderRadius: '10px',
+    textAlign: 'center',
+    pointerEvents: 'none',
+    opacity: dragInstructions ? 1 : 0,
+    transition: 'opacity 0.5s ease',
   };
 
   return (
     <div style={{ width: '100%', height: '100vh', background: '#f0f0f0', position: 'relative' }}>
       <Canvas
-        ref={canvasRef}
         shadows
-        gl={{ preserveDrawingBuffer: false, antialias: true }}
-        onCreated={({ gl, scene, camera }) => {
-          setRenderer(gl);
-          setScene(scene);
-          setCamera(camera);
-        }}
+        gl={{ preserveDrawingBuffer: true, antialias: true }}
       >
         <PerspectiveCamera makeDefault position={[0, 0, 2]} fov={45} />
         
@@ -343,7 +450,12 @@ function MugViewer() {
         }>
           <ambientLight intensity={intensity * 0.5} />
           
-          {useMugModel ? <MugModel customLogo={customLogo} /> : <SimpleMug />}
+          <HoodieModel 
+            customLogo={customLogo} 
+            onDownloadImage={downloadImageTrigger ? handleImageDownloadComplete : null}
+            onDownloadGLB={downloadGLBTrigger ? handleGLBDownloadComplete : null}
+            controlsRef={controlsRef} // Pass the controls ref to the model
+          />
           
           <ContactShadows 
             position={[0, -0.5, 0]} 
@@ -364,14 +476,7 @@ function MugViewer() {
         </Suspense>
       </Canvas>
 
-      {/* Upload Button */}
-      <label 
-        style={{ 
-          ...uploadButtonStyle,
-          ...hoverStyle,
-          display: 'inline-block'
-        }}
-      >
+      <label style={uploadButtonStyle}>
         Upload Logo
         <input
           type="file"
@@ -381,18 +486,27 @@ function MugViewer() {
         />
       </label>
 
-      {/* Download Button */}
       <button
-        onClick={handleDownload}
-        style={{
-          ...downloadButtonStyle,
-          ...hoverStyle
-        }}
+        onClick={handleImageDownload}
+        style={imageDownloadButtonStyle}
       >
-        Download Design
+        Download PNG
       </button>
+
+      <button
+        onClick={handleGLBDownload}
+        style={glbDownloadButtonStyle}
+      >
+        Download GLB
+      </button>
+
+      <div style={instructionsStyle}>
+        <h3>Click and drag on the logo to move it</h3>
+        <p>Use controls on the right to adjust size and rotation</p>
+        <p>Click on the hoodie to rotate the view</p>
+      </div>
     </div>
   );
 }
 
-export default MugViewer;
+export default HoodieViewer;
