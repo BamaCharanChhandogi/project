@@ -59,7 +59,7 @@ function HoodieModel({ customLogo, onDownloadImage, onDownloadGLB, controlsRef }
     rotY: { value: 0.01, min: 0, max: Math.PI * 2, step: 0.01 },
     rotZ: { value: 0.00, min: 0, max: Math.PI * 2, step: 0.01 },
     scaleX: { value: 0.10, min: 0.1, max: 2, step: 0.01 },
-    scaleY: { value: 0.17, min: 0.1, max: 2, step: 0.01 },
+    scaleY: { value: 0.11, min: 0.1, max: 2, step: 0.01 },
     debug: { value: false },
     roughness: { value: 0.7, min: 0, max: 1, step: 0.01 },
     metalness: { value: 0.1, min: 0, max: 1, step: 0.01 },
@@ -321,7 +321,7 @@ function HoodieViewer() {
   const { background, environment, intensity, shadowOpacity, shadowBlur } = useControls('Scene Settings', {
     environment: {
       options: ['sunset', 'dawn', 'night', 'warehouse', 'forest', 'apartment', 'studio', 'city', 'park', 'lobby'],
-      value: 'studio'
+      value: 'night'
     },
     background: { value: true },
     intensity: { value: 0.7, min: 0, max: 2, step: 0.1 },
@@ -419,21 +419,6 @@ function HoodieViewer() {
     left: '360px',
   };
 
-  const instructionsStyle = {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    color: 'white',
-    padding: '20px',
-    borderRadius: '10px',
-    textAlign: 'center',
-    pointerEvents: 'none',
-    opacity: dragInstructions ? 1 : 0,
-    transition: 'opacity 0.5s ease',
-  };
-
   return (
     <div style={{ width: '100%', height: '100vh', background: '#f0f0f0', position: 'relative' }}>
       <Canvas
@@ -499,12 +484,6 @@ function HoodieViewer() {
       >
         Download GLB
       </button>
-
-      <div style={instructionsStyle}>
-        <h3>Click and drag on the logo to move it</h3>
-        <p>Use controls on the right to adjust size and rotation</p>
-        <p>Click on the hoodie to rotate the view</p>
-      </div>
     </div>
   );
 }
