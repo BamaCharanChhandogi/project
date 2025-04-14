@@ -7,6 +7,7 @@ import { GLTFExporter } from "three/addons/exporters/GLTFExporter";
 function HoodieModel({
   customLogos,
   customTexts,
+  setCustomTexts,
   onDownloadImage,
   onDownloadGLB,
   controlsRef,

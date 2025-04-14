@@ -574,6 +574,7 @@ function HoodieCustomizer() {
               <HoodieModel
                 customLogos={customLogos}
                 customTexts={customTexts} // Pass customTexts instead of customText and showText
+                setCustomTexts={setCustomTexts}
                 onDownloadImage={downloadImageTrigger ? handleImageDownloadComplete : null}
                 onDownloadGLB={downloadGLBTrigger ? handleGLBDownloadComplete : null}
                 controlsRef={controlsRef}
