@@ -1,8 +1,80 @@
 import React, { useRef, useEffect, useState } from "react";
 import { useThree } from "@react-three/fiber";
-import { Decal, useTexture, useGLTF, Float } from "@react-three/drei";
+import { Decal, useTexture, useGLTF, shaderMaterial } from "@react-three/drei";
 import * as THREE from "three";
 import { GLTFExporter } from "three/addons/exporters/GLTFExporter";
+
+const PatternMaterial = shaderMaterial(
+  {
+    baseTexture: null,
+    patternTexture: null,
+    baseColor: new THREE.Color(0xffffff),
+    patternColor: new THREE.Color(0xffffff),
+    textureScale: 1.0,
+    patternScale: 2.0,
+    textureOffset: new THREE.Vector2(0, 0),
+    roughness: 0.7,
+    metalness: 0.1,
+  },
+  `
+    varying vec2 vUv;
+    varying vec3 vPosition;
+    varying vec3 vNormal;
+    void main() {
+      vUv = uv;
+      vPosition = position;
+      vNormal = normalize(normalMatrix * normal);
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  `
+    uniform sampler2D baseTexture;
+    uniform sampler2D patternTexture;
+    uniform vec3 baseColor;
+    uniform vec3 patternColor;
+    uniform float textureScale;
+    uniform vec2 textureOffset;
+    varying vec2 vUv;
+    varying vec3 vPosition;
+    varying vec3 vNormal;
+    void main() {
+      vec2 scaledBaseUv = vUv * textureScale + textureOffset;
+      vec2 flippedPatternUv = vec2(vUv.x, 1.0 - vUv.y); // Flip vertically
+      vec4 base = texture2D(baseTexture, scaledBaseUv) * vec4(baseColor, 1.0);
+      vec4 pattern = texture2D(patternTexture, flippedPatternUv);
+      float normalFactor = pow(abs(dot(vNormal, vec3(0.0, 0.0, 1.0))), 0.5);
+      float blendStrength = pattern.a * normalFactor;
+      vec3 blended = mix(base.rgb, base.rgb * 0.8 + pattern.rgb * patternColor * 0.8, blendStrength);
+      gl_FragColor = vec4(blended, 1.0);
+    }
+  `
+);
+
+THREE.MeshStandardMaterial.prototype.customProgramCacheKey = function () {
+  return this.uuid;
+};
+
+// Define patternSets at the top to avoid initialization issues
+const patternSets = {
+  checker: [
+    "/patterns/Checker_Configurator_01.001_baseColor.png",
+    "/patterns/Checker_Configurator_02.001_baseColor.png",
+    "/patterns/Checker_Configurator_03.001_baseColor.png",
+    "/patterns/Checker_Configurator_04.001_baseColor.png",
+  ],
+  stripes: [
+    "/patterns/Stripes_Configurator_01.001_baseColor.png",
+    "/patterns/Stripes_Configurator_02.001_baseColor.png",
+    "/patterns/Stripes_Configurator_03.001_baseColor.png",
+    "/patterns/Stripes_Configurator_04.001_baseColor.png",
+  ],
+  circles: [
+    "/patterns/Circles_Configurator_01.001_baseColor.png",
+    "/patterns/Circles_Configurator_02.001_baseColor.png",
+    "/patterns/Circles_Configurator_03.001_baseColor.png",
+    "/patterns/Circles_Configurator_04.001_baseColor.png",
+  ],
+};
 
 function HoodieModel({
   customLogos,
@@ -19,26 +91,35 @@ function HoodieModel({
   roughness,
   selectedColor,
   showAreasOnGarment,
+  selectedPattern,
+  patternColor,
+  patternScale,
 }) {
-  const { scene } = useGLTF("/Hoodie/newUI/bama44444.glb");
+  const { scene } = useGLTF("/patterns/final1.glb");
   const { raycaster, camera, mouse, gl: renderer, scene: fullScene } = useThree();
 
-  const textures = useTexture({
+  // Pre-load all base textures
+  const baseTextures = useTexture({
     cotton: "/Equinox.jpg",
     fleece: "/Elementary.jpg",
     knit: "/Legend.jpg",
     denim: "/Legacy.jpg",
-    leather: "/York Plaid.jpg",
   });
 
-  // Load actual icon textures for toolbar controls (replace placeholders with real assets)
-  const rotateIconTexture = useTexture("/Color.png"); // Replace with actual rotate icon
-  const deleteIconTexture = useTexture("/Color.png"); // Replace with actual delete icon
-  const resizeIconTexture = useTexture("/Color.png"); // Replace with actual resize icon
-  const moveIconTexture = useTexture("/Color.png"); // Replace with actual move icon
+  // Pre-load all pattern textures using patternSets
+  const patternTextures = useTexture({
+    ...patternSets.checker.reduce((acc, path) => ({ ...acc, [path]: path }), {}),
+    ...patternSets.stripes.reduce((acc, path) => ({ ...acc, [path]: path }), {}),
+    ...patternSets.circles.reduce((acc, path) => ({ ...acc, [path]: path }), {}),
+  });
+
+  const meshPartOrder = ["chest", "arms", "back", "front"];
+  const rotateIconTexture = useTexture("/Color.png");
+  const deleteIconTexture = useTexture("/Color.png");
+  const resizeIconTexture = useTexture("/Color.png");
+  const moveIconTexture = useTexture("/Color.png");
 
   const hoodieRef = useRef();
-  const [availableMeshes, setAvailableMeshes] = useState([]);
   const [decalMeshes, setDecalMeshes] = useState([]);
   const [textTextures, setTextTextures] = useState({
     chest: null,
@@ -53,7 +134,6 @@ function HoodieModel({
     front: true,
   });
 
-  // Store refs to decal groups for raycasting
   const decalRefs = useRef({
     chest: null,
     arms: null,
@@ -96,29 +176,26 @@ function HoodieModel({
   const [initialPosition, setInitialPosition] = useState([0, 0, 0]);
   const [isDragging, setIsDragging] = useState(false);
 
-  // Define toolbar handle positions
   const handlePositions = {
-    rotate: [-1.2, 1.2, 0], // Top-left
-    delete: [1.2, 1.2, 0], // Top-right
-    resize: [1.2, -1.2, 0], // Bottom-right
-    move: [-1.2, -1.2, 0], // Bottom-left
+    rotate: [-1.2, 1.2, 0],
+    delete: [1.2, 1.2, 0],
+    resize: [1.2, -1.2, 0],
+    move: [-1.2, -1.2, 0],
   };
 
   const meshPartMapping = {
-    Main001: "front",
+    Front: "front",
     Arms001: "arms",
-    Strips001: "back",
-    Main005: "chest",
-    Arms002: "arms",
+    Back: "back",
+    // Main004: "chest",
+    strips001: "arms",
   };
 
-  // Handle clicking on a decal to show toolbar
   const handleDecalClick = (e, position) => {
     e.stopPropagation();
-    setSelectedTab(position); // Select the clicked decal to show its toolbar
+    setSelectedTab(position);
   };
 
-  // Generate text textures for each position
   useEffect(() => {
     const newTextTextures = { chest: null, arms: null, back: null, front: null };
 
@@ -199,6 +276,7 @@ function HoodieModel({
         texture.generateMipmaps = true;
         texture.minFilter = THREE.LinearMipmapLinearFilter;
         texture.magFilter = THREE.LinearFilter;
+        texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
         renderer.initTexture(texture);
         newTextTextures[position] = texture;
       }
@@ -207,16 +285,14 @@ function HoodieModel({
     setTextTextures(newTextTextures);
   }, [customTexts, renderer]);
 
-  // Update meshes and materials
   useEffect(() => {
     if (!scene) return;
 
-    const currentTexture = textures[selectedTexture];
+    const currentTexture = baseTextures[selectedTexture];
     currentTexture.wrapS = currentTexture.wrapT = THREE.RepeatWrapping;
     currentTexture.repeat.set(textureScale, textureScale);
     currentTexture.needsUpdate = true;
 
-    const meshList = [];
     const meshMap = {
       chest: null,
       arms: null,
@@ -226,35 +302,57 @@ function HoodieModel({
 
     scene.traverse((child) => {
       if (child.isMesh) {
-        meshList.push(child);
         const partName = meshPartMapping[child.name];
-        const partColor = partName && partColors[partName] ? partColors[partName] : "#FFFFFF";
-        const material = new THREE.MeshStandardMaterial({
-          map: currentTexture,
-          roughness: roughness,
-          metalness: 0.1,
-          color: new THREE.Color(partColor),
-          side: THREE.DoubleSide,
-        });
-        child.material = material;
-        child.material.needsUpdate = true;
+        if (partName) {
+          meshMap[partName] = child;
+          const partIndex = meshPartOrder.indexOf(partName);
+          const patternType = selectedPattern || "checker";
+          const patternTexturePath = patternSets[patternType][partIndex % 4];
+          const patternTexture = patternTextures[patternTexturePath];
 
-        if (child.name === "Main005") {
-          meshMap.chest = child;
-          meshMap.front = child; // Main005 handles both chest and front
-        } else if (child.name === "Arms002") {
-          meshMap.arms = child;
-        } else if (child.name === "Main001") {
-          meshMap.back = child;
+          // if (patternTexture) {
+          //   patternTexture.wrapS = patternTexture.wrapT = THREE.ClampToEdgeWrapping;
+          //   patternTexture.needsUpdate = true;
+          // }
+
+          const partColor = partColors[partName] || "#FFFFFF";
+          const material = new PatternMaterial({
+            baseTexture: currentTexture,
+            patternTexture: patternTexture || new THREE.Texture(),
+            baseColor: new THREE.Color(partColor),
+            patternColor: new THREE.Color(patternColor),
+            textureScale: textureScale,
+            patternScale: patternScale,
+            roughness: roughness,
+            metalness: 0.1,
+          });
+
+          material.depthTest = true;
+          material.depthWrite = true;
+          material.polygonOffset = true;
+          material.polygonOffsetFactor = -5;
+          material.polygonOffsetUnits = -5;
+          material.needsUpdate = true;
+
+          child.material = material;
         }
       }
     });
 
-    setAvailableMeshes(meshList.map((mesh) => mesh.name));
     setDecalMeshes([meshMap.chest, meshMap.arms, meshMap.back, meshMap.front].filter(Boolean));
-  }, [scene, selectedTexture, partColors, selectedColor, textureScale, roughness]);
+  }, [
+    scene,
+    baseTextures,
+    selectedTexture,
+    partColors,
+    selectedColor,
+    textureScale,
+    roughness,
+    selectedPattern,
+    patternColor,
+    patternScale,
+  ]);
 
-  // Handle image download
   useEffect(() => {
     if (onDownloadImage) {
       renderer.render(fullScene, camera);
@@ -262,7 +360,6 @@ function HoodieModel({
     }
   }, [onDownloadImage, renderer, fullScene, camera]);
 
-  // Handle GLB download
   useEffect(() => {
     if (onDownloadGLB) {
       const exporter = new GLTFExporter();
@@ -273,7 +370,8 @@ function HoodieModel({
         sceneToExport,
         (gltf) => {
           const blob = new Blob([gltf], { type: "application/octet-stream" });
-          onDownloadGLB(URL.createObjectURL(blob));
+          const url = URL.createObjectURL(blob);
+          onDownloadGLB(url);
         },
         (error) => console.error("GLB Export Error:", error),
         { binary: true }
@@ -281,7 +379,6 @@ function HoodieModel({
     }
   }, [onDownloadGLB]);
 
-  // Toolbar interaction handlers
   const handlePointerDown = (event, handle, location) => {
     event.stopPropagation();
     controlsRef.current.enabled = false;
@@ -297,7 +394,6 @@ function HoodieModel({
         ...prev,
         [location]: false,
       }));
-      // Also clear text for this position to prevent re-rendering
       if (customTexts[location].show) {
         setCustomTexts((prev) => ({
           ...prev,
@@ -307,6 +403,7 @@ function HoodieModel({
       setActiveHandle(null);
       setIsDragging(false);
       controlsRef.current.enabled = true;
+      window.location.reload();
     }
   };
 
@@ -371,139 +468,146 @@ function HoodieModel({
   }, [isDragging, activeHandle, initialMouse, initialScale, initialRotation, initialPosition]);
 
   return (
-    <Float rotationIntensity={0.2} floatIntensity={0.5} speed={1.5}>
-      <group ref={hoodieRef} position={[0, 0, 0]} rotation={[0, 0, 0]}>
-        <primitive object={scene} />
-        {decalMeshes.map((mesh, index) => {
-          if (!mesh) return null;
+    <group ref={hoodieRef} position={[0, 0, 0]} rotation={[0, 0, 0]}>
+      <primitive object={scene} />
+      {decalMeshes.map((mesh, index) => {
+        if (!mesh) return null;
 
-          const decalConfigs = [
-            { position: "chest", meshName: "Main005", side: THREE.FrontSide },
-            { position: "front", meshName: "Main005", side: THREE.FrontSide },
-            { position: "arms", meshName: "Arms002", side: THREE.FrontSide },
-            { position: "back", meshName: "Main001", side: THREE.BackSide },
+        const decalConfigs = [
+          // { position: "chest", meshName: "Main004", side: THREE.FrontSide },
+          { position: "front", meshName: "Front", side: THREE.FrontSide },
+          { position: "arms", meshName: "Arms001", side: THREE.FrontSide },
+          { position: "back", meshName: "Back", side: THREE.BackSide },
+        ];
+
+        return decalConfigs.map((config) => {
+          if (mesh.name !== config.meshName) return null;
+
+          const { position: meshPosition, side: sideProperty } = config;
+          const isTextDecal = customTexts[meshPosition].show && textTextures[meshPosition];
+          const textureToApply = isTextDecal ? textTextures[meshPosition] : customLogos[meshPosition];
+          const isVisible = decalVisibility[meshPosition];
+          const isSelected = meshPosition === selectedTab;
+
+          if (!textureToApply || !isVisible) return null;
+
+          const position = decalPositions[meshPosition];
+          const rotation = decalRotations[meshPosition];
+          const uniformScale = decalUniformScales[meshPosition];
+          const fontSizeAdjustment = isTextDecal ? customTexts[meshPosition].fontSize / 60 : 1;
+          const scale = [
+            uniformScale * aspectRatios[meshPosition] * fontSizeAdjustment,
+            uniformScale * fontSizeAdjustment,
+            1,
           ];
 
-          return decalConfigs.map((config) => {
-            if (mesh.name !== config.meshName) return null;
+          return (
+            <group key={`${mesh.name}-${meshPosition}`}>
+              <mesh geometry={mesh.geometry}>
+                <Decal
+                  ref={(ref) => (decalRefs.current[meshPosition] = ref)}
+                  position={position}
+                  rotation={new THREE.Euler(...rotation)}
+                  scale={scale}
+                  map={textureToApply}
+                  debug={false}
+                  polygonOffset={true}
+                  polygonOffsetFactor={
+                    meshPosition === "chest" ? -20 :
+                    meshPosition === "arms" ? -22 :
+                    meshPosition === "back" ? -24 :
+                    meshPosition === "front" ? -26 : -20
+                  }
+                  depthTest={true}
+                  depthWrite={true}
+                  renderOrder={isSelected ? 10 : 5}
+                  onClick={(e) => handleDecalClick(e, meshPosition)}
+                  material={
+                    new THREE.MeshStandardMaterial({
+                      map: textureToApply,
+                      transparent: true,
+                      opacity: 1.0,
+                      side: sideProperty,
+                      depthWrite: true,
+                      depthTest: true,
+                      depthFunc: THREE.LessEqualDepth,
+                      polygonOffset: true,
+                      polygonOffsetFactor: (
+                        meshPosition === "chest" ? -20 :
+                        meshPosition === "arms" ? -22 :
+                        meshPosition === "back" ? -24 :
+                        meshPosition === "front" ? -26 : -20
+                      ),
+                    })
+                  }
+                />
+              </mesh>
 
-            const { position: meshPosition, side: sideProperty } = config;
-            const isTextDecal = customTexts[meshPosition].show && textTextures[meshPosition];
-            const textureToApply = isTextDecal ? textTextures[meshPosition] : customLogos[meshPosition];
-            const isVisible = decalVisibility[meshPosition];
-            const isSelected = meshPosition === selectedTab;
+              {isSelected && (
+                <group position={position} rotation={new THREE.Euler(...rotation)}>
+                  <line>
+                    <bufferGeometry attach="geometry">
+                      <float32BufferAttribute
+                        attach="attributes-position"
+                        array={new Float32Array([
+                          -scale[0],
+                          -scale[1],
+                          0.006,
+                          scale[0],
+                          -scale[1],
+                          0.006,
+                          scale[0],
+                          scale[1],
+                          0.006,
+                          -scale[0],
+                          scale[1],
+                          0.006,
+                          -scale[0],
+                          -scale[1],
+                          0.006,
+                        ])}
+                        count={5}
+                        itemSize={3}
+                      />
+                    </bufferGeometry>
+                    <lineBasicMaterial attach="material" color="#000000" dashSize={0.05} gapSize={0.05} />
+                  </line>
 
-            if (!textureToApply || !isVisible) return null;
+                  {Object.entries(handlePositions).map(([handle, pos]) => {
+                    const scaledPos = [pos[0] * scale[0], pos[1] * scale[1], pos[2] + 0.01];
 
-            const position = decalPositions[meshPosition];
-            const rotation = decalRotations[meshPosition];
-            const uniformScale = decalUniformScales[meshPosition];
-            const fontSizeAdjustment = isTextDecal ? customTexts[meshPosition].fontSize / 60 : 1;
-            const scale = [
-              uniformScale * aspectRatios[meshPosition] * fontSizeAdjustment,
-              uniformScale * fontSizeAdjustment,
-              1,
-            ];
-
-            return (
-              <group key={`${mesh.name}-${meshPosition}`}>
-                <mesh geometry={mesh.geometry}>
-                  <Decal
-                    ref={(ref) => (decalRefs.current[meshPosition] = ref)}
-                    position={position}
-                    rotation={new THREE.Euler(...rotation)}
-                    scale={scale}
-                    map={textureToApply}
-                    debug={false}
-                    polygonOffset={true}
-                    polygonOffsetFactor={-10}
-                    depthTest={true}
-                    depthWrite={true}
-                    renderOrder={2}
-                    onClick={(e) => handleDecalClick(e, meshPosition)}
-                    material={
-                      new THREE.MeshStandardMaterial({
-                        map: textureToApply,
-                        transparent: true,
-                        opacity: 1.0,
-                        side: sideProperty,
-                        depthWrite: true,
-                        polygonOffset: true,
-                        polygonOffsetFactor: -10,
-                      })
-                    }
-                  />
-                </mesh>
-
-                {/* Toolbar: Show controls when decal is selected */}
-                {isSelected && (
-                  <group position={position} rotation={new THREE.Euler(...rotation)}>
-                    {/* Outline to highlight selected decal */}
-                    <line>
-                      <bufferGeometry attach="geometry">
-                        <float32BufferAttribute
-                          attach="attributes-position"
-                          array={new Float32Array([
-                            -scale[0],
-                            -scale[1],
-                            0.006,
-                            scale[0],
-                            -scale[1],
-                            0.006,
-                            scale[0],
-                            scale[1],
-                            0.006,
-                            -scale[0],
-                            scale[1],
-                            0.006,
-                            -scale[0],
-                            -scale[1],
-                            0.006,
-                          ])}
-                          count={5}
-                          itemSize={3}
-                        />
-                      </bufferGeometry>
-                      <lineBasicMaterial attach="material" color="#000000" dashSize={0.05} gapSize={0.05} />
-                    </line>
-
-                    {/* Toolbar controls: Rotate, Delete, Resize, Move */}
-                    {Object.entries(handlePositions).map(([handle, pos]) => {
-                      const scaledPos = [pos[0] * scale[0], pos[1] * scale[1], pos[2] + 0.01];
-
-                      return (
-                        <group key={handle}>
-                          <mesh
-                            position={scaledPos}
-                            onPointerDown={(e) => handlePointerDown(e, handle, meshPosition)}
-                          >
-                            <planeGeometry args={[0.05, 0.05]} />
-                            <meshBasicMaterial
-                              map={
-                                handle === "rotate"
-                                  ? rotateIconTexture
-                                  : handle === "delete"
-                                  ? deleteIconTexture
-                                  : handle === "resize"
-                                  ? resizeIconTexture
-                                  : moveIconTexture
-                              }
-                              transparent
-                              opacity={1}
-                              side={THREE.DoubleSide}
-                            />
-                          </mesh>
-                        </group>
-                      );
-                    })}
-                  </group>
-                )}
-              </group>
-            );
-          });
-        })}
-      </group>
-    </Float>
+                    return (
+                      <group key={handle}>
+                        <mesh
+                          position={scaledPos}
+                          onPointerDown={(e) => handlePointerDown(e, handle, meshPosition)}
+                        >
+                          <planeGeometry args={[0.05, 0.05]} />
+                          <meshBasicMaterial
+                            map={
+                              handle === "rotate"
+                                ? rotateIconTexture
+                                : handle === "delete"
+                                ? deleteIconTexture
+                                : handle === "resize"
+                                ? resizeIconTexture
+                                : moveIconTexture
+                            }
+                            transparent
+                            opacity={1}
+                            side={THREE.DoubleSide}
+                          />
+                        </mesh>
+                      </group>
+                    );
+                  })}
+                </group>
+              )}
+            </group>
+          );
+        });
+      })}
+    </group>
   );
 }
 

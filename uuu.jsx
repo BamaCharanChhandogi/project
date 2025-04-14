@@ -34,7 +34,7 @@ function HoodieCustomizer() {
   const [textureScale, setTextureScale] = useState(1);
   const [roughness, setRoughness] = useState(0.7);
   const [showAreasOnGarment, setShowAreasOnGarment] = useState(false);
-  const [selectedPattern, setSelectedPattern] = useState("checker"); // Default to checker
+  const [selectedPattern, setSelectedPattern] = useState(null);
   const [patternColor, setPatternColor] = useState("#FFFFFF");
   const [patternScale, setPatternScale] = useState(1);
 
@@ -58,6 +58,7 @@ function HoodieCustomizer() {
           texture.generateMipmaps = true;
           texture.minFilter = THREE.LinearMipmapLinearFilter;
           texture.magFilter = THREE.LinearFilter;
+          // texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
           const positionMapping = {
             rightChest: "chest",
             leftChest: "back",
@@ -126,20 +127,18 @@ function HoodieCustomizer() {
     }
   };
 
-  const handlePatternSelect = (patternType) => {
-    setSelectedPattern(patternType);
-  };
-  // Add this in your state variables in HoodieCustomizer.js
-
-
   const patternTabs = ["Collar", "Placket", "Chest Pocket", "Cuff"];
   const placementAreas = [
-    { id: "rightChest", label: "Right Chest", mapping: "front" },
+    { id: "rightChest", label: "Right Chest", mapping: "chest" },
     { id: "leftChest", label: "Left Chest", mapping: "back" },
     { id: "leftSleeve", label: "Left Sleeve", mapping: "arms" },
     { id: "rightSleeve", label: "Right Sleeve", mapping: "front" },
   ];
-  const patternTypes = ["checker", "stripes", "circles"];
+  const patterns = [
+    "checker", "checker2", "checker3", "checker4",
+    "stripes", "stripes2", "stripes3", "stripes4",
+    "circles", "circles2", "circles3", "circles4"
+  ];
   const colors = [
     { value: "#D3D3D3", label: "Light Gray" },
     { value: "#A6B7A5", label: "Sage" },
@@ -248,16 +247,17 @@ function HoodieCustomizer() {
                     </div>
                     <h3 className="text-xl font-medium mb-3">Patterns</h3>
                     <div className="grid grid-cols-5 gap-2 mr-3 mb-3">
-                      {patternTypes.map((patternType) => (
+                      {patterns.map((pattern, index) => (
                         <button
-                          key={patternType}
-                          className={`w-[57.62px] h-[57.62px] bg-gray-300 rounded-md hover:ring-2 hover:ring-white ${selectedPattern === patternType ? "ring-2 ring-white" : ""}`}
-                          onClick={() => handlePatternSelect(patternType)}
-                          title={patternType}
+                          key={index}
+                          className={`w-[57.62px] h-[57.62px] bg-gray-300 rounded-md hover:ring-2 hover:ring-white ${selectedPattern === pattern ? "ring-2 ring-white" : ""
+                            }`}
+                          onClick={() => setSelectedPattern(pattern)}
+                          title={pattern}
                         >
                           <img
-                            src={`/patterns/${patternType}_Configurator_01.001_baseColor.png`}
-                            alt={patternType}
+                            src={`/patterns/${pattern}.png`}
+                            alt={pattern}
                             className="w-full h-full object-cover"
                           />
                         </button>
@@ -268,7 +268,8 @@ function HoodieCustomizer() {
                       {colors.map((color, index) => (
                         <button
                           key={index}
-                          className={`w-[57.62px] h-[57.62px] rounded-md hover:ring-2 hover:ring-white ${patternColor === color.value ? "ring-2 ring-white" : ""}`}
+                          className={`w-[57.62px] h-[57.62px] rounded-md hover:ring-2 hover:ring-white ${patternColor === color.value ? "ring-2 ring-white" : ""
+                            }`}
                           style={{ backgroundColor: color.value }}
                           onClick={() => setPatternColor(color.value)}
                           title={color.label}
@@ -322,7 +323,8 @@ function HoodieCustomizer() {
                       {colors.map((color, index) => (
                         <button
                           key={index}
-                          className={`w-full aspect-square rounded-md hover:ring-2 hover:ring-white ${partColors[selectedTab] === color.value ? "ring-2 ring-white" : ""}`}
+                          className={`w-full aspect-square rounded-md hover:ring-2 hover:ring-white ${partColors[selectedTab] === color.value ? "ring-2 ring-white" : ""
+                            }`}
                           style={{ backgroundColor: color.value }}
                           onClick={() => handleColorChange(color.value)}
                           title={color.label}
@@ -572,53 +574,53 @@ function HoodieCustomizer() {
               </button>
             </div>
           </div>
+        </div>
 
-          <div className="flex-1 relative">
-            <Canvas shadows gl={{ preserveDrawingBuffer: true, antialias: true }}>
-              <PerspectiveCamera makeDefault position={[0, 0.25, 3.5]} fov={40} />
-              <Suspense
-                fallback={
-                  <mesh>
-                    <boxGeometry args={[0.5, 0.5, 0.5]} />
-                    <meshBasicMaterial color="blue" wireframe />
-                  </mesh>
-                }
-              >
-                <ambientLight intensity={0.6} />
-                <directionalLight position={[5, 5, 5]} intensity={0.5} castShadow />
-                <HoodieModel
-                  customLogos={customLogos}
-                  customTexts={customTexts}
-                  setCustomTexts={setCustomTexts}
-                  onDownloadImage={downloadImageTrigger ? handleImageDownloadComplete : null}
-                  onDownloadGLB={downloadGLBTrigger ? handleGLBDownloadComplete : null}
-                  controlsRef={controlsRef}
-                  partColors={partColors}
-                  selectedColor={selectedColor}
-                  selectedTexture={selectedTexture}
-                  selectedTab={selectedTab}
-                  setSelectedTab={setSelectedTab}
-                  textureScale={textureScale}
-                  roughness={roughness}
-                  showAreasOnGarment={showAreasOnGarment}
-                  selectedPattern={selectedPattern}
-                  patternColor={patternColor}
-                  patternScale={patternScale}
-                />
-                <ContactShadows position={[0, -1.5, 0]} opacity={0.5} blur={2.5} scale={10} />
-                <Environment preset={selectedEnvironment} />
-                <OrbitControls
-                  ref={controlsRef}
-                  minPolarAngle={Math.PI / 6}
-                  maxPolarAngle={Math.PI / 1.8}
-                  enablePan={true}
-                  enableZoom={true}
-                  enableRotate={true}
-                  target={[0, 0, 0]}
-                />
-              </Suspense>
-            </Canvas>
-          </div>
+        <div className="flex-1 relative">
+          <Canvas shadows gl={{ preserveDrawingBuffer: true, antialias: true }}>
+            <PerspectiveCamera makeDefault position={[0, 0.25, 3.5]} fov={40} />
+            <Suspense
+              fallback={
+                <mesh>
+                  <boxGeometry args={[0.5, 0.5, 0.5]} />
+                  <meshBasicMaterial color="blue" wireframe />
+                </mesh>
+              }
+            >
+              <ambientLight intensity={0.6} />
+              <directionalLight position={[5, 5, 5]} intensity={0.5} castShadow />
+              <HoodieModel
+                customLogos={customLogos}
+                customTexts={customTexts}
+                setCustomTexts={setCustomTexts}
+                onDownloadImage={downloadImageTrigger ? handleImageDownloadComplete : null}
+                onDownloadGLB={downloadGLBTrigger ? handleGLBDownloadComplete : null}
+                controlsRef={controlsRef}
+                partColors={partColors}
+                selectedColor={selectedColor}
+                selectedTexture={selectedTexture}
+                selectedTab={selectedTab}
+                setSelectedTab={setSelectedTab}
+                textureScale={textureScale}
+                roughness={roughness}
+                showAreasOnGarment={showAreasOnGarment}
+                selectedPattern={selectedPattern}
+                patternColor={patternColor}
+                patternScale={patternScale}
+              />
+              <ContactShadows position={[0, -1.5, 0]} opacity={0.5} blur={2.5} scale={10} />
+              <Environment preset={selectedEnvironment} />
+              <OrbitControls
+                ref={controlsRef}
+                minPolarAngle={Math.PI / 6}
+                maxPolarAngle={Math.PI / 1.8}
+                enablePan={true}
+                enableZoom={true}
+                enableRotate={true}
+                target={[0, 0, 0]}
+              />
+            </Suspense>
+          </Canvas>
         </div>
       </div>
     </div>
