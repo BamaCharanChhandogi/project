@@ -7,21 +7,23 @@ import {
   PerspectiveCamera,
 } from "@react-three/drei";
 import * as THREE from "three";
-
-// HoodieModel Component
 import HoodieModel from "./Hoodie";
 
-// Main HoodieCustomizer Component
 function HoodieCustomizer() {
   const controlsRef = useRef();
   const [customLogos, setCustomLogos] = useState({
     chest: null,
     arms: null,
     back: null,
-    rightSleeve: null,
+    front: null,
   });
-  const [customText, setCustomText] = useState("");
-  const [showText, setShowText] = useState(false);
+  // Replace customText and showText with customTexts object
+  const [customTexts, setCustomTexts] = useState({
+    chest: { text: "", show: false, color: "#000000", background: "rgba(255, 255, 255, 0.8)", fontSize: 60, style: "classic", shape: "rectangle" },
+    arms: { text: "", show: false, color: "#000000", background: "rgba(255, 255, 255, 0.8)", fontSize: 60, style: "classic", shape: "rectangle" },
+    back: { text: "", show: false, color: "#000000", background: "rgba(255, 255, 255, 0.8)", fontSize: 60, style: "classic", shape: "rectangle" },
+    front: { text: "", show: false, color: "#000000", background: "rgba(255, 255, 255, 0.8)", fontSize: 60, style: "classic", shape: "rectangle" },
+  });
   const [downloadImageTrigger, setDownloadImageTrigger] = useState(null);
   const [downloadGLBTrigger, setDownloadGLBTrigger] = useState(null);
   const [activeTab, setActiveTab] = useState("pattern");
@@ -32,20 +34,13 @@ function HoodieCustomizer() {
   const [patternTab, setPatternTab] = useState("collar");
   const [textureScale, setTextureScale] = useState(1);
   const [roughness, setRoughness] = useState(0.7);
-  const [textColor, setTextColor] = useState("#000000");
-  const [backgroundColor, setBackgroundColor] = useState(
-    "rgba(255, 255, 255, 0.8)"
-  );
-  const [fontSize, setFontSize] = useState(60);
-  const [selectedTextStyle, setSelectedTextStyle] = useState("classic");
-  const [selectedTextShape, setSelectedTextShape] = useState("rectangle");
   const [showAreasOnGarment, setShowAreasOnGarment] = useState(false);
 
   const [partColors, setPartColors] = useState({
     chest: "#3B82F6",
     arms: "#3B82F6",
     back: "#3B82F6",
-    rightSleeve: "#3B82F6", // Added for right sleeve
+    front: "#3B82F6",
   });
 
   const handleLogoUpload = (event, position) => {
@@ -58,39 +53,50 @@ function HoodieCustomizer() {
         img.onload = () => {
           const texture = new THREE.Texture(img);
           texture.needsUpdate = true;
-          // Map to the correct position based on the button pressed
           const positionMapping = {
             rightChest: "chest",
             leftChest: "back",
             leftSleeve: "arms",
-            rightSleeve: "rightSleeve",
+            rightSleeve: "front",
           };
           setCustomLogos((prev) => ({
             ...prev,
             [positionMapping[position]]: texture,
           }));
-          setShowText(false);
+          // Disable text for this position when a logo is uploaded
+          setCustomTexts((prev) => ({
+            ...prev,
+            [positionMapping[position]]: { ...prev[positionMapping[position]], show: false },
+          }));
         };
       };
       reader.readAsDataURL(file);
     }
   };
+
   const handleColorChange = (color) => {
     setSelectedColor(color);
-    // Update the color for the selected part only
     setPartColors((prev) => ({
       ...prev,
       [selectedTab]: color,
     }));
   };
 
-  const handleTextChange = (text) => {
-    setCustomText(text);
-    if (text.trim()) {
-      setShowText(true);
-    } else {
-      setShowText(false);
-    }
+  // New handler for text changes per position
+  const handleTextChange = (position, field, value) => {
+    setCustomTexts((prev) => {
+      const updated = {
+        ...prev,
+        [position]: {
+          ...prev[position],
+          [field]: value,
+        },
+      };
+      if (field === "text") {
+        updated[position].show = value.trim() !== "";
+      }
+      return updated;
+    });
   };
 
   const handleImageDownload = () => setDownloadImageTrigger(Date.now());
@@ -117,21 +123,14 @@ function HoodieCustomizer() {
     }
   };
 
-  // Pattern tabs
   const patternTabs = ["Collar", "Placket", "Chest Pocket", "Cuff"];
-
-  // Logo placement tabs
   const placementAreas = [
     { id: "rightChest", label: "Right Chest", mapping: "chest" },
     { id: "leftChest", label: "Left Chest", mapping: "back" },
     { id: "leftSleeve", label: "Left Sleeve", mapping: "arms" },
-    { id: "rightSleeve", label: "Right Sleeve", mapping: "rightSleeve" },
+    { id: "rightSleeve", label: "Right Sleeve", mapping: "front" },
   ];
-
-  // Pattern styles
   const patterns = ["Stripes", "Dots", "Zigzag", "Waves", "Checks", "Floral"];
-
-  // Colors for pattern and general color selection
   const colors = [
     { value: "#D3D3D3", label: "Light Gray" },
     { value: "#A6B7A5", label: "Sage" },
@@ -144,17 +143,12 @@ function HoodieCustomizer() {
     { value: "#2ECC71", label: "Green" },
     { value: "#9B59B6", label: "Purple" },
   ];
-
-  // Textures for material selection
   const textures = [
     { value: "cotton", label: "Cotton", imageUrl: "/Equinox.jpg" },
     { value: "fleece", label: "Fleece", imageUrl: "/Elementary.jpg" },
     { value: "knit", label: "Knit", imageUrl: "/Legend.jpg" },
     { value: "denim", label: "Denim", imageUrl: "/Legacy.jpg" },
-    // { value: "leather", label: "Leather", imageUrl:"/Hoodie/York Plaid.jpg" },
   ];
-
-  // Environments for lighting
   const environments = [
     "sunset",
     "dawn",
@@ -170,18 +164,13 @@ function HoodieCustomizer() {
 
   return (
     <div className="flex flex-col h-screen bg-gradient-to-l from-[#263D44] to-[#577A8B]">
-      {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden ">
-        {/* Left Sidebar with main tools */}
-        <div className="flex space-x-3 w-[625.55px] h-[729.67px] ml-40 mt-20 rounded-md ">
-          {/* Vertical Toolbar - circular buttons */}
+      <div className="flex flex-1 overflow-hidden">
+        <div className="flex space-x-3 w-[625.55px] h-[729.67px] ml-40 mt-20 rounded-md">
           <div className="w-[108.67px] h-[529.67px] mt-4 bg-white/30 backdrop-blur-md backdrop-saturate-150 p-4 flex flex-col justify-between items-center pt-4 rounded-full border border-white/20">
             <button
               onClick={() => setActiveTab("colors")}
               className={`w-[80.55px] h-[80.55px] active:outline-none focus:outline-none rounded-full flex items-center justify-center transition-all ${
-                activeTab === "colors"
-                  ? "bg-white text-gray-600"
-                  : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"
+                activeTab === "colors" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"
               }`}
               title="Colors"
             >
@@ -189,13 +178,10 @@ function HoodieCustomizer() {
                 <img src="/Paint.png" alt="Paint" />
               </span>
             </button>
-
             <button
               onClick={() => setActiveTab("pattern")}
               className={`w-[80.55px] h-[80.55px] rounded-full flex items-center justify-center transition-all ${
-                activeTab === "pattern"
-                  ? "bg-white text-gray-600"
-                  : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"
+                activeTab === "pattern" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"
               }`}
               title="Pattern"
             >
@@ -203,13 +189,10 @@ function HoodieCustomizer() {
                 <img src="/Color.png" alt="Color" />
               </span>
             </button>
-
             <button
               onClick={() => setActiveTab("logo")}
               className={`w-[80.55px] h-[80.55px] focus:outline-none focus:ring-0 rounded-full flex items-center justify-center transition-all ${
-                activeTab === "logo"
-                  ? "bg-white text-gray-600"
-                  : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-200"
+                activeTab === "logo" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-200"
               }`}
               title="Logo"
             >
@@ -217,13 +200,10 @@ function HoodieCustomizer() {
                 <img src="/Image.png" alt="image" />
               </span>
             </button>
-
             <button
               onClick={() => setActiveTab("texture")}
               className={`w-[80.55px] h-[80.55px] rounded-full flex items-center justify-center transition-all ${
-                activeTab === "texture"
-                  ? "bg-white text-gray-600"
-                  : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"
+                activeTab === "texture" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"
               }`}
               title="Texture"
             >
@@ -231,17 +211,14 @@ function HoodieCustomizer() {
                 <img src="/Diagonal.png" alt="Diagonal" />
               </span>
             </button>
-
             <button
               onClick={() => setActiveTab("text")}
               className={`w-[80.55px] h-[80.55px] rounded-full flex items-center justify-center transition-all ${
-                activeTab === "text"
-                  ? "bg-white text-gray-600"
-                  : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"
+                activeTab === "text" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"
               }`}
               title="Text"
             >
-              <span className="text-2xl ">
+              <span className="text-2xl">
                 <img src="/Text.png" alt="Text" />
               </span>
             </button>
@@ -250,29 +227,21 @@ function HoodieCustomizer() {
           <div>
             <div className="w-[401px] h-[480px] self-center bg-white/30 backdrop-blur-md backdrop-saturate-150 p-6 flex flex-col text-white border border-white/20 rounded-xl mt-10">
               <div className="flex-1 overflow-y-auto">
-                <h2 className="text-2xl font-semibold mb-6 capitalize">
-                  {activeTab}
-                </h2>
+                <h2 className="text-2xl font-semibold mb-6 capitalize">{activeTab}</h2>
 
                 {activeTab === "pattern" && (
                   <div>
-                    {/* Pattern Tab Navigation */}
                     <div className="flex mb-6">
                       {patternTabs.map((tab) => (
                         <button
                           key={tab}
                           onClick={() => setPatternTab(tab.toLowerCase())}
-                          className={`px-4 py-2 text-sm ${
-                            patternTab === tab.toLowerCase()
-                              ? "text-white"
-                              : "text-gray-300"
-                          }`}
+                          className={`px-4 py-2 text-sm ${patternTab === tab.toLowerCase() ? "text-white" : "text-gray-300"}`}
                         >
                           {tab}
                         </button>
                       ))}
                     </div>
-                    {/* Pattern Grid - 5x2 grid */}
                     <div className="grid grid-cols-5 gap-2 mr-3 mb-3">
                       {patterns.slice(0, 5).map((pattern, index) => (
                         <button
@@ -289,16 +258,13 @@ function HoodieCustomizer() {
                         />
                       ))}
                     </div>
-                    {/* Color Section - 5x2 grid */}
                     <h3 className="text-xl font-medium mb-3">Color</h3>
                     <div className="grid grid-cols-5 gap-2 mb-3 mr-3">
                       {colors.slice(0, 10).map((color, index) => (
                         <button
                           key={index}
                           className={`w-[57.62px] h-[57.62px] bg-gray-300 rounded-md hover:ring-2 hover:ring-white ${
-                            selectedColor === color.value
-                              ? "ring-2 ring-white"
-                              : ""
+                            selectedColor === color.value ? "ring-2 ring-white" : ""
                           }`}
                           style={{ backgroundColor: color.value }}
                           onClick={() => handleColorChange(color.value)}
@@ -310,7 +276,6 @@ function HoodieCustomizer() {
                 )}
                 {activeTab === "colors" && (
                   <div>
-                    {/* Logo placement selection */}
                     <h3 className="text-xl font-medium mb-4">Apply Color to</h3>
                     <div className="flex flex-wrap gap-2 mb-6">
                       {placementAreas.map((area) => (
@@ -327,20 +292,15 @@ function HoodieCustomizer() {
                         </button>
                       ))}
                     </div>
-                    {/* Main Color Selection Grid */}
                     <h3 className="text-xl font-medium mb-4">
-                      {selectedTab.charAt(0).toUpperCase() +
-                        selectedTab.slice(1)}{" "}
-                      Color
+                      {selectedTab.charAt(0).toUpperCase() + selectedTab.slice(1)} Color
                     </h3>
                     <div className="grid grid-cols-5 gap-2">
                       {colors.slice(0, 10).map((color, index) => (
                         <button
                           key={index}
                           className={`w-full aspect-square rounded-md hover:ring-2 hover:ring-white ${
-                            partColors[selectedTab] === color.value
-                              ? "ring-2 ring-white"
-                              : ""
+                            partColors[selectedTab] === color.value ? "ring-2 ring-white" : ""
                           }`}
                           style={{ backgroundColor: color.value }}
                           onClick={() => handleColorChange(color.value)}
@@ -368,23 +328,18 @@ function HoodieCustomizer() {
                     </div>
                   </div>
                 )}
-
                 {activeTab === "logo" && (
                   <div>
                     <h3 className="text-xl font-medium mb-4">Add Image</h3>
-                    {/* New Logo Grid Layout */}
                     <div className="grid grid-cols-2 gap-4">
-                      {placementAreas.map((area, index) => (
-                        <div
-                          key={area.id}
-                          className="flex flex-col items-center"
-                        >
+                      {placementAreas.map((area) => (
+                        <div key={area.id} className="flex flex-col items-center">
                           <div className="bg-slate-300 w-20 aspect-square rounded-md flex items-center justify-center mb-1 relative">
                             <label
                               htmlFor={`logo-upload-${area.id}`}
                               className="absolute inset-0 flex items-center justify-center cursor-pointer"
                             >
-                              <div className=" p-2 rounded-md">
+                              <div className="p-2 rounded-md">
                                 <svg
                                   width="24"
                                   height="24"
@@ -411,21 +366,16 @@ function HoodieCustomizer() {
                             </label>
                           </div>
                           <p className="text-center text-sm">{area.label}</p>
-                          <p className="text-center text-xs text-gray-300">
-                            Max Area
-                          </p>
+                          <p className="text-center text-xs text-gray-300">Max Area</p>
                         </div>
                       ))}
                     </div>
-                    {/* Toggle for showing areas on garment */}
                     <div className="mt-8 flex items-center">
                       <input
                         type="checkbox"
                         id="show-areas"
                         checked={showAreasOnGarment}
-                        onChange={() =>
-                          setShowAreasOnGarment(!showAreasOnGarment)
-                        }
+                        onChange={() => setShowAreasOnGarment(!showAreasOnGarment)}
                         className="mr-2"
                       />
                       <label htmlFor="show-areas" className="text-sm">
@@ -434,119 +384,6 @@ function HoodieCustomizer() {
                     </div>
                   </div>
                 )}
-
-                {/* {activeTab === "texture" && (
-                <div>
-                  <h3 className="text-xl font-medium mb-4">Material Type</h3>
-                  <div className="grid grid-cols-2 gap-3 mb-6">
-                    {textures.map((texture) => (
-                      <button
-                        key={texture.value}
-                        onClick={() => setSelectedTexture(texture.value)}
-                        className={`h-16 rounded-lg overflow-hidden transition-all ${
-                          selectedTexture === texture.value
-                            ? "ring-2 ring-white"
-                            : "ring-1 ring-gray-400 hover:ring-white"
-                        }`}
-                      >
-                        <div className="w-full h-full flex items-center justify-center bg-gray-300">
-                          <span className="text-sm font-medium text-gray-700">{texture.label}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                  
-                  <div className="mt-4 space-y-4">
-                    <h3 className="text-xl font-medium mb-2">Texture Settings</h3>
-                    <div className="space-y-1">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-300">Scale</span>
-                        <span className="text-sm text-gray-300">{textureScale.toFixed(1)}x</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0.1"
-                        max="10"
-                        step="0.1"
-                        value={textureScale}
-                        onChange={(e) => setTextureScale(parseFloat(e.target.value))}
-                        className="w-full"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-300">Roughness</span>
-                        <span className="text-sm text-gray-300">{roughness.toFixed(2)}</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.01"
-                        value={roughness}
-                        onChange={(e) => setRoughness(parseFloat(e.target.value))}
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === "text" && (
-                <div>
-                  <h3 className="text-xl font-medium mb-4">Add Text</h3>
-                  <label className="block mb-6">
-                    <span className="text-white font-medium mb-2 block">
-                      Custom Text
-                    </span>
-                    <input
-                      type="text"
-                      placeholder="Enter your text"
-                      value={customText}
-                      onChange={(e) => handleTextChange(e.target.value)}
-                      className="w-full p-2 bg-slate-500 border border-slate-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-white text-white"
-                    />
-                  </label>
-                  
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-300">Text Color</span>
-                      <input
-                        type="color"
-                        value={textColor}
-                        onChange={(e) => setTextColor(e.target.value)}
-                        className="h-8 w-8 rounded cursor-pointer"
-                      />
-                    </div>
-                    
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-300">Background</span>
-                      <input
-                        type="color"
-                        value={backgroundColor.startsWith("#") ? backgroundColor : "#FFFFFF"}
-                        onChange={(e) => setBackgroundColor(e.target.value)}
-                        className="h-8 w-8 rounded cursor-pointer"
-                      />
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-300">Font Size</span>
-                        <span className="text-sm text-gray-300">{fontSize}px</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="20"
-                        max="100"
-                        step="1"
-                        value={fontSize}
-                        onChange={(e) => setFontSize(parseInt(e.target.value))}
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )} */}
                 {activeTab === "texture" && (
                   <div>
                     <h3 className="text-xl font-medium mb-4">Material Type</h3>
@@ -563,23 +400,17 @@ function HoodieCustomizer() {
                         >
                           <div
                             className="w-full h-full bg-contain bg-center bg-no-repeat"
-                            style={{
-                              backgroundImage: `url(${texture.imageUrl})`,
-                            }}
+                            style={{ backgroundImage: `url(${texture.imageUrl})` }}
                           ></div>
                         </button>
                       ))}
                     </div>
                     <div className="mt-4 space-y-4">
-                      <h3 className="text-xl font-medium mb-2">
-                        Texture Settings
-                      </h3>
+                      <h3 className="text-xl font-medium mb-2">Texture Settings</h3>
                       <div className="space-y-1">
                         <div className="flex justify-between">
                           <span className="text-sm text-gray-300">Scale</span>
-                          <span className="text-sm text-gray-300">
-                            {textureScale.toFixed(0.001)}x
-                          </span>
+                          <span className="text-sm text-gray-300">{textureScale.toFixed(0.001)}x</span>
                         </div>
                         <input
                           type="range"
@@ -587,20 +418,14 @@ function HoodieCustomizer() {
                           max="10"
                           step="0.01"
                           value={textureScale}
-                          onChange={(e) =>
-                            setTextureScale(parseFloat(e.target.value))
-                          }
+                          onChange={(e) => setTextureScale(parseFloat(e.target.value))}
                           className="w-full"
                         />
                       </div>
                       <div className="space-y-1">
                         <div className="flex justify-between">
-                          <span className="text-sm text-gray-300">
-                            Roughness
-                          </span>
-                          <span className="text-sm text-gray-300">
-                            {roughness.toFixed(2)}
-                          </span>
+                          <span className="text-sm text-gray-300">Roughness</span>
+                          <span className="text-sm text-gray-300">{roughness.toFixed(2)}</span>
                         </div>
                         <input
                           type="range"
@@ -608,9 +433,7 @@ function HoodieCustomizer() {
                           max="1"
                           step="0.01"
                           value={roughness}
-                          onChange={(e) =>
-                            setRoughness(parseFloat(e.target.value))
-                          }
+                          onChange={(e) => setRoughness(parseFloat(e.target.value))}
                           className="w-full"
                         />
                       </div>
@@ -620,25 +443,42 @@ function HoodieCustomizer() {
                 {activeTab === "text" && (
                   <div>
                     <h3 className="text-xl font-medium mb-4">Add Text</h3>
-                    <label className="block mb-6">
-                      <span className="text-white font-medium mb-2 block">
-                        Custom Text
-                      </span>
-                      <input
-                        type="text"
-                        placeholder="Enter your text"
-                        value={customText}
-                        onChange={(e) => handleTextChange(e.target.value)}
-                        className="w-full p-2 bg-slate-500 border border-slate-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-white text-white"
-                      />
-                    </label>
+                    {/* Tabs for selecting text placement */}
+                    <div className="flex flex-wrap gap-2 mb-6">
+                      {placementAreas.map((area) => (
+                        <button
+                          key={area.id}
+                          onClick={() => setSelectedTab(area.mapping)}
+                          className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                            selectedTab === area.mapping
+                              ? "bg-slate-500 text-white"
+                              : "bg-slate-400 text-white hover:bg-slate-500"
+                          }`}
+                        >
+                          {area.label}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Text input and settings for the selected area */}
                     <div className="space-y-4">
+                      <label className="block">
+                        <span className="text-white font-medium mb-2 block">
+                          Custom Text for {selectedTab.charAt(0).toUpperCase() + selectedTab.slice(1)}
+                        </span>
+                        <input
+                          type="text"
+                          placeholder="Enter your text"
+                          value={customTexts[selectedTab].text}
+                          onChange={(e) => handleTextChange(selectedTab, "text", e.target.value)}
+                          className="w-full p-2 bg-slate-500 border border-slate-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-white text-white"
+                        />
+                      </label>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-white">Text Color</span>
                         <input
                           type="color"
-                          value={textColor}
-                          onChange={(e) => setTextColor(e.target.value)}
+                          value={customTexts[selectedTab].color}
+                          onChange={(e) => handleTextChange(selectedTab, "color", e.target.value)}
                           className="h-8 w-8 rounded cursor-pointer"
                         />
                       </div>
@@ -647,39 +487,61 @@ function HoodieCustomizer() {
                         <input
                           type="color"
                           value={
-                            backgroundColor.startsWith("#")
-                              ? backgroundColor
+                            customTexts[selectedTab].background.startsWith("#")
+                              ? customTexts[selectedTab].background
                               : "#FFFFFF"
                           }
-                          onChange={(e) => setBackgroundColor(e.target.value)}
+                          onChange={(e) => handleTextChange(selectedTab, "background", e.target.value)}
                           className="h-8 w-8 rounded cursor-pointer"
                         />
                       </div>
                       <div className="space-y-1">
                         <div className="flex justify-between">
                           <span className="text-sm text-white">Font Size</span>
-                          <span className="text-sm text-white">
-                            {fontSize}px
-                          </span>
+                          <span className="text-sm text-white">{customTexts[selectedTab].fontSize}px</span>
                         </div>
                         <input
                           type="range"
                           min="20"
                           max="100"
                           step="1"
-                          value={fontSize}
-                          onChange={(e) =>
-                            setFontSize(parseInt(e.target.value))
-                          }
+                          value={customTexts[selectedTab].fontSize}
+                          onChange={(e) => handleTextChange(selectedTab, "fontSize", parseInt(e.target.value))}
                           className="w-full"
                         />
+                      </div>
+                      {/* Optional: Add style and shape selectors */}
+                      <div className="space-y-1">
+                        <span className="text-sm text-white">Text Style</span>
+                        <select
+                          value={customTexts[selectedTab].style}
+                          onChange={(e) => handleTextChange(selectedTab, "style", e.target.value)}
+                          className="w-full p-2 bg-slate-500 border border-slate-400 rounded-lg text-white"
+                        >
+                          <option value="classic">Classic</option>
+                          <option value="bold">Bold</option>
+                          <option value="fancy">Fancy</option>
+                          <option value="modern">Modern</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-sm text-white">Text Shape</span>
+                        <select
+                          value={customTexts[selectedTab].shape}
+                          onChange={(e) => handleTextChange(selectedTab, "shape", e.target.value)}
+                          className="w-full p-2 bg-slate-500 border border-slate-400 rounded-lg text-white"
+                        >
+                          <option value="rectangle">Rectangle</option>
+                          <option value="circle">Circle</option>
+                          <option value="oval">Oval</option>
+                        </select>
                       </div>
                     </div>
                   </div>
                 )}
               </div>
             </div>
-            <div className="flex ml-12 justify-center space-x-4 py-2 pb-2 ">
+            <div className="flex ml-12 justify-center space-x-4 py-2 pb-2">
               <button
                 onClick={handleGLBDownload}
                 className="px-8 py-3 -mt-23 bg-white/10 backdrop-blur-md text-white rounded-md hover:bg-white/20 shadow-md border border-white/30"
@@ -696,7 +558,6 @@ function HoodieCustomizer() {
           </div>
         </div>
 
-        {/* 3D Viewer Area */}
         <div className="flex-1 relative">
           <Canvas shadows gl={{ preserveDrawingBuffer: true, antialias: true }}>
             <PerspectiveCamera makeDefault position={[0, 0.25, 3.5]} fov={40} />
@@ -709,41 +570,23 @@ function HoodieCustomizer() {
               }
             >
               <ambientLight intensity={0.6} />
-              <directionalLight
-                position={[5, 5, 5]}
-                intensity={0.5}
-                castShadow
-              />
+              <directionalLight position={[5, 5, 5]} intensity={0.5} castShadow />
               <HoodieModel
                 customLogos={customLogos}
-                customText={customText}
-                showText={showText}
-                textStyle={selectedTextStyle}
-                textShape={selectedTextShape}
-                textColor={textColor}
-                backgroundColor={backgroundColor}
-                fontSize={fontSize}
-                onDownloadImage={
-                  downloadImageTrigger ? handleImageDownloadComplete : null
-                }
-                onDownloadGLB={
-                  downloadGLBTrigger ? handleGLBDownloadComplete : null
-                }
+                customTexts={customTexts} // Pass customTexts instead of customText and showText
+                onDownloadImage={downloadImageTrigger ? handleImageDownloadComplete : null}
+                onDownloadGLB={downloadGLBTrigger ? handleGLBDownloadComplete : null}
                 controlsRef={controlsRef}
                 partColors={partColors}
                 selectedColor={selectedColor}
                 selectedTexture={selectedTexture}
                 selectedTab={selectedTab}
+                setSelectedTab={setSelectedTab}
                 textureScale={textureScale}
                 roughness={roughness}
                 showAreasOnGarment={showAreasOnGarment}
               />
-              <ContactShadows
-                position={[0, -1.5, 0]}
-                opacity={0.5}
-                blur={2.5}
-                scale={10}
-              />
+              <ContactShadows position={[0, -1.5, 0]} opacity={0.5} blur={2.5} scale={10} />
               <Environment preset={selectedEnvironment} />
               <OrbitControls
                 ref={controlsRef}
@@ -753,15 +596,11 @@ function HoodieCustomizer() {
                 enableZoom={true}
                 enableRotate={true}
                 target={[0, 0, 0]}
-                minDistance={2}
-                maxDistance={10}
               />
             </Suspense>
           </Canvas>
         </div>
       </div>
-
-      {/* Bottom Action Buttons - Moved and centered */}
     </div>
   );
 }

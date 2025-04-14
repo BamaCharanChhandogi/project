@@ -1,32 +1,25 @@
 import React, { useRef, useEffect, useState } from "react";
 import { useThree } from "@react-three/fiber";
 import { Decal, useTexture, useGLTF, Float } from "@react-three/drei";
-import { useControls } from "leva";
 import * as THREE from "three";
 import { GLTFExporter } from "three/addons/exporters/GLTFExporter";
 
 function HoodieModel({
-  customText = "Sample Text",
-  showText = true,
-  textStyle = "classic",
-  textShape = "rectangle",
-  textColor = "#000000",
-  backgroundColor = "rgba(255, 255, 255, 0.8)",
-  fontSize = 60,
+  customLogos,
+  customTexts,
   onDownloadImage,
   onDownloadGLB,
   controlsRef,
   partColors,
-  selectedTab, 
+  selectedTab,
+  setSelectedTab,
   selectedTexture,
   textureScale,
   roughness,
   selectedColor,
-  onDownloadGLBTrigger,
-  customLogos
+  showAreasOnGarment,
 }) {
   const { scene } = useGLTF("/Hoodie/newUI/bama44444.glb");
-  const defaultLogoTexture = useTexture("/Hoodie/logoPrint.jpeg");
   const { raycaster, camera, mouse, gl: renderer, scene: fullScene } = useThree();
 
   const textures = useTexture({
@@ -37,44 +30,62 @@ function HoodieModel({
     leather: "/York Plaid.jpg",
   });
 
-  // Load icon textures for all four handles
-  const rotateIconTexture = useTexture("/Color.png"); // Replace with your rotate icon path
-  const deleteIconTexture = useTexture("/Color.png"); // Replace with your delete icon path
-  const resizeIconTexture = useTexture("/Color.png"); // Replace with your resize icon path
-  const moveIconTexture = useTexture("/Color.png"); // Replace with your move icon path
+  // Load actual icon textures for toolbar controls (replace placeholders with real assets)
+  const rotateIconTexture = useTexture("/Color.png"); // Replace with actual rotate icon
+  const deleteIconTexture = useTexture("/Color.png"); // Replace with actual delete icon
+  const resizeIconTexture = useTexture("/Color.png"); // Replace with actual resize icon
+  const moveIconTexture = useTexture("/Color.png"); // Replace with actual move icon
 
   const hoodieRef = useRef();
   const [availableMeshes, setAvailableMeshes] = useState([]);
   const [decalMeshes, setDecalMeshes] = useState([]);
-  const [textTexture, setTextTexture] = useState(null);
+  const [textTextures, setTextTextures] = useState({
+    chest: null,
+    arms: null,
+    back: null,
+    front: null,
+  });
   const [decalVisibility, setDecalVisibility] = useState({
     chest: true,
     arms: true,
     back: true,
+    front: true,
+  });
+
+  // Store refs to decal groups for raycasting
+  const decalRefs = useRef({
+    chest: null,
+    arms: null,
+    back: null,
+    front: null,
   });
 
   const [decalPositions, setDecalPositions] = useState({
     chest: [0.01, 0.20, 0.10],
     arms: [0.26, 0.10, -0.03],
     back: [0, 0.2, -0.1],
+    front: [0.01, 0.20, 0.10],
   });
 
   const [decalRotations, setDecalRotations] = useState({
     chest: [0.00, 0.13, 0.00],
     arms: [-1.62, Math.PI / 2, 0],
     back: [0, Math.PI, 0],
+    front: [0.00, 0.13, 0.00],
   });
 
   const [decalUniformScales, setDecalUniformScales] = useState({
     chest: 0.14,
     arms: 0.155,
     back: 0.14,
+    front: 0.14,
   });
 
   const [aspectRatios, setAspectRatios] = useState({
     chest: 0.15 / 0.13,
     arms: 0.16 / 0.15,
     back: 0.15 / 0.13,
+    front: 0.15 / 0.13,
   });
 
   const [activeHandle, setActiveHandle] = useState(null);
@@ -84,196 +95,143 @@ function HoodieModel({
   const [initialPosition, setInitialPosition] = useState([0, 0, 0]);
   const [isDragging, setIsDragging] = useState(false);
 
-  // Handle positions updated to place rotate at top-left
+  // Define toolbar handle positions
   const handlePositions = {
-    rotate: [-1.2, 1.2, 0], // Top-left for rotate
-    delete: [1.2, 1.2, 0], // Top-right for delete
-    resize: [1.2, -1.2, 0], // Bottom-right for resize
-    move: [-1.2, -1.2, 0], // Bottom-left for move
+    rotate: [-1.2, 1.2, 0], // Top-left
+    delete: [1.2, 1.2, 0], // Top-right
+    resize: [1.2, -1.2, 0], // Bottom-right
+    move: [-1.2, -1.2, 0], // Bottom-left
   };
+
   const meshPartMapping = {
-    "Main001": "chest",
-    "Arms001": "arms",
-    "Strips001": "back"
+    Main001: "front",
+    Arms001: "arms",
+    Strips001: "back",
+    Main005: "chest",
+    Arms002: "arms",
   };
 
-  const { posX, posY, posZ, rotX, rotY, rotZ, uniformScale, debug, metalness } = useControls(
-    "Decal Controls",
-    {
-      [`${selectedTab} posX`]: {
-        value: decalPositions[selectedTab][0],
-        min: -2,
-        max: 2,
-        step: 0.01,
-        onChange: (value) =>
-          setDecalPositions((prev) => ({
-            ...prev,
-            [selectedTab]: [value, prev[selectedTab][1], prev[selectedTab][2]],
-          })),
-      },
-      [`${selectedTab} posY`]: {
-        value: decalPositions[selectedTab][1],
-        min: -2,
-        max: 2,
-        step: 0.01,
-        onChange: (value) =>
-          setDecalPositions((prev) => ({
-            ...prev,
-            [selectedTab]: [prev[selectedTab][0], value, prev[selectedTab][2]],
-          })),
-      },
-      [`${selectedTab} posZ`]: {
-        value: decalPositions[selectedTab][2],
-        min: -1,
-        max: 1,
-        step: 0.01,
-        onChange: (value) =>
-          setDecalPositions((prev) => ({
-            ...prev,
-            [selectedTab]: [prev[selectedTab][0], prev[selectedTab][1], value],
-          })),
-      },
-      [`${selectedTab} rotX`]: {
-        value: decalRotations[selectedTab][0],
-        min: -Math.PI,
-        max: Math.PI,
-        step: 0.01,
-        onChange: (value) =>
-          setDecalRotations((prev) => ({
-            ...prev,
-            [selectedTab]: [value, prev[selectedTab][1], prev[selectedTab][2]],
-          })),
-      },
-      [`${selectedTab} rotY`]: {
-        value: decalRotations[selectedTab][1],
-        min: -Math.PI,
-        max: Math.PI,
-        step: 0.01,
-        onChange: (value) =>
-          setDecalRotations((prev) => ({
-            ...prev,
-            [selectedTab]: [prev[selectedTab][0], value, prev[selectedTab][2]],
-          })),
-      },
-      [`${selectedTab} rotZ`]: {
-        value: decalRotations[selectedTab][2],
-        min: -Math.PI,
-        max: Math.PI,
-        step: 0.01,
-        onChange: (value) =>
-          setDecalRotations((prev) => ({
-            ...prev,
-            [selectedTab]: [prev[selectedTab][0], prev[selectedTab][1], value],
-          })),
-      },
-      [`${selectedTab} uniformScale`]: {
-        value: decalUniformScales[selectedTab],
-        min: 0.05,
-        max: 2,
-        step: 0.01,
-        onChange: (value) =>
-          setDecalUniformScales((prev) => ({
-            ...prev,
-            [selectedTab]: value,
-          })),
-      },
-      debug: { value: false },
-      metalness: { value: 0.1, min: 0, max: 1, step: 0.01 },
-    },
-    [selectedTab]
-  );
+  // Handle clicking on a decal to show toolbar
+  const handleDecalClick = (e, position) => {
+    e.stopPropagation();
+    setSelectedTab(position); // Select the clicked decal to show its toolbar
+  };
 
+  // Generate text textures for each position
   useEffect(() => {
-    if (customText && showText) {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      const styles = {
-        classic: { font: `${fontSize}px Arial`, color: textColor, shadow: { blur: 4, offsetX: 2, offsetY: 2, color: "rgba(0, 0, 0, 0.3)" } },
-        bold: { font: `bold ${fontSize}px Helvetica`, color: textColor, shadow: { blur: 6, offsetX: 3, offsetY: 3, color: "rgba(0, 0, 0, 0.5)" } },
-        fancy: { font: `italic ${fontSize}px Times New Roman`, color: textColor, shadow: { blur: 3, offsetX: 1, offsetY: 1, color: "rgba(255, 0, 0, 0.3)" } },
-        modern: { font: `bold ${fontSize}px sans-serif`, color: textColor, shadow: { blur: 5, offsetX: 2, offsetY: 2, color: "rgba(0, 0, 0, 0.4)" } },
-      };
-      const selectedStyle = styles[textStyle] || styles.classic;
+    const newTextTextures = { chest: null, arms: null, back: null, front: null };
 
-      ctx.font = selectedStyle.font;
-      const metrics = ctx.measureText(customText);
-      const textWidth = metrics.width;
-      const textHeight = fontSize;
-      const padding = Math.max(textWidth, textHeight) * 0.2;
-      const totalWidth = textWidth + 2 * padding;
-      const totalHeight = textHeight + 2 * padding;
+    Object.keys(customTexts).forEach((position) => {
+      const { text, show, color, background, fontSize, style, shape } = customTexts[position];
 
-      canvas.width = totalWidth;
-      canvas.height = totalHeight;
+      if (text && show) {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        const styles = {
+          classic: {
+            font: `${fontSize}px Arial`,
+            color,
+            shadow: { blur: 4, offsetX: 2, offsetY: 2, color: "rgba(0, 0, 0, 0.3)" },
+          },
+          bold: {
+            font: `bold ${fontSize}px Helvetica`,
+            color,
+            shadow: { blur: 6, offsetX: 3, offsetY: 3, color: "rgba(0, 0, 0, 0.5)" },
+          },
+          fancy: {
+            font: `italic ${fontSize}px "Times New Roman"`,
+            color,
+            shadow: { blur: 3, offsetX: 1, offsetY: 1, color: "rgba(255, 0, 0, 0.3)" },
+          },
+          modern: {
+            font: `bold ${fontSize}px sans-serif`,
+            color,
+            shadow: { blur: 5, offsetX: 2, offsetY: 2, color: "rgba(0, 0, 0, 0.4)" },
+          },
+        };
+        const selectedStyle = styles[style] || styles.classic;
 
-      ctx.fillStyle = backgroundColor;
-      if (textShape === "circle") {
-        ctx.beginPath();
-        ctx.arc(totalWidth / 2, totalHeight / 2, Math.min(totalWidth, totalHeight) / 2, 0, Math.PI * 2);
-        ctx.fill();
-      } else if (textShape === "oval") {
-        ctx.save();
-        ctx.scale(1.5, 1);
-        ctx.beginPath();
-        ctx.arc(totalWidth / 2 / 1.5, totalHeight / 2, Math.min(totalWidth, totalHeight) / 2, 0, Math.PI * 2);
-        ctx.restore();
-        ctx.fill();
-      } else {
-        ctx.fillRect(0, 0, totalWidth, totalHeight);
+        ctx.font = selectedStyle.font;
+        const metrics = ctx.measureText(text);
+        const textWidth = metrics.width;
+        const textHeight = fontSize * 1.2;
+        const padding = Math.max(textWidth, textHeight) * 0.2;
+        const totalWidth = textWidth + 2 * padding;
+        const totalHeight = textHeight + 2 * padding;
+
+        canvas.width = totalWidth;
+        canvas.height = totalHeight;
+
+        ctx.fillStyle = background;
+        if (shape === "circle") {
+          ctx.beginPath();
+          ctx.arc(totalWidth / 2, totalHeight / 2, Math.min(totalWidth, totalHeight) / 2, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (shape === "oval") {
+          ctx.save();
+          ctx.scale(1.5, 1);
+          ctx.beginPath();
+          ctx.arc(totalWidth / 2 / 1.5, totalHeight / 2, Math.min(totalWidth, totalHeight) / 2, 0, Math.PI * 2);
+          ctx.restore();
+          ctx.fill();
+        } else {
+          ctx.fillRect(0, 0, totalWidth, totalHeight);
+        }
+
+        ctx.shadowColor = selectedStyle.shadow.color;
+        ctx.shadowBlur = selectedStyle.shadow.blur;
+        ctx.shadowOffsetX = selectedStyle.shadow.offsetX;
+        ctx.shadowOffsetY = selectedStyle.shadow.offsetY;
+
+        ctx.fillStyle = selectedStyle.color;
+        ctx.font = selectedStyle.font;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(text, totalWidth / 2, totalHeight / 2);
+
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+
+        const texture = new THREE.Texture(canvas);
+        texture.needsUpdate = true;
+        texture.generateMipmaps = true;
+        texture.minFilter = THREE.LinearMipmapLinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        renderer.initTexture(texture);
+        newTextTextures[position] = texture;
       }
+    });
 
-      ctx.shadowColor = selectedStyle.shadow.color;
-      ctx.shadowBlur = selectedStyle.shadow.blur;
-      ctx.shadowOffsetX = selectedStyle.shadow.offsetX;
-      ctx.shadowOffsetY = selectedStyle.shadow.offsetY;
+    setTextTextures(newTextTextures);
+  }, [customTexts, renderer]);
 
-      ctx.fillStyle = selectedStyle.color;
-      ctx.font = selectedStyle.font;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(customText, totalWidth / 2, totalHeight / 2);
-
-      ctx.shadowBlur = 0;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 0;
-
-      const texture = new THREE.Texture(canvas);
-      texture.needsUpdate = true;
-      texture.generateMipmaps = true;
-      texture.minFilter = THREE.LinearMipmapLinearFilter;
-      texture.magFilter = THREE.LinearFilter;
-      renderer.initTexture(texture);
-      setTextTexture(texture);
-    } else {
-      setTextTexture(null);
-    }
-  }, [customText, showText, textStyle, textShape, textColor, backgroundColor, fontSize, renderer]);
-
+  // Update meshes and materials
   useEffect(() => {
     if (!scene) return;
 
     const currentTexture = textures[selectedTexture];
-    currentTexture.repeat.set(textureScale, textureScale);
     currentTexture.wrapS = currentTexture.wrapT = THREE.RepeatWrapping;
+    currentTexture.repeat.set(textureScale, textureScale);
+    currentTexture.needsUpdate = true;
 
     const meshList = [];
     const meshMap = {
       chest: null,
       arms: null,
       back: null,
+      front: null,
     };
 
     scene.traverse((child) => {
       if (child.isMesh) {
         meshList.push(child);
-        // Determine which part this mesh belongs to
         const partName = meshPartMapping[child.name];
-        // Get the color for this specific part, or use a default color
         const partColor = partName && partColors[partName] ? partColors[partName] : "#FFFFFF";
         const material = new THREE.MeshStandardMaterial({
           map: currentTexture,
           roughness: roughness,
-          metalness: metalness,
+          metalness: 0.1,
           color: new THREE.Color(partColor),
           side: THREE.DoubleSide,
         });
@@ -282,6 +240,7 @@ function HoodieModel({
 
         if (child.name === "Main005") {
           meshMap.chest = child;
+          meshMap.front = child; // Main005 handles both chest and front
         } else if (child.name === "Arms002") {
           meshMap.arms = child;
         } else if (child.name === "Main001") {
@@ -291,9 +250,10 @@ function HoodieModel({
     });
 
     setAvailableMeshes(meshList.map((mesh) => mesh.name));
-    setDecalMeshes([meshMap.chest, meshMap.arms, meshMap.back].filter(Boolean));
-  }, [scene, selectedTexture,partColors, selectedColor, textureScale, roughness, metalness]);
+    setDecalMeshes([meshMap.chest, meshMap.arms, meshMap.back, meshMap.front].filter(Boolean));
+  }, [scene, selectedTexture, partColors, selectedColor, textureScale, roughness]);
 
+  // Handle image download
   useEffect(() => {
     if (onDownloadImage) {
       renderer.render(fullScene, camera);
@@ -301,8 +261,9 @@ function HoodieModel({
     }
   }, [onDownloadImage, renderer, fullScene, camera]);
 
+  // Handle GLB download
   useEffect(() => {
-    if (onDownloadGLBTrigger && hoodieRef.current) {
+    if (onDownloadGLB) {
       const exporter = new GLTFExporter();
       const sceneToExport = new THREE.Scene();
       sceneToExport.add(hoodieRef.current.clone());
@@ -311,14 +272,15 @@ function HoodieModel({
         sceneToExport,
         (gltf) => {
           const blob = new Blob([gltf], { type: "application/octet-stream" });
-          onDownloadGLBTrigger(URL.createObjectURL(blob));
+          onDownloadGLB(URL.createObjectURL(blob));
         },
         (error) => console.error("GLB Export Error:", error),
         { binary: true }
       );
     }
-  }, [onDownloadGLBTrigger]);
+  }, [onDownloadGLB]);
 
+  // Toolbar interaction handlers
   const handlePointerDown = (event, handle, location) => {
     event.stopPropagation();
     controlsRef.current.enabled = false;
@@ -329,12 +291,18 @@ function HoodieModel({
     setInitialPosition([...decalPositions[location]]);
     setIsDragging(true);
 
-    // Handle delete immediately on pointer down
     if (handle === "delete") {
       setDecalVisibility((prev) => ({
         ...prev,
         [location]: false,
       }));
+      // Also clear text for this position to prevent re-rendering
+      if (customTexts[location].show) {
+        setCustomTexts((prev) => ({
+          ...prev,
+          [location]: { ...prev[location], text: "", show: false },
+        }));
+      }
       setActiveHandle(null);
       setIsDragging(false);
       controlsRef.current.enabled = true;
@@ -406,125 +374,132 @@ function HoodieModel({
       <group ref={hoodieRef} position={[0, 0, 0]} rotation={[0, 0, 0]}>
         <primitive object={scene} />
         {decalMeshes.map((mesh, index) => {
-  if (!mesh) return null;
+          if (!mesh) return null;
 
-  let textureToApply = defaultLogoTexture;
-  let position = [0, 0, 0];
-  let rotation = [0, 0, 0];
-  let scale = [0.15, 0.13, 1];
-  let meshPosition = "";
-  let sideProperty = THREE.FrontSide; // Default side property
+          const decalConfigs = [
+            { position: "chest", meshName: "Main005", side: THREE.FrontSide },
+            { position: "front", meshName: "Main005", side: THREE.FrontSide },
+            { position: "arms", meshName: "Arms002", side: THREE.FrontSide },
+            { position: "back", meshName: "Main001", side: THREE.BackSide },
+          ];
 
-  if (mesh.name === "Main005") {
-    textureToApply = showText && textTexture ? textTexture : customLogos.chest || defaultLogoTexture;
-    position = decalPositions.chest;
-    rotation = decalRotations.chest;
-    const uniformScale = decalUniformScales.chest;
-    scale = [uniformScale * aspectRatios.chest, uniformScale, 1];
-    meshPosition = "chest";
-    sideProperty = THREE.FrontSide; // Only show on front side for chest
-  } else if (mesh.name === "Arms002") {
-    textureToApply = showText && textTexture ? textTexture : customLogos.arms || defaultLogoTexture;
-    position = decalPositions.arms;
-    rotation = decalRotations.arms;
-    const uniformScale = decalUniformScales.arms;
-    scale = [uniformScale * aspectRatios.arms, uniformScale, 1];
-    meshPosition = "arms";
-    // Arms might need special handling depending on your model
-    sideProperty = THREE.FrontSide;
-  } else if (mesh.name === "Main001") {
-    textureToApply = showText && textTexture ? textTexture : customLogos.back || defaultLogoTexture;
-    position = decalPositions.back;
-    rotation = decalRotations.back;
-    const uniformScale = decalUniformScales.back;
-    scale = [uniformScale * aspectRatios.back, uniformScale, 1];
-    meshPosition = "back";
-    sideProperty = THREE.BackSide; // Only show on back side for back
-  }
+          return decalConfigs.map((config) => {
+            if (mesh.name !== config.meshName) return null;
 
-  const isSelected = meshPosition === selectedTab;
-  const isVisible = decalVisibility[meshPosition];
+            const { position: meshPosition, side: sideProperty } = config;
+            const isTextDecal = customTexts[meshPosition].show && textTextures[meshPosition];
+            const textureToApply = isTextDecal ? textTextures[meshPosition] : customLogos[meshPosition];
+            const isVisible = decalVisibility[meshPosition];
+            const isSelected = meshPosition === selectedTab;
 
-  if (!isVisible) return null;
+            if (!textureToApply || !isVisible) return null;
 
-  return (
-    <group key={`${mesh.name}-${index}`}>
-      <mesh geometry={mesh.geometry}>
-        <Decal
-          position={position}
-          rotation={new THREE.Euler(...rotation)}
-          scale={scale}
-          map={textureToApply}
-          debug={debug}
-          polygonOffset={true}
-          polygonOffsetFactor={-10}
-          depthTest={true}
-          depthWrite={true}
-          renderOrder={2}
-          material={new THREE.MeshStandardMaterial({
-            map: textureToApply,
-            transparent: true,
-            opacity: 1.0,
-            side: sideProperty,
-            depthWrite: true,
-            polygonOffset: true,
-            polygonOffsetFactor: -10
-          })}
-        />
-      </mesh>
+            const position = decalPositions[meshPosition];
+            const rotation = decalRotations[meshPosition];
+            const uniformScale = decalUniformScales[meshPosition];
+            const fontSizeAdjustment = isTextDecal ? customTexts[meshPosition].fontSize / 60 : 1;
+            const scale = [
+              uniformScale * aspectRatios[meshPosition] * fontSizeAdjustment,
+              uniformScale * fontSizeAdjustment,
+              1,
+            ];
 
-              {isSelected && (
-                <group position={position} rotation={new THREE.Euler(...rotation)}>
-                  <line>
-                    <bufferGeometry attach="geometry">
-                      <float32BufferAttribute
-                        attach="attributes-position"
-                        array={new Float32Array([
-                          -scale[0], -scale[1], 0.006,
-                          scale[0], -scale[1], 0.006,
-                          scale[0], scale[1], 0.006,
-                          -scale[0], scale[1], 0.006,
-                          -scale[0], -scale[1], 0.006,
-                        ])}
-                        count={5}
-                        itemSize={3}
-                      />
-                    </bufferGeometry>
-                    <lineBasicMaterial attach="material" color="#000000" dashSize={0.05} gapSize={0.05} />
-                  </line>
+            return (
+              <group key={`${mesh.name}-${meshPosition}`}>
+                <mesh geometry={mesh.geometry}>
+                  <Decal
+                    ref={(ref) => (decalRefs.current[meshPosition] = ref)}
+                    position={position}
+                    rotation={new THREE.Euler(...rotation)}
+                    scale={scale}
+                    map={textureToApply}
+                    debug={false}
+                    polygonOffset={true}
+                    polygonOffsetFactor={-10}
+                    depthTest={true}
+                    depthWrite={true}
+                    renderOrder={2}
+                    onClick={(e) => handleDecalClick(e, meshPosition)}
+                    material={
+                      new THREE.MeshStandardMaterial({
+                        map: textureToApply,
+                        transparent: true,
+                        opacity: 1.0,
+                        side: sideProperty,
+                        depthWrite: true,
+                        polygonOffset: true,
+                        polygonOffsetFactor: -10,
+                      })
+                    }
+                  />
+                </mesh>
 
-                  {Object.entries(handlePositions).map(([handle, pos]) => {
-                    const scaledPos = [pos[0] * scale[0], pos[1] * scale[1], pos[2] + 0.01];
+                {/* Toolbar: Show controls when decal is selected */}
+                {isSelected && (
+                  <group position={position} rotation={new THREE.Euler(...rotation)}>
+                    {/* Outline to highlight selected decal */}
+                    <line>
+                      <bufferGeometry attach="geometry">
+                        <float32BufferAttribute
+                          attach="attributes-position"
+                          array={new Float32Array([
+                            -scale[0],
+                            -scale[1],
+                            0.006,
+                            scale[0],
+                            -scale[1],
+                            0.006,
+                            scale[0],
+                            scale[1],
+                            0.006,
+                            -scale[0],
+                            scale[1],
+                            0.006,
+                            -scale[0],
+                            -scale[1],
+                            0.006,
+                          ])}
+                          count={5}
+                          itemSize={3}
+                        />
+                      </bufferGeometry>
+                      <lineBasicMaterial attach="material" color="#000000" dashSize={0.05} gapSize={0.05} />
+                    </line>
 
-                    return (
-                      <group key={handle}>
-                        <mesh
-                          position={scaledPos}
-                          onPointerDown={(e) => handlePointerDown(e, handle, meshPosition)}
-                        >
-                          <planeGeometry args={[0.05, 0.05]} />
-                          <meshBasicMaterial
-                            map={
-                              handle === "rotate"
-                                ? rotateIconTexture
-                                : handle === "delete"
-                                ? deleteIconTexture
-                                : handle === "resize"
-                                ? resizeIconTexture
-                                : moveIconTexture
-                            }
-                            transparent
-                            opacity={1}
-                            side={THREE.DoubleSide}
-                          />
-                        </mesh>
-                      </group>
-                    );
-                  })}
-                </group>
-              )}
-            </group>
-          );
+                    {/* Toolbar controls: Rotate, Delete, Resize, Move */}
+                    {Object.entries(handlePositions).map(([handle, pos]) => {
+                      const scaledPos = [pos[0] * scale[0], pos[1] * scale[1], pos[2] + 0.01];
+
+                      return (
+                        <group key={handle}>
+                          <mesh
+                            position={scaledPos}
+                            onPointerDown={(e) => handlePointerDown(e, handle, meshPosition)}
+                          >
+                            <planeGeometry args={[0.05, 0.05]} />
+                            <meshBasicMaterial
+                              map={
+                                handle === "rotate"
+                                  ? rotateIconTexture
+                                  : handle === "delete"
+                                  ? deleteIconTexture
+                                  : handle === "resize"
+                                  ? resizeIconTexture
+                                  : moveIconTexture
+                              }
+                              transparent
+                              opacity={1}
+                              side={THREE.DoubleSide}
+                            />
+                          </mesh>
+                        </group>
+                      );
+                    })}
+                  </group>
+                )}
+              </group>
+            );
+          });
         })}
       </group>
     </Float>
