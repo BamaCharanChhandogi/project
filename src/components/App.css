@@ -8,12 +8,5 @@ body {
     margin: 0 0 10px 0;
     color: #fff;
   }
-  
-  button:hover {
-    background: #007bff;
-  }
-  
-  img:hover {
-    border-color: #007bff;
-  }
+
   

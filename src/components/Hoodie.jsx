@@ -33,6 +33,7 @@ const PatternMaterial = shaderMaterial(
     uniform vec3 baseColor;
     uniform vec3 patternColor;
     uniform float textureScale;
+    uniform float patternScale;
     uniform vec2 textureOffset;
     varying vec2 vUv;
     varying vec3 vPosition;
@@ -45,6 +46,9 @@ const PatternMaterial = shaderMaterial(
       float normalFactor = pow(abs(dot(vNormal, vec3(0.0, 0.0, 1.0))), 0.5);
       float blendStrength = pattern.a * normalFactor;
       vec3 blended = mix(base.rgb, base.rgb * 0.8 + pattern.rgb * patternColor * 0.8, blendStrength);
+      if (blendStrength <= 0.0) {
+        blended = base.rgb;
+      }
       gl_FragColor = vec4(blended, 1.0);
     }
   `
@@ -54,7 +58,6 @@ THREE.MeshStandardMaterial.prototype.customProgramCacheKey = function () {
   return this.uuid;
 };
 
-// Define patternSets at the top to avoid initialization issues
 const patternSets = {
   checker: [
     "/patterns/Checker_Configurator_01.001_baseColor.png",
@@ -99,7 +102,6 @@ function HoodieModel({
   const { scene } = useGLTF("/patterns/final.glb");
   const { raycaster, camera, mouse, gl: renderer, scene: fullScene } = useThree();
 
-  // Pre-load all base textures
   const baseTextures = useTexture({
     cotton: "/Equinox.jpg",
     fleece: "/Elementary.jpg",
@@ -107,7 +109,6 @@ function HoodieModel({
     denim: "/Legacy.jpg",
   });
 
-  // Pre-load all pattern textures using patternSets
   const patternTextures = useTexture({
     ...patternSets.checker.reduce((acc, path) => ({ ...acc, [path]: path }), {}),
     ...patternSets.stripes.reduce((acc, path) => ({ ...acc, [path]: path }), {}),
@@ -142,13 +143,19 @@ function HoodieModel({
     front: null,
   });
 
-  const [decalPositions, setDecalPositions] = useState({
-    chest: [0.01, 0.20, 0.10],
-    arms: [0.26, 0.10, -0.03],
-    back: [0, 0.2, -0.1],
-    front: [0.01, 0.20, 0.10],
-  });
+  // const [decalPositions, setDecalPositions] = useState({
+  //   chest: [0.01, 0.20, 0.10],
+  //   arms: [0.26, 0.10, -0.03],
+  //   back: [0, 0.2, -0.1],
+  //   front: [0.01, 0.20, 0.10],
+  // });
 
+  const [decalPositions, setDecalPositions] = useState({
+    chest: [0.01, 0.20, 0.12], // Increase from 0.10 to 0.12
+    arms: [0.26, 0.10, -0.01], // Increase from -0.03 to -0.01
+    back: [0, 0.2, -0.08],     // Increase from -0.1 to -0.08
+    front: [0.01, 0.20, 0.12], // Increase from 0.10 to 0.12
+  });
   const [decalRotations, setDecalRotations] = useState({
     chest: [0.00, 0.13, 0.00],
     arms: [-1.62, Math.PI / 2, 0],
@@ -306,14 +313,18 @@ function HoodieModel({
         if (partName) {
           meshMap[partName] = child;
           const partIndex = meshPartOrder.indexOf(partName);
-          const patternType = selectedPattern || "checker";
-          const patternTexturePath = patternSets[patternType][partIndex % 4];
-          const patternTexture = patternTextures[patternTexturePath];
+          let patternTexture = new THREE.Texture(); // Default to blank texture
+
+          if (selectedPattern) {
+            const patternType = selectedPattern;
+            const patternTexturePath = patternSets[patternType][partIndex % 4];
+            patternTexture = patternTextures[patternTexturePath] || new THREE.Texture();
+          }
 
           const partColor = partColors[partName] || "#FFFFFF";
           const material = new PatternMaterial({
             baseTexture: currentTexture,
-            patternTexture: patternTexture || new THREE.Texture(),
+            patternTexture: patternTexture,
             baseColor: new THREE.Color(partColor),
             patternColor: new THREE.Color(patternColor),
             textureScale: textureScale,
@@ -348,7 +359,6 @@ function HoodieModel({
     patternScale,
   ]);
 
-  // Reset decalVisibility for logos
   useEffect(() => {
     const newVisibility = { ...decalVisibility };
     Object.keys(customLogos).forEach((position) => {
@@ -361,7 +371,6 @@ function HoodieModel({
     }
   }, [customLogos, decalVisibility]);
 
-  // Reset decalVisibility for text
   useEffect(() => {
     const newVisibility = { ...decalVisibility };
     Object.keys(customTexts).forEach((position) => {
@@ -375,18 +384,130 @@ function HoodieModel({
   }, [customTexts, decalVisibility]);
 
   useEffect(() => {
-    if (onDownloadImage) {
-      renderer.render(fullScene, camera);
-      onDownloadImage(renderer.domElement.toDataURL("image/png"));
-    }
-  }, [onDownloadImage, renderer, fullScene, camera]);
-
-  useEffect(() => {
     if (onDownloadGLB) {
       const exporter = new GLTFExporter();
       const sceneToExport = new THREE.Scene();
-      sceneToExport.add(hoodieRef.current.clone());
-
+  
+      const clonedHoodie = hoodieRef.current.clone(true);
+  
+      clonedHoodie.traverse((child) => {
+        if (child.isMesh && child.material instanceof PatternMaterial) {
+          const originalMaterial = child.material;
+          
+          const canvas = document.createElement('canvas');
+          canvas.width = 2048;
+          canvas.height = 2048;
+          const ctx = canvas.getContext('2d');
+          
+          const baseColorR = originalMaterial.uniforms.baseColor.value.r * 255;
+          const baseColorG = originalMaterial.uniforms.baseColor.value.g * 255;
+          const baseColorB = originalMaterial.uniforms.baseColor.value.b * 255;
+          ctx.fillStyle = `rgb(${baseColorR}, ${baseColorG}, ${baseColorB})`;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          const baseTexture = originalMaterial.uniforms.baseTexture.value;
+          if (baseTexture.image) {
+            const textureScale = originalMaterial.uniforms.textureScale.value;
+            const textureOffset = originalMaterial.uniforms.textureOffset ? 
+                                  originalMaterial.uniforms.textureOffset.value : 
+                                  new THREE.Vector2(0, 0);
+            
+            ctx.globalAlpha = 1.0;
+            ctx.globalCompositeOperation = 'multiply';
+            
+            const basePattern = ctx.createPattern(baseTexture.image, 'repeat');
+            ctx.save();
+            ctx.scale(textureScale, textureScale);
+            ctx.translate(textureOffset.x, textureOffset.y);
+            ctx.fillStyle = basePattern;
+            ctx.fillRect(-textureOffset.x, -textureOffset.y, 
+                        canvas.width/textureScale, canvas.height/textureScale);
+            ctx.restore();
+            
+            ctx.globalCompositeOperation = 'source-over';
+          }
+          
+          if (selectedPattern) {
+            const patternTexture = originalMaterial.uniforms.patternTexture.value;
+            if (patternTexture.image) {
+              const patternScale = originalMaterial.uniforms.patternScale.value;
+              
+              const patternCanvas = document.createElement('canvas');
+              patternCanvas.width = patternTexture.image.width;
+              patternCanvas.height = patternTexture.image.height;
+              const patternCtx = patternCanvas.getContext('2d');
+              
+              patternCtx.drawImage(patternTexture.image, 0, 0);
+              
+              const patternColorR = originalMaterial.uniforms.patternColor.value.r * 255;
+              const patternColorG = originalMaterial.uniforms.patternColor.value.g * 255;
+              const patternColorB = originalMaterial.uniforms.patternColor.value.b * 255;
+              
+              patternCtx.globalCompositeOperation = 'source-in';
+              patternCtx.fillStyle = `rgb(${patternColorR}, ${patternColorG}, ${patternColorB})`;
+              patternCtx.fillRect(0, 0, patternCanvas.width, patternCanvas.height);
+              
+              ctx.globalCompositeOperation = 'overlay';
+              ctx.globalAlpha = 0.8;
+              
+              const pattern = ctx.createPattern(patternCanvas, 'repeat');
+              ctx.save();
+              
+              ctx.scale(patternScale, patternScale);
+              ctx.transform(1, 0, 0, -1, 0, canvas.height/patternScale);
+              
+              ctx.fillStyle = pattern;
+              ctx.fillRect(0, 0, canvas.width/patternScale, canvas.height/patternScale);
+              ctx.restore();
+              
+              ctx.globalCompositeOperation = 'source-over';
+              ctx.globalAlpha = 1.0;
+            }
+          }
+          
+          const combinedTexture = new THREE.Texture(canvas);
+          combinedTexture.wrapS = THREE.RepeatWrapping;
+          combinedTexture.wrapT = THREE.RepeatWrapping;
+          combinedTexture.needsUpdate = true;
+          
+          const exportMaterial = new THREE.MeshStandardMaterial({
+            map: combinedTexture,
+            color: 0xffffff,
+            roughness: originalMaterial.uniforms.roughness.value,
+            metalness: originalMaterial.uniforms.metalness.value,
+          });
+          
+          child.material = exportMaterial;
+        }
+      });
+  
+      clonedHoodie.traverse((obj) => {
+        if (obj.isGroup && obj.children) {
+          obj.children = obj.children.filter(child => {
+            const isControl =
+              (child.geometry && child.geometry.type === 'PlaneGeometry' && child.geometry.parameters.width === 0.05) ||
+              (child.type === 'Line' && child.material && child.material.color && child.material.color.getHex() === 0x000000);
+            return !isControl;
+          });
+        }
+      });
+  
+      Object.entries(decalRefs.current).forEach(([position, ref]) => {
+        if (ref && decalVisibility[position]) {
+          const decalClone = ref.clone();
+          if (decalClone.material && decalClone.material.map) {
+            decalClone.material.map.needsUpdate = true;
+            decalClone.material.depthTest = true;
+            decalClone.material.transparent = true;
+            decalClone.material.polygonOffset = true;
+            decalClone.material.polygonOffsetFactor = -10;
+          }
+          clonedHoodie.add(decalClone);
+        }
+      });
+  
+      sceneToExport.add(clonedHoodie);
+  
       exporter.parse(
         sceneToExport,
         (gltf) => {
@@ -395,10 +516,31 @@ function HoodieModel({
           onDownloadGLB(url);
         },
         (error) => console.error("GLB Export Error:", error),
-        { binary: true }
+        { binary: true, embedImages: true, forceIndices: true }
       );
     }
-  }, [onDownloadGLB]);
+  }, [onDownloadGLB, decalVisibility]);
+
+  useEffect(() => {
+    if (onDownloadImage) {
+      const controlElements = [];
+      fullScene.traverse((obj) => {
+        if ((obj.isLine || (obj.isMesh && obj.geometry &&
+          obj.geometry.type === 'PlaneGeometry' &&
+          obj.geometry.parameters.width === 0.05))) {
+          controlElements.push(obj);
+          obj.visible = false;
+        }
+      });
+
+      renderer.render(fullScene, camera);
+      onDownloadImage(renderer.domElement.toDataURL("image/png"));
+
+      controlElements.forEach(obj => {
+        obj.visible = true;
+      });
+    }
+  }, [onDownloadImage, renderer, fullScene, camera]);
 
   const handlePointerDown = (event, handle, location) => {
     event.stopPropagation();
@@ -499,7 +641,7 @@ function HoodieModel({
         const decalConfigs = [
           { position: "front", meshName: "Front", side: THREE.FrontSide },
           { position: "arms", meshName: "Arms001", side: THREE.FrontSide },
-          { position: "back", meshName: "Back", side: THREE.BackSide },
+          { position: "back", meshName: "Back", side: THREE.BasicDepthPacking },
         ];
 
         return decalConfigs.map((config) => {

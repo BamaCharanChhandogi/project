@@ -1,4 +1,4 @@
-import React, { useRef, Suspense, useState } from "react";
+import React, { useRef, Suspense, useState, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
 import {
   OrbitControls,
@@ -51,6 +51,33 @@ function HoodieCustomizer() {
     front: "#3B82F6",
   });
 
+  useEffect(() => {
+    // Get all elements with the class we want to modify
+    const scrollableElements = document.querySelectorAll('.overflow-y-auto');
+    // Apply direct styles to each element
+    scrollableElements.forEach(el => {
+      el.style.msOverflowStyle = 'none';
+      el.style.scrollbarWidth = 'none';
+      // Add an ID if it doesn't have one
+      if (!el.id) {
+        el.id = `scrollable-${Math.random().toString(36).substring(2, 9)}`;
+      }
+      // Create a style element for webkit browsers
+      const styleEl = document.createElement('style');
+      styleEl.innerHTML = `
+        #${el.id}::-webkit-scrollbar {
+          display: none !important;
+          width: 0 !important;
+          height: 0 !important;
+        }
+      `;
+      document.head.appendChild(styleEl);
+      // Clean up function
+      return () => {
+        document.head.removeChild(styleEl);
+      };
+    });
+  }, []);
   const handleLogoUpload = (event, position) => {
     const file = event.target.files[0];
     if (file) {
@@ -65,7 +92,7 @@ function HoodieCustomizer() {
           texture.minFilter = THREE.LinearMipmapLinearFilter;
           texture.magFilter = THREE.LinearFilter;
           const positionMapping = {
-            rightChest: "chest",
+            rightChest: "front",
             leftChest: "back",
             leftSleeve: "arms",
             rightSleeve: "front",
@@ -86,7 +113,7 @@ function HoodieCustomizer() {
 
   const handleDeleteDecal = (position) => {
     const positionMapping = {
-      chest: "rightChest",
+      // chest: "rightChest",
       back: "leftChest",
       arms: "leftSleeve",
       front: "rightSleeve",
@@ -283,7 +310,7 @@ function HoodieCustomizer() {
                           title={patternType}
                         >
                           <img
-                            src={`/patterns/${patternType}_Configurator_01.001_baseColor.png`}
+                            src={`/patterns/${patternType}_logo.png`}
                             alt={patternType}
                             className="w-full h-full object-cover"
                           />
@@ -435,18 +462,7 @@ function HoodieCustomizer() {
                         </div>
                       ))}
                     </div>
-                    <div className="mt-8 flex items-center">
-                      <input
-                        type="checkbox"
-                        id="show-areas"
-                        checked={showAreasOnGarment}
-                        onChange={() => setShowAreasOnGarment(!showAreasOnGarment)}
-                        className="mr-2"
-                      />
-                      <label htmlFor="show-areas" className="text-sm">
-                        Show areas on the garment
-                      </label>
-                    </div>
+                   
                   </div>
                 )}
                 {activeTab === "texture" && (
