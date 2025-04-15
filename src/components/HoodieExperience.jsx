@@ -42,7 +42,7 @@ function HoodieCustomizer() {
   const [showAreasOnGarment, setShowAreasOnGarment] = useState(false);
   const [selectedPattern, setSelectedPattern] = useState("checker");
   const [patternColor, setPatternColor] = useState("#FFFFFF");
-  const [patternScale, setPatternScale] = useState(1);
+  const [patternScale, setPatternScale] = useState(2);
   const [selectedTextArea, setSelectedTextArea] = useState(null);
 
   const [partColors, setPartColors] = useState({
@@ -338,7 +338,7 @@ function HoodieCustomizer() {
                       <input
                         type="range"
                         min="0.1"
-                        max="2"
+                        max="8"
                         step="0.1"
                         value={patternScale}
                         onChange={(e) => setPatternScale(parseFloat(e.target.value))}

@@ -40,9 +40,9 @@ const PatternMaterial = shaderMaterial(
     varying vec3 vNormal;
     void main() {
       vec2 scaledBaseUv = vUv * textureScale + textureOffset;
-      vec2 flippedPatternUv = vec2(vUv.x, 1.0 - vUv.y); // Flip vertically
+      vec2 scaledPatternUv = vUv * patternScale;
       vec4 base = texture2D(baseTexture, scaledBaseUv) * vec4(baseColor, 1.0);
-      vec4 pattern = texture2D(patternTexture, flippedPatternUv);
+      vec4 pattern = texture2D(patternTexture, scaledPatternUv);
       float normalFactor = pow(abs(dot(vNormal, vec3(0.0, 0.0, 1.0))), 0.5);
       float blendStrength = pattern.a * normalFactor;
       vec3 blended = mix(base.rgb, base.rgb * 0.8 + pattern.rgb * patternColor * 0.8, blendStrength);
@@ -59,24 +59,9 @@ THREE.MeshStandardMaterial.prototype.customProgramCacheKey = function () {
 };
 
 const patternSets = {
-  checker: [
-    "/patterns/Checker_Configurator_01.001_baseColor.png",
-    "/patterns/Checker_Configurator_02.001_baseColor.png",
-    "/patterns/Checker_Configurator_03.001_baseColor.png",
-    "/patterns/Checker_Configurator_04.001_baseColor.png",
-  ],
-  stripes: [
-    "/patterns/Stripes_Configurator_01.001_baseColor.png",
-    "/patterns/Stripes_Configurator_02.001_baseColor.png",
-    "/patterns/Stripes_Configurator_03.001_baseColor.png",
-    "/patterns/Stripes_Configurator_04.001_baseColor.png",
-  ],
-  circles: [
-    "/patterns/Circles_Configurator_01.001_baseColor.png",
-    "/patterns/Circles_Configurator_02.001_baseColor.png",
-    "/patterns/Circles_Configurator_03.001_baseColor.png",
-    "/patterns/Circles_Configurator_04.001_baseColor.png",
-  ],
+  checker: ["/patterns/Checker.png"],
+  stripes: ["/patterns/Stripes.png"],
+  circles: ["/patterns/Circles.png"],
 };
 
 function HoodieModel({
@@ -313,13 +298,14 @@ function HoodieModel({
         const partName = meshPartMapping[child.name];
         if (partName) {
           meshMap[partName] = child;
-          const partIndex = meshPartOrder.indexOf(partName);
-          let patternTexture = new THREE.Texture(); // Default to blank texture
+          let patternTexture = new THREE.Texture();
 
           if (selectedPattern) {
-            const patternType = selectedPattern;
-            const patternTexturePath = patternSets[patternType][partIndex % 4];
+            const patternTexturePath = patternSets[selectedPattern][0];
             patternTexture = patternTextures[patternTexturePath] || new THREE.Texture();
+            patternTexture.wrapS = patternTexture.wrapT = THREE.RepeatWrapping;
+            patternTexture.repeat.set(patternScale, patternScale);
+            patternTexture.needsUpdate = true;
           }
 
           const partColor = partColors[partName] || "#FFFFFF";
@@ -388,100 +374,103 @@ function HoodieModel({
     if (onDownloadGLB) {
       const exporter = new GLTFExporter();
       const sceneToExport = new THREE.Scene();
-  
+
       const clonedHoodie = hoodieRef.current.clone(true);
-  
+
       clonedHoodie.traverse((child) => {
         if (child.isMesh && child.material instanceof PatternMaterial) {
-          const originalMaterial = child.material;
-          
+          const originalphysicsBody = new THREE.MeshPhysicalBody({
+            map: child.material.map,
+            roughness: child.material.uniforms.roughness.value,
+            metalness: child.material.uniforms.metalness.value,
+          });
           const canvas = document.createElement('canvas');
           canvas.width = 2048;
           canvas.height = 2048;
           const ctx = canvas.getContext('2d');
-          
-          const baseColorR = originalMaterial.uniforms.baseColor.value.r * 255;
-          const baseColorG = originalMaterial.uniforms.baseColor.value.g * 255;
-          const baseColorB = originalMaterial.uniforms.baseColor.value.b * 255;
+
+          const baseColorR = child.material.uniforms.baseColor.value.r * 255;
+          const baseColorG = child.material.uniforms.baseColor.value.g * 255;
+          const baseColorB = child.material.uniforms.baseColor.value.b * 255;
           ctx.fillStyle = `rgb(${baseColorR}, ${baseColorG}, ${baseColorB})`;
           ctx.fillRect(0, 0, canvas.width, canvas.height);
-          
-          const baseTexture = originalMaterial.uniforms.baseTexture.value;
+
+          const baseTexture = child.material.uniforms.baseTexture.value;
           if (baseTexture.image) {
-            const textureScale = originalMaterial.uniforms.textureScale.value;
-            const textureOffset = originalMaterial.uniforms.textureOffset ? 
-                                  originalMaterial.uniforms.textureOffset.value : 
-                                  new THREE.Vector2(0, 0);
-            
+            const textureScale = child.material.uniforms.textureScale.value;
+            const textureOffset = child.material.uniforms.textureOffset ?
+              child.material.uniforms.textureOffset.value :
+              new THREE.Vector2(0, 0);
+
             ctx.globalAlpha = 1.0;
             ctx.globalCompositeOperation = 'multiply';
-            
+
             const basePattern = ctx.createPattern(baseTexture.image, 'repeat');
             ctx.save();
             ctx.scale(textureScale, textureScale);
             ctx.translate(textureOffset.x, textureOffset.y);
             ctx.fillStyle = basePattern;
-            ctx.fillRect(-textureOffset.x, -textureOffset.y, 
-                        canvas.width/textureScale, canvas.height/textureScale);
+            ctx.fillRect(-textureOffset.x, -textureOffset.y,
+              canvas.width / textureScale, canvas.height / textureScale);
             ctx.restore();
-            
+
             ctx.globalCompositeOperation = 'source-over';
           }
-          
+
           if (selectedPattern) {
-            const patternTexture = originalMaterial.uniforms.patternTexture.value;
+            const patternTexture = child.material.uniforms.patternTexture.value;
             if (patternTexture.image) {
-              const patternScale = originalMaterial.uniforms.patternScale.value;
-              
+              const patternScale = child.material.uniforms.patternScale.value;
+
               const patternCanvas = document.createElement('canvas');
               patternCanvas.width = patternTexture.image.width;
               patternCanvas.height = patternTexture.image.height;
               const patternCtx = patternCanvas.getContext('2d');
-              
+
               patternCtx.drawImage(patternTexture.image, 0, 0);
-              
-              const patternColorR = originalMaterial.uniforms.patternColor.value.r * 255;
-              const patternColorG = originalMaterial.uniforms.patternColor.value.g * 255;
-              const patternColorB = originalMaterial.uniforms.patternColor.value.b * 255;
-              
+
+              const patternColorR = child.material.uniforms.patternColor.value.r * 255;
+              const patternColorG = child.material.uniforms.patternColor.value.g * 255;
+              const patternColorB = child.material.uniforms.patternColor.value.b * 255;
+
               patternCtx.globalCompositeOperation = 'source-in';
               patternCtx.fillStyle = `rgb(${patternColorR}, ${patternColorG}, ${patternColorB})`;
               patternCtx.fillRect(0, 0, patternCanvas.width, patternCanvas.height);
-              
+
               ctx.globalCompositeOperation = 'overlay';
               ctx.globalAlpha = 0.8;
-              
+
               const pattern = ctx.createPattern(patternCanvas, 'repeat');
               ctx.save();
-              
+
               ctx.scale(patternScale, patternScale);
-              ctx.transform(1, 0, 0, -1, 0, canvas.height/patternScale);
-              
+              ctx.transform(1, 0, 0, -1, 0, canvas.height / patternScale);
+
               ctx.fillStyle = pattern;
-              ctx.fillRect(0, 0, canvas.width/patternScale, canvas.height/patternScale);
+              ctx.fillRect(0, 0, canvas.width / patternScale, canvas.height / patternScale);
               ctx.restore();
-              
+
               ctx.globalCompositeOperation = 'source-over';
               ctx.globalAlpha = 1.0;
             }
           }
-          
+
           const combinedTexture = new THREE.Texture(canvas);
           combinedTexture.wrapS = THREE.RepeatWrapping;
           combinedTexture.wrapT = THREE.RepeatWrapping;
           combinedTexture.needsUpdate = true;
-          
+
           const exportMaterial = new THREE.MeshStandardMaterial({
             map: combinedTexture,
             color: 0xffffff,
-            roughness: originalMaterial.uniforms.roughness.value,
-            metalness: originalMaterial.uniforms.metalness.value,
+            roughness: child.material.uniforms.roughness.value,
+            metalness: child.material.uniforms.metalness.value,
           });
-          
+
           child.material = exportMaterial;
         }
       });
-  
+
       clonedHoodie.traverse((obj) => {
         if (obj.isGroup && obj.children) {
           obj.children = obj.children.filter(child => {
@@ -492,7 +481,7 @@ function HoodieModel({
           });
         }
       });
-  
+
       Object.entries(decalRefs.current).forEach(([position, ref]) => {
         if (ref && decalVisibility[position]) {
           const decalClone = ref.clone();
@@ -506,9 +495,9 @@ function HoodieModel({
           clonedHoodie.add(decalClone);
         }
       });
-  
+
       sceneToExport.add(clonedHoodie);
-  
+
       exporter.parse(
         sceneToExport,
         (gltf) => {
