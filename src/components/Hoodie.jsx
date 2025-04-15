@@ -624,7 +624,7 @@ function HoodieModel({
   }, [isDragging, activeHandle, initialMouse, initialScale, initialRotation, initialPosition]);
 
   return (
-    <group ref={hoodieRef} position={[0, 0, 0]} rotation={[0, 0, 0]} scale={[2, 2, 2]}>
+    <group ref={hoodieRef} position={[1, 0, 0]} rotation={[0, 0, 0]} scale={[2, 2, 2]}>
       <primitive object={scene} />
       {decalMeshes.map((mesh, index) => {
         if (!mesh) return null;

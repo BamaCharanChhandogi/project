@@ -231,9 +231,9 @@ function HoodieCustomizer() {
       <Canvas
         shadows
         gl={{ preserveDrawingBuffer: true, antialias: true }}
-        style={{ width: "100%", height: "100%" }}
+        style={{ width: "150vw", height: "100%" }}
       >
-        <PerspectiveCamera makeDefault position={[0, 0.25, 3.5]} fov={40} />
+        <PerspectiveCamera makeDefault position={[1, 0.25, 3.5]} fov={40} />
         <Suspense
           fallback={
             <mesh>
@@ -273,7 +273,7 @@ function HoodieCustomizer() {
             enablePan={true}
             enableZoom={true}
             enableRotate={true}
-            target={[0, 0, 0]}
+            target={[1, 0, 0]}
           />
         </Suspense>
       </Canvas>
