@@ -96,7 +96,7 @@ function HoodieModel({
   patternColor,
   patternScale,
 }) {
-  const { scene } = useGLTF("/patterns/final1.glb");
+  const { scene } = useGLTF("/patterns/final.glb");
   const { raycaster, camera, mouse, gl: renderer, scene: fullScene } = useThree();
 
   // Pre-load all base textures
