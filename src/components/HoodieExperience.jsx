@@ -11,6 +11,12 @@ import HoodieModel from "./Hoodie";
 
 function HoodieCustomizer() {
   const controlsRef = useRef();
+  const fileInputRefs = useRef({
+    rightChest: null,
+    leftChest: null,
+    leftSleeve: null,
+    rightSleeve: null,
+  });
   const [customLogos, setCustomLogos] = useState({
     chest: null,
     arms: null,
@@ -34,7 +40,7 @@ function HoodieCustomizer() {
   const [textureScale, setTextureScale] = useState(1);
   const [roughness, setRoughness] = useState(0.7);
   const [showAreasOnGarment, setShowAreasOnGarment] = useState(false);
-  const [selectedPattern, setSelectedPattern] = useState("checker"); // Default to checker
+  const [selectedPattern, setSelectedPattern] = useState("checker");
   const [patternColor, setPatternColor] = useState("#FFFFFF");
   const [patternScale, setPatternScale] = useState(1);
 
@@ -75,6 +81,29 @@ function HoodieCustomizer() {
         };
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleDeleteDecal = (position) => {
+    const positionMapping = {
+      chest: "rightChest",
+      back: "leftChest",
+      arms: "leftSleeve",
+      front: "rightSleeve",
+    };
+    const inputId = positionMapping[position];
+    setCustomLogos((prev) => ({
+      ...prev,
+      [position]: null,
+    }));
+    if (fileInputRefs.current[inputId]) {
+      fileInputRefs.current[inputId].value = "";
+    }
+    if (customTexts[position].show) {
+      setCustomTexts((prev) => ({
+        ...prev,
+        [position]: { ...prev[position], text: "", show: false },
+      }));
     }
   };
 
@@ -129,8 +158,6 @@ function HoodieCustomizer() {
   const handlePatternSelect = (patternType) => {
     setSelectedPattern(patternType);
   };
-  // Add this in your state variables in HoodieCustomizer.js
-
 
   const patternTabs = ["Collar", "Placket", "Chest Pocket", "Cuff"];
   const placementAreas = [
@@ -356,35 +383,52 @@ function HoodieCustomizer() {
                       {placementAreas.map((area) => (
                         <div key={area.id} className="flex flex-col items-center">
                           <div className="bg-slate-300 w-20 aspect-square rounded-md flex items-center justify-center mb-1 relative">
-                            <label
-                              htmlFor={`logo-upload-${area.id}`}
-                              className="absolute inset-0 flex items-center justify-center cursor-pointer"
-                            >
-                              <div className="p-2 rounded-md">
-                                <svg
-                                  width="24"
-                                  height="24"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  xmlns="http://www.w3.org/2000/svg"
+                            {customLogos[area.mapping] ? (
+                              <div className="relative w-full h-full">
+                                <img
+                                  src={customLogos[area.mapping].image.src}
+                                  alt="Uploaded logo"
+                                  className="w-full h-full object-cover rounded-md"
+                                />
+                                <button
+                                  onClick={() => handleDeleteDecal(area.mapping)}
+                                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
                                 >
-                                  <path
-                                    d="M12 5V19M5 12H19"
-                                    stroke="#888888"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                </svg>
+                                  ×
+                                </button>
                               </div>
-                              <input
-                                id={`logo-upload-${area.id}`}
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => handleLogoUpload(e, area.id)}
-                                className="hidden"
-                              />
-                            </label>
+                            ) : (
+                              <label
+                                htmlFor={`logo-upload-${area.id}`}
+                                className="absolute inset-0 flex items-center justify-center cursor-pointer"
+                              >
+                                <div className="p-2 rounded-md">
+                                  <svg
+                                    width="24"
+                                    height="24"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <path
+                                      d="M12 5V19M5 12H19"
+                                      stroke="#888888"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
+                                  </svg>
+                                </div>
+                                <input
+                                  id={`logo-upload-${area.id}`}
+                                  type="file"
+                                  accept="image/*"
+                                  ref={(el) => (fileInputRefs.current[area.id] = el)}
+                                  onChange={(e) => handleLogoUpload(e, area.id)}
+                                  className="hidden"
+                                />
+                              </label>
+                            )}
                           </div>
                           <p className="text-center text-sm">{area.label}</p>
                           <p className="text-center text-xs text-gray-300">Max Area</p>
@@ -590,6 +634,7 @@ function HoodieCustomizer() {
                   customLogos={customLogos}
                   customTexts={customTexts}
                   setCustomTexts={setCustomTexts}
+                  onDeleteDecal={handleDeleteDecal}
                   onDownloadImage={downloadImageTrigger ? handleImageDownloadComplete : null}
                   onDownloadGLB={downloadGLBTrigger ? handleGLBDownloadComplete : null}
                   controlsRef={controlsRef}

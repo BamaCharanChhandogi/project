@@ -11,7 +11,7 @@ const PatternMaterial = shaderMaterial(
     baseColor: new THREE.Color(0xffffff),
     patternColor: new THREE.Color(0xffffff),
     textureScale: 1.0,
-    patternScale: 2.0,
+    patternScale: 1.0,
     textureOffset: new THREE.Vector2(0, 0),
     roughness: 0.7,
     metalness: 0.1,
@@ -80,6 +80,7 @@ function HoodieModel({
   customLogos,
   customTexts,
   setCustomTexts,
+  onDeleteDecal,
   onDownloadImage,
   onDownloadGLB,
   controlsRef,
@@ -187,7 +188,6 @@ function HoodieModel({
     Front: "front",
     Arms001: "arms",
     Back: "back",
-    // Main004: "chest",
     strips001: "arms",
   };
 
@@ -310,11 +310,6 @@ function HoodieModel({
           const patternTexturePath = patternSets[patternType][partIndex % 4];
           const patternTexture = patternTextures[patternTexturePath];
 
-          // if (patternTexture) {
-          //   patternTexture.wrapS = patternTexture.wrapT = THREE.ClampToEdgeWrapping;
-          //   patternTexture.needsUpdate = true;
-          // }
-
           const partColor = partColors[partName] || "#FFFFFF";
           const material = new PatternMaterial({
             baseTexture: currentTexture,
@@ -352,6 +347,20 @@ function HoodieModel({
     patternColor,
     patternScale,
   ]);
+
+  // Add effect to handle customLogos changes
+  useEffect(() => {
+    // Reset decalVisibility to true when a new logo is uploaded
+    const newVisibility = { ...decalVisibility };
+    Object.keys(customLogos).forEach((position) => {
+      if (customLogos[position] && !decalVisibility[position]) {
+        newVisibility[position] = true;
+      }
+    });
+    if (Object.values(newVisibility).some((v, i) => v !== Object.values(decalVisibility)[i])) {
+      setDecalVisibility(newVisibility);
+    }
+  }, [customLogos, decalVisibility]);
 
   useEffect(() => {
     if (onDownloadImage) {
@@ -400,10 +409,12 @@ function HoodieModel({
           [location]: { ...prev[location], text: "", show: false },
         }));
       }
+      if (onDeleteDecal) {
+        onDeleteDecal(location);
+      }
       setActiveHandle(null);
       setIsDragging(false);
       controlsRef.current.enabled = true;
-      window.location.reload();
     }
   };
 
@@ -474,7 +485,6 @@ function HoodieModel({
         if (!mesh) return null;
 
         const decalConfigs = [
-          // { position: "chest", meshName: "Main004", side: THREE.FrontSide },
           { position: "front", meshName: "Front", side: THREE.FrontSide },
           { position: "arms", meshName: "Arms001", side: THREE.FrontSide },
           { position: "back", meshName: "Back", side: THREE.BackSide },
