@@ -24,10 +24,10 @@ function HoodieCustomizer() {
     back: null,
   });
   const [customTexts, setCustomTexts] = useState({
-    front: { text: "", show: false, color: "#000000", background: "rgba(255, 255, 255, 0.8)", fontSize: 60, style: "classic", shape: "rectangle" },
-    leftSleeve: { text: "", show: false, color: "#000000", background: "rgba(255, 255, 255, 0.8)", fontSize: 60, style: "classic", shape: "rectangle" },
-    rightSleeve: { text: "", show: false, color: "#000000", background: "rgba(255, 255, 255, 0.8)", fontSize: 60, style: "classic", shape: "rectangle" },
-    back: { text: "", show: false, color: "#000000", background: "rgba(255, 255, 255, 0.8)", fontSize: 60, style: "classic", shape: "rectangle" },
+    front: { text: "", show: false, color: "#000000", background: "transparent", fontSize: 60, style: "classic", shape: "rectangle" },
+    leftSleeve: { text: "", show: false, color: "#000000", background: "transparent", fontSize: 60, style: "classic", shape: "rectangle" },
+    rightSleeve: { text: "", show: false, color: "#000000", background: "transparent", fontSize: 60, style: "classic", shape: "rectangle" },
+    back: { text: "", show: false, color: "#000000", background: "transparent", fontSize: 60, style: "classic", shape: "rectangle" },
   });
   const [downloadImageTrigger, setDownloadImageTrigger] = useState(null);
   const [downloadGLBTrigger, setDownloadGLBTrigger] = useState(null);

@@ -190,13 +190,13 @@ function HoodieModel({
 
   useEffect(() => {
     const newTextTextures = { chest: null, leftSleeve: null, rightSleeve: null, back: null, front: null };
-
+  
     Object.keys(customTexts).forEach((position) => {
       const { text, show, color, background, fontSize, style, shape } = customTexts[position];
-
+  
       if (text && show) {
         const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
+        const ctx = canvas.getContext("2d", { alpha: true }); // Ensure alpha channel is enabled
         const styles = {
           classic: {
             font: `${fontSize}px Arial`,
@@ -220,7 +220,7 @@ function HoodieModel({
           },
         };
         const selectedStyle = styles[style] || styles.classic;
-
+  
         ctx.font = selectedStyle.font;
         const metrics = ctx.measureText(text);
         const textWidth = metrics.width;
@@ -228,41 +228,57 @@ function HoodieModel({
         const padding = Math.max(textWidth, textHeight) * 0.2;
         const totalWidth = textWidth + 2 * padding;
         const totalHeight = textHeight + 2 * padding;
-
+  
         canvas.width = totalWidth;
         canvas.height = totalHeight;
-
-        ctx.fillStyle = background;
-        if (shape === "circle") {
-          ctx.beginPath();
-          ctx.arc(totalWidth / 2, totalHeight / 2, Math.min(totalWidth, totalHeight) / 2, 0, Math.PI * 2);
-          ctx.fill();
-        } else if (shape === "oval") {
-          ctx.save();
-          ctx.scale(1.5, 1);
-          ctx.beginPath();
-          ctx.arc(totalWidth / 2 / 1.5, totalHeight / 2, Math.min(totalWidth, totalHeight) / 2, 0, Math.PI * 2);
-          ctx.restore();
-          ctx.fill();
-        } else {
-          ctx.fillRect(0, 0, totalWidth, totalHeight);
+  
+        // Parse background color to handle transparency
+        let bgColor = background;
+        if (background === "transparent") {
+          bgColor = "rgba(0, 0, 0, 0)"; // Fully transparent
+        } else if (background.startsWith("#")) {
+          // Convert hex to rgba with full opacity if not specified
+          const hex = background.replace("#", "");
+          const r = parseInt(hex.substring(0, 2), 16);
+          const g = parseInt(hex.substring(2, 4), 16);
+          const b = parseInt(hex.substring(4, 6), 16);
+          bgColor = `rgba(${r}, ${g}, ${b}, 1)`;
         }
-
+  
+        // Only draw background if it's not fully transparent
+        if (bgColor !== "rgba(0, 0, 0, 0)") {
+          ctx.fillStyle = bgColor;
+          if (shape === "circle") {
+            ctx.beginPath();
+            ctx.arc(totalWidth / 2, totalHeight / 2, Math.min(totalWidth, totalHeight) / 2, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (shape === "oval") {
+            ctx.save();
+            ctx.scale(1.5, 1);
+            ctx.beginPath();
+            ctx.arc(totalWidth / 2 / 1.5, totalHeight / 2, Math.min(totalWidth, totalHeight) / 2, 0, Math.PI * 2);
+            ctx.restore();
+            ctx.fill();
+          } else {
+            ctx.fillRect(0, 0, totalWidth, totalHeight);
+          }
+        }
+  
         ctx.shadowColor = selectedStyle.shadow.color;
         ctx.shadowBlur = selectedStyle.shadow.blur;
         ctx.shadowOffsetX = selectedStyle.shadow.offsetX;
         ctx.shadowOffsetY = selectedStyle.shadow.offsetY;
-
+  
         ctx.fillStyle = selectedStyle.color;
         ctx.font = selectedStyle.font;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(text, totalWidth / 2, totalHeight / 2);
-
+  
         ctx.shadowBlur = 0;
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
-
+  
         const texture = new THREE.Texture(canvas);
         texture.needsUpdate = true;
         texture.generateMipmaps = true;
@@ -273,7 +289,7 @@ function HoodieModel({
         newTextTextures[position] = texture;
       }
     });
-
+  
     setTextTextures(newTextTextures);
   }, [customTexts, renderer]);
 
