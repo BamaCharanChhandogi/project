@@ -348,9 +348,8 @@ function HoodieModel({
     patternScale,
   ]);
 
-  // Add effect to handle customLogos changes
+  // Reset decalVisibility for logos
   useEffect(() => {
-    // Reset decalVisibility to true when a new logo is uploaded
     const newVisibility = { ...decalVisibility };
     Object.keys(customLogos).forEach((position) => {
       if (customLogos[position] && !decalVisibility[position]) {
@@ -361,6 +360,19 @@ function HoodieModel({
       setDecalVisibility(newVisibility);
     }
   }, [customLogos, decalVisibility]);
+
+  // Reset decalVisibility for text
+  useEffect(() => {
+    const newVisibility = { ...decalVisibility };
+    Object.keys(customTexts).forEach((position) => {
+      if (customTexts[position].show && !decalVisibility[position]) {
+        newVisibility[position] = true;
+      }
+    });
+    if (Object.values(newVisibility).some((v, i) => v !== Object.values(decalVisibility)[i])) {
+      setDecalVisibility(newVisibility);
+    }
+  }, [customTexts, decalVisibility]);
 
   useEffect(() => {
     if (onDownloadImage) {
@@ -479,7 +491,7 @@ function HoodieModel({
   }, [isDragging, activeHandle, initialMouse, initialScale, initialRotation, initialPosition]);
 
   return (
-    <group ref={hoodieRef} position={[0, 0, 0]} rotation={[0, 0, 0]}>
+    <group ref={hoodieRef} position={[0, 0, 0]} rotation={[0, 0, 0]} scale={[2,2,2]}>
       <primitive object={scene} />
       {decalMeshes.map((mesh, index) => {
         if (!mesh) return null;

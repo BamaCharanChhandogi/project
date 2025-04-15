@@ -618,7 +618,12 @@ function HoodieCustomizer() {
           </div>
 
           <div className="flex-1 relative">
-            <Canvas shadows gl={{ preserveDrawingBuffer: true, antialias: true }}>
+            <Canvas shadows gl={{ preserveDrawingBuffer: true, antialias: true }}
+              style=
+              {{
+                width:"40vw",
+                height:"100vh"
+              }}>
               <PerspectiveCamera makeDefault position={[0, 0.25, 3.5]} fov={40} />
               <Suspense
                 fallback={
