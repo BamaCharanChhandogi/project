@@ -18,16 +18,16 @@ function HoodieCustomizer() {
     rightSleeve: null,
   });
   const [customLogos, setCustomLogos] = useState({
-    chest: null,
-    arms: null,
-    back: null,
     front: null,
+    leftSleeve: null,
+    rightSleeve: null,
+    back: null,
   });
   const [customTexts, setCustomTexts] = useState({
-    chest: { text: "", show: false, color: "#000000", background: "rgba(255, 255, 255, 0.8)", fontSize: 60, style: "classic", shape: "rectangle" },
-    arms: { text: "", show: false, color: "#000000", background: "rgba(255, 255, 255, 0.8)", fontSize: 60, style: "classic", shape: "rectangle" },
-    back: { text: "", show: false, color: "#000000", background: "rgba(255, 255, 255, 0.8)", fontSize: 60, style: "classic", shape: "rectangle" },
     front: { text: "", show: false, color: "#000000", background: "rgba(255, 255, 255, 0.8)", fontSize: 60, style: "classic", shape: "rectangle" },
+    leftSleeve: { text: "", show: false, color: "#000000", background: "rgba(255, 255, 255, 0.8)", fontSize: 60, style: "classic", shape: "rectangle" },
+    rightSleeve: { text: "", show: false, color: "#000000", background: "rgba(255, 255, 255, 0.8)", fontSize: 60, style: "classic", shape: "rectangle" },
+    back: { text: "", show: false, color: "#000000", background: "rgba(255, 255, 255, 0.8)", fontSize: 60, style: "classic", shape: "rectangle" },
   });
   const [downloadImageTrigger, setDownloadImageTrigger] = useState(null);
   const [downloadGLBTrigger, setDownloadGLBTrigger] = useState(null);
@@ -35,7 +35,7 @@ function HoodieCustomizer() {
   const [selectedColor, setSelectedColor] = useState("#3b82f6");
   const [selectedTexture, setSelectedTexture] = useState("cotton");
   const [selectedEnvironment, setSelectedEnvironment] = useState("studio");
-  const [selectedTab, setSelectedTab] = useState("chest");
+  const [selectedTab, setSelectedTab] = useState("front");
   const [patternTab, setPatternTab] = useState("collar");
   const [textureScale, setTextureScale] = useState(1);
   const [roughness, setRoughness] = useState(0.7);
@@ -43,26 +43,23 @@ function HoodieCustomizer() {
   const [selectedPattern, setSelectedPattern] = useState("checker");
   const [patternColor, setPatternColor] = useState("#FFFFFF");
   const [patternScale, setPatternScale] = useState(1);
+  const [selectedTextArea, setSelectedTextArea] = useState(null);
 
   const [partColors, setPartColors] = useState({
-    chest: "#3B82F6",
-    arms: "#3B82F6",
-    back: "#3B82F6",
     front: "#3B82F6",
+    leftSleeve: "#3B82F6",
+    rightSleeve: "#3B82F6",
+    back: "#3B82F6",
   });
 
   useEffect(() => {
-    // Get all elements with the class we want to modify
     const scrollableElements = document.querySelectorAll('.overflow-y-auto');
-    // Apply direct styles to each element
     scrollableElements.forEach(el => {
       el.style.msOverflowStyle = 'none';
       el.style.scrollbarWidth = 'none';
-      // Add an ID if it doesn't have one
       if (!el.id) {
         el.id = `scrollable-${Math.random().toString(36).substring(2, 9)}`;
       }
-      // Create a style element for webkit browsers
       const styleEl = document.createElement('style');
       styleEl.innerHTML = `
         #${el.id}::-webkit-scrollbar {
@@ -72,12 +69,16 @@ function HoodieCustomizer() {
         }
       `;
       document.head.appendChild(styleEl);
-      // Clean up function
-      return () => {
-        document.head.removeChild(styleEl);
-      };
+      return () => document.head.removeChild(styleEl);
     });
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== "text") {
+      setSelectedTextArea(null);
+    }
+  }, [activeTab]);
+
   const handleLogoUpload = (event, position) => {
     const file = event.target.files[0];
     if (file) {
@@ -94,8 +95,8 @@ function HoodieCustomizer() {
           const positionMapping = {
             rightChest: "front",
             leftChest: "back",
-            leftSleeve: "arms",
-            rightSleeve: "front",
+            leftSleeve: "leftSleeve",
+            rightSleeve: "rightSleeve",
           };
           setCustomLogos((prev) => ({
             ...prev,
@@ -113,10 +114,10 @@ function HoodieCustomizer() {
 
   const handleDeleteDecal = (position) => {
     const positionMapping = {
-      // chest: "rightChest",
       back: "leftChest",
-      arms: "leftSleeve",
-      front: "rightSleeve",
+      leftSleeve: "leftSleeve",
+      rightSleeve: "rightSleeve",
+      front: "rightChest",
     };
     const inputId = positionMapping[position];
     setCustomLogos((prev) => ({
@@ -190,8 +191,8 @@ function HoodieCustomizer() {
   const placementAreas = [
     { id: "rightChest", label: "Right Chest", mapping: "front" },
     { id: "leftChest", label: "Left Chest", mapping: "back" },
-    { id: "leftSleeve", label: "Left Sleeve", mapping: "arms" },
-    { id: "rightSleeve", label: "Right Sleeve", mapping: "front" },
+    { id: "leftSleeve", label: "Left Sleeve", mapping: "leftSleeve" },
+    { id: "rightSleeve", label: "Right Sleeve", mapping: "rightSleeve" },
   ];
   const patternTypes = ["checker", "stripes", "circles"];
   const colors = [
@@ -462,7 +463,6 @@ function HoodieCustomizer() {
                         </div>
                       ))}
                     </div>
-                   
                   </div>
                 )}
                 {activeTab === "texture" && (
@@ -527,7 +527,10 @@ function HoodieCustomizer() {
                       {placementAreas.map((area) => (
                         <button
                           key={area.id}
-                          onClick={() => setSelectedTab(area.mapping)}
+                          onClick={() => {
+                            setSelectedTab(area.mapping);
+                            setSelectedTextArea(area.mapping);
+                          }}
                           className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${selectedTab === area.mapping
                               ? "bg-slate-500 text-white"
                               : "bg-slate-400 text-white hover:bg-slate-500"
@@ -538,80 +541,128 @@ function HoodieCustomizer() {
                       ))}
                     </div>
                     <div className="space-y-4">
-                      <label className="block">
-                        <span className="text-white font-medium mb-2 block">
-                          Custom Text for {selectedTab.charAt(0).toUpperCase() + selectedTab.slice(1)}
-                        </span>
-                        <input
-                          type="text"
-                          placeholder="Enter your text"
-                          value={customTexts[selectedTab].text}
-                          onChange={(e) => handleTextChange(selectedTab, "text", e.target.value)}
-                          className="w-full p-2 bg-slate-500 border border-slate-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-white text-white"
-                        />
-                      </label>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-white">Text Color</span>
-                        <input
-                          type="color"
-                          value={customTexts[selectedTab].color}
-                          onChange={(e) => handleTextChange(selectedTab, "color", e.target.value)}
-                          className="h-8 w-8 rounded cursor-pointer"
-                        />
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-white">Background</span>
-                        <input
-                          type="color"
-                          value={
-                            customTexts[selectedTab].background.startsWith("#")
-                              ? customTexts[selectedTab].background
-                              : "#FFFFFF"
-                          }
-                          onChange={(e) => handleTextChange(selectedTab, "background", e.target.value)}
-                          className="h-8 w-8 rounded cursor-pointer"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex justify-between">
-                          <span className="text-sm text-white">Font Size</span>
-                          <span className="text-sm text-white">{customTexts[selectedTab].fontSize}px</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="20"
-                          max="100"
-                          step="1"
-                          value={customTexts[selectedTab].fontSize}
-                          onChange={(e) => handleTextChange(selectedTab, "fontSize", parseInt(e.target.value))}
-                          className="w-full"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <span className="text-sm text-white">Text Style</span>
-                        <select
-                          value={customTexts[selectedTab].style}
-                          onChange={(e) => handleTextChange(selectedTab, "style", e.target.value)}
-                          className="w-full p-2 bg-slate-500 border border-slate-400 rounded-lg text-white"
-                        >
-                          <option value="classic">Classic</option>
-                          <option value="bold">Bold</option>
-                          <option value="fancy">Fancy</option>
-                          <option value="modern">Modern</option>
-                        </select>
-                      </div>
-                      <div className="space-y-1">
-                        <span className="text-sm text-white">Text Shape</span>
-                        <select
-                          value={customTexts[selectedTab].shape}
-                          onChange={(e) => handleTextChange(selectedTab, "shape", e.target.value)}
-                          className="w-full p-2 bg-slate-500 border border-slate-400 rounded-lg text-white"
-                        >
-                          <option value="rectangle">Rectangle</option>
-                          <option value="circle">Circle</option>
-                          <option value="oval">Oval</option>
-                        </select>
-                      </div>
+                      {selectedTextArea ? (
+                        <>
+                          <label className="block">
+                            <span className="text-white font-medium mb-2 block">
+                              Custom Text for{" "}
+                              {selectedTextArea.charAt(0).toUpperCase() +
+                                selectedTextArea.slice(1)}
+                            </span>
+                            <input
+                              type="text"
+                              placeholder="Enter your text"
+                              value={customTexts[selectedTextArea].text}
+                              onChange={(e) =>
+                                handleTextChange(
+                                  selectedTextArea,
+                                  "text",
+                                  e.target.value
+                                )
+                              }
+                              className="w-full p-2 bg-slate-500 border border-slate-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-white text-white"
+                            />
+                          </label>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-white">Text Color</span>
+                            <input
+                              type="color"
+                              value={customTexts[selectedTextArea].color}
+                              onChange={(e) =>
+                                handleTextChange(
+                                  selectedTextArea,
+                                  "color",
+                                  e.target.value
+                                )
+                              }
+                              className="h-8 w-8 rounded cursor-pointer"
+                            />
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-white">Background</span>
+                            <input
+                              type="color"
+                              value={
+                                customTexts[selectedTextArea].background.startsWith("#")
+                                  ? customTexts[selectedTextArea].background
+                                  : "#FFFFFF"
+                              }
+                              onChange={(e) =>
+                                handleTextChange(
+                                  selectedTextArea,
+                                  "background",
+                                  e.target.value
+                                )
+                              }
+                              className="h-8 w-8 rounded cursor-pointer"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <div className="flex justify-between">
+                              <span className="text-sm text-white">Font Size</span>
+                              <span className="text-sm text-white">
+                                {customTexts[selectedTextArea].fontSize}px
+                              </span>
+                            </div>
+                            <input
+                              type="range"
+                              min="20"
+                              max="100"
+                              step="1"
+                              value={customTexts[selectedTextArea].fontSize}
+                              onChange={(e) =>
+                                handleTextChange(
+                                  selectedTextArea,
+                                  "fontSize",
+                                  parseInt(e.target.value)
+                                )
+                              }
+                              className="w-full"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-sm text-white">Text Style</span>
+                            <select
+                              value={customTexts[selectedTextArea].style}
+                              onChange={(e) =>
+                                handleTextChange(
+                                  selectedTextArea,
+                                  "style",
+                                  e.target.value
+                                )
+                              }
+                              className="w-full p-2 bg-slate-500 border border-slate-400 rounded-lg text-white"
+                            >
+                              <option value="classic">Classic</option>
+                              <option value="bold">Bold</option>
+                              <option value="fancy">Fancy</option>
+                              <option value="modern">Modern</option>
+                            </select>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-sm text-white">Text Shape</span>
+                            <select
+                              value={customTexts[selectedTextArea].shape}
+                              onChange={(e) =>
+                                handleTextChange(
+                                  selectedTextArea,
+                                  "shape",
+                                  e.target.value
+                                )
+                              }
+                              className="w-full p-2 bg-slate-500 border border-slate-400 rounded-lg text-white"
+                            >
+                              <option value="rectangle">Rectangle</option>
+                              <option value="circle">Circle</option>
+                              <option value="oval">Oval</option>
+                            </select>
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-gray-300">
+                          Please select a placement area to add text.
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}
@@ -635,11 +686,7 @@ function HoodieCustomizer() {
 
           <div className="flex-1 relative">
             <Canvas shadows gl={{ preserveDrawingBuffer: true, antialias: true }}
-              style=
-              {{
-                width:"40vw",
-                height:"100vh"
-              }}>
+              style={{ width: "40vw", height: "100vh" }}>
               <PerspectiveCamera makeDefault position={[0, 0.25, 3.5]} fov={40} />
               <Suspense
                 fallback={

@@ -99,7 +99,7 @@ function HoodieModel({
   patternColor,
   patternScale,
 }) {
-  const { scene } = useGLTF("/patterns/final.glb");
+  const { scene } = useGLTF("/patterns/TShirt.glb");
   const { raycaster, camera, mouse, gl: renderer, scene: fullScene } = useThree();
 
   const baseTextures = useTexture({
@@ -115,7 +115,7 @@ function HoodieModel({
     ...patternSets.circles.reduce((acc, path) => ({ ...acc, [path]: path }), {}),
   });
 
-  const meshPartOrder = ["chest", "arms", "back", "front"];
+  const meshPartOrder = ["chest", "leftSleeve", "rightSleeve", "back", "front"];
   const rotateIconTexture = useTexture("/Color.png");
   const deleteIconTexture = useTexture("/Color.png");
   const resizeIconTexture = useTexture("/Color.png");
@@ -125,54 +125,54 @@ function HoodieModel({
   const [decalMeshes, setDecalMeshes] = useState([]);
   const [textTextures, setTextTextures] = useState({
     chest: null,
-    arms: null,
+    leftSleeve: null,
+    rightSleeve: null,
     back: null,
     front: null,
   });
   const [decalVisibility, setDecalVisibility] = useState({
     chest: true,
-    arms: true,
+    leftSleeve: true,
+    rightSleeve: true,
     back: true,
     front: true,
   });
 
   const decalRefs = useRef({
     chest: null,
-    arms: null,
+    leftSleeve: null,
+    rightSleeve: null,
     back: null,
     front: null,
   });
 
-  // const [decalPositions, setDecalPositions] = useState({
-  //   chest: [0.01, 0.20, 0.10],
-  //   arms: [0.26, 0.10, -0.03],
-  //   back: [0, 0.2, -0.1],
-  //   front: [0.01, 0.20, 0.10],
-  // });
-
   const [decalPositions, setDecalPositions] = useState({
-    chest: [0.01, 0.20, 0.12], // Increase from 0.10 to 0.12
-    arms: [0.26, 0.10, -0.01], // Increase from -0.03 to -0.01
-    back: [0, 0.2, -0.08],     // Increase from -0.1 to -0.08
-    front: [0.01, 0.20, 0.12], // Increase from 0.10 to 0.12
+    chest: [0.01, 0.20, 0.12],
+    leftSleeve: [0.26, 0.10, -0.01],
+    rightSleeve: [0.26, 0.10, -0.01],
+    back: [0, 0.2, -0.08],
+    front: [0.01, 0.20, 0.12],
   });
   const [decalRotations, setDecalRotations] = useState({
     chest: [0.00, 0.13, 0.00],
-    arms: [-1.62, Math.PI / 2, 0],
+    leftSleeve: [-1.62, Math.PI / 2, 0],
+    rightSleeve: [-1.62, -Math.PI / 2, 0],
     back: [0, Math.PI, 0],
     front: [0.00, 0.13, 0.00],
   });
 
   const [decalUniformScales, setDecalUniformScales] = useState({
     chest: 0.14,
-    arms: 0.155,
+    leftSleeve: 0.155,
+    rightSleeve: 0.155,
     back: 0.14,
     front: 0.14,
   });
 
   const [aspectRatios, setAspectRatios] = useState({
     chest: 0.15 / 0.13,
-    arms: 0.16 / 0.15,
+    leftSleeve: 0.16 / 0.15,
+    rightSleeve: 0.16 / 0.15,
     back: 0.15 / 0.13,
     front: 0.15 / 0.13,
   });
@@ -193,9 +193,9 @@ function HoodieModel({
 
   const meshPartMapping = {
     Front: "front",
-    Arms001: "arms",
+    Left_Sleeve: "leftSleeve",
+    Right_Sleeve: "rightSleeve",
     Back: "back",
-    strips001: "arms",
   };
 
   const handleDecalClick = (e, position) => {
@@ -204,7 +204,7 @@ function HoodieModel({
   };
 
   useEffect(() => {
-    const newTextTextures = { chest: null, arms: null, back: null, front: null };
+    const newTextTextures = { chest: null, leftSleeve: null, rightSleeve: null, back: null, front: null };
 
     Object.keys(customTexts).forEach((position) => {
       const { text, show, color, background, fontSize, style, shape } = customTexts[position];
@@ -302,7 +302,8 @@ function HoodieModel({
 
     const meshMap = {
       chest: null,
-      arms: null,
+      leftSleeve: null,
+      rightSleeve: null,
       back: null,
       front: null,
     };
@@ -345,7 +346,7 @@ function HoodieModel({
       }
     });
 
-    setDecalMeshes([meshMap.chest, meshMap.arms, meshMap.back, meshMap.front].filter(Boolean));
+    setDecalMeshes([meshMap.chest, meshMap.leftSleeve, meshMap.rightSleeve, meshMap.back, meshMap.front].filter(Boolean));
   }, [
     scene,
     baseTextures,
@@ -633,14 +634,15 @@ function HoodieModel({
   }, [isDragging, activeHandle, initialMouse, initialScale, initialRotation, initialPosition]);
 
   return (
-    <group ref={hoodieRef} position={[0, 0, 0]} rotation={[0, 0, 0]} scale={[2,2,2]}>
+    <group ref={hoodieRef} position={[0, 0, 0]} rotation={[0, 0, 0]} scale={[2, 2, 2]}>
       <primitive object={scene} />
       {decalMeshes.map((mesh, index) => {
         if (!mesh) return null;
 
         const decalConfigs = [
           { position: "front", meshName: "Front", side: THREE.FrontSide },
-          { position: "arms", meshName: "Arms001", side: THREE.FrontSide },
+          { position: "leftSleeve", meshName: "Left_Sleeve", side: THREE.FrontSide },
+          { position: "rightSleeve", meshName: "Right_Sleeve", side: THREE.FrontSide },
           { position: "back", meshName: "Back", side: THREE.BasicDepthPacking },
         ];
 
@@ -678,7 +680,8 @@ function HoodieModel({
                   polygonOffset={true}
                   polygonOffsetFactor={
                     meshPosition === "chest" ? -20 :
-                    meshPosition === "arms" ? -22 :
+                    meshPosition === "leftSleeve" ? -22 :
+                    meshPosition === "rightSleeve" ? -22 :
                     meshPosition === "back" ? -24 :
                     meshPosition === "front" ? -26 : -20
                   }
@@ -698,7 +701,8 @@ function HoodieModel({
                       polygonOffset: true,
                       polygonOffsetFactor: (
                         meshPosition === "chest" ? -20 :
-                        meshPosition === "arms" ? -22 :
+                        meshPosition === "leftSleeve" ? -22 :
+                        meshPosition === "rightSleeve" ? -22 :
                         meshPosition === "back" ? -24 :
                         meshPosition === "front" ? -26 : -20
                       ),
