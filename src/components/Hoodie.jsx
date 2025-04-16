@@ -101,10 +101,10 @@ function HoodieModel({
   });
 
   const meshPartOrder = ["chest", "leftSleeve", "rightSleeve", "back", "front"];
-  const rotateIconTexture = useTexture("/Color.png");
-  const deleteIconTexture = useTexture("/Color.png");
-  const resizeIconTexture = useTexture("/Color.png");
-  const moveIconTexture = useTexture("/Color.png");
+  const rotateIconTexture = useTexture("/Rotate1.jpg");
+  const deleteIconTexture = useTexture("/Delete.jpeg");
+  const resizeIconTexture = useTexture("/Zoom.png");
+  const moveIconTexture = useTexture("/Move.webp");
 
   const hoodieRef = useRef();
   const [decalMeshes, setDecalMeshes] = useState([]);
