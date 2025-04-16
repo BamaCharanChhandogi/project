@@ -1,3 +1,5 @@
+// Fix Canvas and UI Layouts for Responsiveness
+
 import React, { useRef, Suspense, useState, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
 import {
@@ -44,6 +46,9 @@ function HoodieCustomizer() {
   const [patternColor, setPatternColor] = useState("#FFFFFF");
   const [patternScale, setPatternScale] = useState(2);
   const [selectedTextArea, setSelectedTextArea] = useState(null);
+  const [cameraFov, setCameraFov] = useState(40);
+  // Add model position state that can be adjusted based on screen size
+  const [modelPosition, setModelPosition] = useState([0, 0, 0]);
 
   const [partColors, setPartColors] = useState({
     front: "#3B82F6",
@@ -52,6 +57,33 @@ function HoodieCustomizer() {
     back: "#3B82F6",
   });
 
+  // Handle window resize for dynamic adjustments
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const aspect = width / height;
+      
+      // Adjust camera FOV based on aspect ratio
+      setCameraFov(aspect > 1 ? 40 : 50);
+      
+      // Adjust model position based on screen size
+      if (width < 768) { // Mobile
+        setModelPosition([0, -0.2, 0]); // Move model down slightly on small screens
+      } else if (width < 1024) { // Tablet
+        setModelPosition([0.5, 0, 0]); // Position for medium screens
+      } else  { // Desktop
+        setModelPosition([0, 0.2, 0]); // Default position for large screens
+      }
+      
+    };
+    
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Scrollbar hiding logic (unchanged)
   useEffect(() => {
     const scrollableElements = document.querySelectorAll('.overflow-y-auto');
     scrollableElements.forEach(el => {
@@ -231,9 +263,14 @@ function HoodieCustomizer() {
       <Canvas
         shadows
         gl={{ preserveDrawingBuffer: true, antialias: true }}
-        style={{ width: "150vw", height: "100%" }}
+        style={{ width: "100vw", height: "100vh" }} // Changed from 150vw to 100vw
+        className="fixed top-0 left-0"
       >
-        <PerspectiveCamera makeDefault position={[1, 0.25, 3.5]} fov={40} />
+        <PerspectiveCamera
+          makeDefault
+          position={[1, 0.25, 3.5]}
+          fov={cameraFov}
+        />
         <Suspense
           fallback={
             <mesh>
@@ -263,6 +300,7 @@ function HoodieCustomizer() {
             selectedPattern={selectedPattern}
             patternColor={patternColor}
             patternScale={patternScale}
+            position={modelPosition} // Pass dynamic position to HoodieModel
           />
           <ContactShadows position={[0, -1.5, 0]} opacity={0.5} blur={2.5} scale={10} />
           <Environment preset="sunset" background blur={4} />
@@ -273,86 +311,88 @@ function HoodieCustomizer() {
             enablePan={true}
             enableZoom={true}
             enableRotate={true}
-            target={[1, 0, 0]}
+            target={modelPosition} // Update orbit controls target to match model position
           />
         </Suspense>
       </Canvas>
 
-      {/* UI Overlay */}
+      {/* UI Overlay - Responsive adjustments */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-        <div className="flex space-x-3 w-[625.55px] h-[729.67px] ml-40 mt-20 rounded-md pointer-events-auto">
-          <div className="w-[108.67px] h-[529.67px] mt-4 bg-white/30 backdrop-blur-md backdrop-saturate-150 p-4 flex flex-col justify-between items-center pt-4 rounded-full border border-white/20">
+        <div className="flex flex-col md:flex-row md:space-x-3 w-full md:w-[90%] lg:max-w-[500px] h-full md:h-[80vh] lg:ml-[15%] md:mt-[5%] rounded-md pointer-events-auto lg:items-center">
+          {/* Side Navigation */}
+          <div className="w-full md:w-[15%] h-[60px] md:h-[70%] mt-0 md:mt-[2%] lg:w-[21%] lg:max-h-fit bg-white/30 backdrop-blur-md backdrop-saturate-150 p-1 md:p-4 flex flex-row md:flex-col space-y-5  items-center md:pt-4 rounded-lg md:rounded-full border border-white/20 lg:py-10 lg:px-5 md:mt-[-13%]">
             <button
               onClick={() => setActiveTab("colors")}
-              className={`w-[80.55px] h-[80.55px] rounded-full flex items-center justify-center transition-all ${activeTab === "colors" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
+              className={`w-[45px] h-[45px] md:w-[80%] md:h-[15%] lg:h-[13%] lg:p-3 lg:w-[150%] rounded-full flex items-center justify-center transition-all ${activeTab === "colors" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
               title="Colors"
             >
-              <span className="text-2xl">
-                <img src="/Paint.png" alt="Paint" />
+              <span className="text-lg md:text-2xl">
+                <img src="/Paint.png" alt="Paint" className="w-full h-full object-contain" />
               </span>
             </button>
             <button
               onClick={() => setActiveTab("pattern")}
-              className={`w-[80.55px] h-[80.55px] rounded-full flex items-center justify-center transition-all ${activeTab === "pattern" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
+              className={`w-[45px] h-[45px] md:w-[80%] md:h-[15%] lg:h-[13%] lg:p-3 lg:w-[150%] rounded-full flex items-center justify-center transition-all ${activeTab === "pattern" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
               title="Pattern"
             >
-              <span className="text-2xl">
-                <img src="/Color.png" alt="Color" />
+              <span className="text-lg md:text-2xl">
+                <img src="/Color.png" alt="Color" className="w-full h-full object-contain" />
               </span>
             </button>
             <button
               onClick={() => setActiveTab("logo")}
-              className={`w-[80.55px] h-[80.55px] rounded-full flex items-center justify-center transition-all ${activeTab === "logo" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-200"}`}
+              className={`w-[45px] h-[45px] md:w-[80%] md:h-[15%] lg:h-[13%] lg:p-3 lg:w-[150%] rounded-full flex items-center justify-center transition-all ${activeTab === "logo" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-200"}`}
               title="Logo"
             >
-              <span className="text-2xl">
-                <img src="/Image.png" alt="image" />
+              <span className="text-lg md:text-2xl">
+                <img src="/Image.png" alt="image" className="w-full h-full object-contain" />
               </span>
             </button>
             <button
               onClick={() => setActiveTab("texture")}
-              className={`w-[80.55px] h-[80.55px] rounded-full flex items-center justify-center transition-all ${activeTab === "texture" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
+              className={`w-[45px] h-[45px] md:w-[80%] md:h-[15%] lg:h-[13%] lg:p-3 lg:w-[150%] rounded-full flex items-center justify-center transition-all ${activeTab === "texture" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
               title="Texture"
             >
-              <span className="text-2xl">
-                <img src="/Diagonal.png" alt="Diagonal" />
+              <span className="text-lg md:text-2xl">
+                <img src="/Diagonal.png" alt="Diagonal" className="w-full h-full object-contain" />
               </span>
             </button>
             <button
               onClick={() => setActiveTab("text")}
-              className={`w-[80.55px] h-[80.55px] rounded-full flex items-center justify-center transition-all ${activeTab === "text" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
+              className={`w-[45px] h-[45px] md:w-[80%] md:h-[15%] lg:h-[13%] lg:p-3 lg:w-[150%] rounded-full flex items-center justify-center transition-all ${activeTab === "text" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
               title="Text"
             >
-              <span className="text-2xl">
-                <img src="/Text.png" alt="Text" />
+              <span className="text-lg md:text-2xl">
+                <img src="/Text.png" alt="Text" className="w-full h-full object-contain" />
               </span>
             </button>
           </div>
 
-          <div>
-            <div className="w-[401px] h-[480px] bg-white/30 backdrop-blur-md backdrop-saturate-150 p-6 flex flex-col text-white border border-white/20 rounded-xl mt-10">
-              <div className="flex-1 overflow-y-auto">
-                <h2 className="text-2xl font-semibold mb-6 capitalize">{activeTab}</h2>
+          {/* Main Content Panel */}
+          <div className="flex-1 mt-2 md:mt-0 ">
+            <div className="w-full h-[65vh] bg-white/30 backdrop-blur-md backdrop-saturate-150 p-4 md:p-6 flex flex-col text-white border border-white/20 rounded-xl mt-0 md:mt-[2%] lg:w-[120%] lg:h-[65%]">
+              <div className="flex-1 lg:h-[549px] overflow-y-auto ">
+                <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6 capitalize">{activeTab}</h2>
 
                 {activeTab === "pattern" && (
-                  <div>
-                    <div className="flex mb-6">
+                  <div className="h-[520px] ">
+                    <div className="flex mb-4 md:mb-6 overflow-x-auto">
                       {patternTabs.map((tab) => (
                         <button
                           key={tab}
                           onClick={() => setPatternTab(tab.toLowerCase())}
-                          className={`px-4 py-2 text-sm ${patternTab === tab.toLowerCase() ? "text-white" : "text-gray-300"}`}
+                          className={`px-2 md:px-4 py-1 md:py-2 text-xs md:text-sm whitespace-nowrap ${patternTab === tab.toLowerCase() ? "text-white" : "text-gray-300"}`}
                         >
                           {tab}
                         </button>
                       ))}
                     </div>
-                    <h3 className="text-xl font-medium mb-3">Patterns</h3>
-                    <div className="grid grid-cols-5 gap-2 mr-3 mb-3">
+                    <h3 className="text-lg md:text-xl font-medium mb-2 md:mb-3">Patterns</h3>
+                    <div className="grid grid-cols-3 md:grid-cols-5 gap-2 mr-2 md:mr-3 mb-3">
                       {patternTypes.map((patternType) => (
                         <button
                           key={patternType}
-                          className={`w-[57.62px] h-[57.62px] bg-gray-300 rounded-md hover:ring-2 hover:ring-white ${selectedPattern === patternType ? "ring-2 ring-white" : ""}`}
+                          className={`w-full aspect-square bg-gray-300 rounded-md hover:ring-2 hover:ring-white ${selectedPattern === patternType ? "ring-2 ring-white" : ""}`}
                           onClick={() => handlePatternSelect(patternType)}
                           title={patternType}
                         >
@@ -364,12 +404,12 @@ function HoodieCustomizer() {
                         </button>
                       ))}
                     </div>
-                    <h3 className="text-xl font-medium mb-3">Pattern Color</h3>
-                    <div className="grid grid-cols-5 gap-2 mb-3 mr-3">
+                    <h3 className="text-lg md:text-xl font-medium mb-2 md:mb-3">Pattern Color</h3>
+                    <div className="grid grid-cols-5 gap-2 mb-3 mr-2 md:mr-3">
                       {colors.map((color, index) => (
                         <button
                           key={index}
-                          className={`w-[57.62px] h-[57.62px] rounded-md hover:ring-2 hover:ring-white ${patternColor === color.value ? "ring-2 ring-white" : ""}`}
+                          className={`w-full aspect-square rounded-md hover:ring-2 hover:ring-white ${patternColor === color.value ? "ring-2 ring-white" : ""}`}
                           style={{ backgroundColor: color.value }}
                           onClick={() => setPatternColor(color.value)}
                           title={color.label}
@@ -378,8 +418,8 @@ function HoodieCustomizer() {
                     </div>
                     <div className="space-y-1">
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-300">Pattern Scale</span>
-                        <span className="text-sm text-gray-300">{patternScale.toFixed(2)}x</span>
+                        <span className="text-xs md:text-sm text-gray-300">Pattern Scale</span>
+                        <span className="text-xs md:text-sm text-gray-300">{patternScale.toFixed(2)}x</span>
                       </div>
                       <input
                         type="range"
@@ -393,15 +433,15 @@ function HoodieCustomizer() {
                     </div>
                     <button
                       onClick={() => setSelectedPattern(null)}
-                      className="mt-4 px-4 py-2 bg-slate-500 text-white rounded-md"
+                      className="mt-4 px-3 md:px-4 py-1 md:py-2 bg-slate-500 text-white rounded-md text-sm md:text-base"
                     >
                       Clear Pattern
                     </button>
                   </div>
                 )}
                 {activeTab === "colors" && (
-                  <div>
-                    <h3 className="text-xl font-medium mb-4">Apply Color to</h3>
+                  <div className="h-[520px] overflow-y-auto">
+                    <h3 className="text-xl font-medium mb-4 ">Apply Color to</h3>
                     <div className="flex flex-wrap gap-2 mb-6">
                       {placementAreas.map((area) => (
                         <button
@@ -451,12 +491,12 @@ function HoodieCustomizer() {
                   </div>
                 )}
                 {activeTab === "logo" && (
-                  <div>
+                  <div className="h-[520px] overflow-y-auto">
                     <h3 className="text-xl font-medium mb-4">Add Image</h3>
                     <div className="grid grid-cols-2 gap-4">
                       {placementAreas.map((area) => (
                         <div key={area.id} className="flex flex-col items-center">
-                          <div className="bg-slate-300 w-20 aspect-square rounded-md flex items-center justify-center mb-1 relative">
+                          <div className="bg-slate-300 w-[80%] aspect-square rounded-md flex items-center justify-center mb-1 relative">
                             {customLogos[area.mapping] ? (
                               <div className="relative w-full h-full">
                                 <img
@@ -512,14 +552,14 @@ function HoodieCustomizer() {
                   </div>
                 )}
                 {activeTab === "texture" && (
-                  <div>
+                  <div className="h-[520px] overflow-y-auto">
                     <h3 className="text-xl font-medium mb-4">Material Type</h3>
                     <div className="grid grid-cols-4 gap-2 mb-6">
                       {textures.map((texture) => (
                         <button
                           key={texture.value}
                           onClick={() => setSelectedTexture(texture.value)}
-                          className={`w-[57.62px] h-[57.62px] rounded-lg overflow-hidden transition-all ${selectedTexture === texture.value
+                          className={`w-full aspect-square rounded-lg overflow-hidden transition-all ${selectedTexture === texture.value
                             ? "ring-2 ring-white"
                             : "ring-1 ring-gray-400 hover:ring-white"
                           }`}
@@ -552,7 +592,7 @@ function HoodieCustomizer() {
                   </div>
                 )}
                 {activeTab === "text" && (
-                  <div>
+                  <div className="h-[520px] overflow-y-auto">
                     <h3 className="text-xl font-medium mb-4">Add Text</h3>
                     <div className="flex flex-wrap gap-2 mb-6">
                       {placementAreas.map((area) => (
@@ -699,16 +739,16 @@ function HoodieCustomizer() {
                 )}
               </div>
             </div>
-            <div className="flex ml-12 justify-center space-x-4 py-2 pb-2">
+            <div className="flex justify-end space-x-4 py-2 pb-2 mr-[-76px]">
               <button
                 onClick={handleGLBDownload}
-                className="px-8 py-3 bg-white/10 backdrop-blur-md text-white rounded-md hover:bg-white/20 shadow-md border border-white/30"
+                className="px-6 md:px-8 py-2 md:py-3 bg-white/10 backdrop-blur-md text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm md:text-base"
               >
                 Save
               </button>
               <button
                 onClick={handleImageDownload}
-                className="px-8 py-3 bg-white/10 backdrop-blur-md text-white rounded-md hover:bg-white/20 shadow-md border border-white/30"
+                className="px-6 md:px-8 py-2 md:py-3 bg-white/10 backdrop-blur-md text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm md:text-base"
               >
                 Add To Cart
               </button>

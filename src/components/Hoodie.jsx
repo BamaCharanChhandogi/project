@@ -83,6 +83,7 @@ function HoodieModel({
   selectedPattern,
   patternColor,
   patternScale,
+  position
 }) {
   const { scene } = useGLTF("/patterns/TShirt.glb");
   const { raycaster, camera, mouse, gl: renderer, scene: fullScene } = useThree();
@@ -640,7 +641,7 @@ function HoodieModel({
   }, [isDragging, activeHandle, initialMouse, initialScale, initialRotation, initialPosition]);
 
   return (
-    <group ref={hoodieRef} position={[1, 0, 0]} rotation={[0, 0, 0]} scale={[2, 2, 2]}>
+    <group ref={hoodieRef} position={position} rotation={[0, 0, 0]} scale={[2, 2, 2]}>
       <primitive object={scene} />
       {decalMeshes.map((mesh, index) => {
         if (!mesh) return null;
