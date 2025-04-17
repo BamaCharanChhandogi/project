@@ -352,7 +352,7 @@ function HoodieModel({
     setDecalMeshes([meshMap.chest, meshMap.leftSleeve, meshMap.rightSleeve, meshMap.back, meshMap.front].filter(Boolean));
   }, [
     scene,
-    baseTextures,
+    // baseTextures,
     selectedTexture,
     partColors,
     selectedColor,
@@ -362,6 +362,8 @@ function HoodieModel({
     patternColor,
     patternScale,
   ]);
+  console.log("customLogos", customLogos);
+  
 
   useEffect(() => {
     const newVisibility = { ...decalVisibility };
@@ -640,6 +642,7 @@ function HoodieModel({
     };
   }, [isDragging, activeHandle, initialMouse, initialScale, initialRotation, initialPosition]);
 
+  
   return (
     <group ref={hoodieRef} position={position} rotation={[0, 0, 0]} scale={[2, 2, 2]}>
       <primitive object={scene} />
