@@ -15,7 +15,9 @@ const PatternMaterial = shaderMaterial(
     textureOffset: new THREE.Vector2(0, 0),
     roughness: 0.7,
     metalness: 0.1,
+    patternOpacity: 1.0, // Control the pattern opacity directly
   },
+  // Vertex shader remains the same
   `
     varying vec2 vUv;
     varying vec3 vPosition;
@@ -27,6 +29,7 @@ const PatternMaterial = shaderMaterial(
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }
   `,
+  // Complete rewrite of the fragment shader for better pattern visibility
   `
     uniform sampler2D baseTexture;
     uniform sampler2D patternTexture;
@@ -35,21 +38,32 @@ const PatternMaterial = shaderMaterial(
     uniform float textureScale;
     uniform float patternScale;
     uniform vec2 textureOffset;
+    uniform float patternOpacity;
     varying vec2 vUv;
     varying vec3 vPosition;
     varying vec3 vNormal;
     void main() {
+      // Sample the base texture
       vec2 scaledBaseUv = vUv * textureScale + textureOffset;
+      vec4 baseTexel = texture2D(baseTexture, scaledBaseUv);
+      vec4 baseColor4 = vec4(baseColor, 1.0);
+      vec4 base = baseTexel * baseColor4;
+      // Sample the pattern texture
       vec2 scaledPatternUv = vUv * patternScale;
-      vec4 base = texture2D(baseTexture, scaledBaseUv) * vec4(baseColor, 1.0);
-      vec4 pattern = texture2D(patternTexture, scaledPatternUv);
-      float normalFactor = pow(abs(dot(vNormal, vec3(0.0, 0.0, 1.0))), 0.5);
-      float blendStrength = pattern.a * normalFactor;
-      vec3 blended = mix(base.rgb, base.rgb * 0.8 + pattern.rgb * patternColor * 0.8, blendStrength);
-      if (blendStrength <= 0.0) {
-        blended = base.rgb;
+      vec4 patternTexel = texture2D(patternTexture, scaledPatternUv);
+      // Create the pattern color
+      vec4 pattern = vec4(patternTexel.rgb * patternColor, patternTexel.a);
+      // For checkerboard patterns, ensure high contrast
+      if (pattern.a > 0.1) {
+        // Make sure pattern is fully opaque where it exists
+        pattern.a = patternOpacity;
+        // Apply pattern directly over base without blending
+        // This uses the pattern alpha but keeps pattern colors strong
+        vec4 result = mix(base, vec4(pattern.rgb, 1.0), pattern.a);
+        gl_FragColor = result;
+      } else {
+        gl_FragColor = base;
       }
-      gl_FragColor = vec4(blended, 1.0);
     }
   `
 );
@@ -335,6 +349,7 @@ function HoodieModel({
             patternScale: patternScale,
             roughness: roughness,
             metalness: 0.1,
+            patternOpacity: 1.0, // Make sure it's 1.0 for full opacity
           });
 
           material.depthTest = true;
@@ -436,41 +451,32 @@ function HoodieModel({
             ctx.globalCompositeOperation = 'source-over';
           }
   
-          if (selectedPattern) {
+         if (selectedPattern) {
             const patternTexture = child.material.uniforms.patternTexture.value;
             if (patternTexture.image) {
               const patternScale = child.material.uniforms.patternScale.value;
-  
               const patternCanvas = document.createElement('canvas');
               patternCanvas.width = patternTexture.image.width;
               patternCanvas.height = patternTexture.image.height;
               const patternCtx = patternCanvas.getContext('2d');
-  
               patternCtx.drawImage(patternTexture.image, 0, 0);
-  
               const patternColorR = child.material.uniforms.patternColor.value.r * 255;
               const patternColorG = child.material.uniforms.patternColor.value.g * 255;
               const patternColorB = child.material.uniforms.patternColor.value.b * 255;
-  
+              // Color the pattern with the selected pattern color
               patternCtx.globalCompositeOperation = 'source-in';
               patternCtx.fillStyle = `rgb(${patternColorR}, ${patternColorG}, ${patternColorB})`;
               patternCtx.fillRect(0, 0, patternCanvas.width, patternCanvas.height);
-  
-              ctx.globalCompositeOperation = 'overlay';
-              ctx.globalAlpha = 0.8;
-  
+              // Use source-over for direct application instead of overlay/multiply
+              ctx.globalCompositeOperation = 'source-over';
+              ctx.globalAlpha = 1.0;
               const pattern = ctx.createPattern(patternCanvas, 'repeat');
               ctx.save();
-  
               ctx.scale(patternScale, patternScale);
-              ctx.transform(1, 0, 0, -1, 0, canvas.height / patternScale);
-  
+              // Draw the pattern directly
               ctx.fillStyle = pattern;
               ctx.fillRect(0, 0, canvas.width / patternScale, canvas.height / patternScale);
               ctx.restore();
-  
-              ctx.globalCompositeOperation = 'source-over'; // Corrected line
-              ctx.globalAlpha = 1.0;
             }
           }
   
