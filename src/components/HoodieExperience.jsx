@@ -70,9 +70,16 @@ function HoodieCustomizer() {
       if (width < 768) { // Mobile
         setModelPosition([0, -0.2, 0]); // Move model down slightly on small screens
       } else if (width < 1024) { // Tablet
+      
         setModelPosition([0.5, 0, 0]); // Position for medium screens
+      }
+      else if(width < 1280) { // Small Desktop
+        setModelPosition([0.5, 0, 0]); // Position for small desktops
+
+      } else if (width >= 1280 && width < 1536) { // Medium Desktop
+        setModelPosition([1, 1, 0]); // Position for medium desktops
       } else { // Desktop
-        setModelPosition([2, -0, 0]); // Default position for large screens
+        setModelPosition([2, 0, 0]); // Default position for large screens
       }
 
     };
@@ -258,18 +265,24 @@ function HoodieCustomizer() {
   ];
 
   return (
+    
     <div className="overflow-hidden w-screen h-screen bg-gradient-to-l from-[#263D44] to-[#577A8B]">
       <Canvas
         shadows
         gl={{ preserveDrawingBuffer: true, antialias: true }}
-        style={{
-          width: window.innerWidth < 1300 ? "100vw" : "130vw",
-          height: "100vh", // Keep height constant
-          transition: "transform 0.7s ease-in-out", // Add transition for transform
-          transform: window.innerWidth < 1024 && panelVisible ?
-            "translateY(-15vh)" : // Move up when panel is visible
-            "translateY(0)" // Original position when panel is hidden
-        }}
+      style={{
+  width:
+    window.innerWidth >= 1536 ? "130vw" :
+    window.innerWidth >= 1280 ? "160vw" :
+    "100vw",
+  height: "100vh",
+  transition: "transform 0.7s ease-in-out",
+  transform:
+    window.innerWidth < 1280 && panelVisible
+      ? "translateY(-15vh)"
+      : "translateY(0)"
+}}
+
         className="fixed top-0 left-0"
       >
         <PerspectiveCamera
@@ -324,21 +337,21 @@ function HoodieCustomizer() {
 
       {/* UI Overlay - Modified to use mobile layout for both small and medium screens */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-        <div className=" flex flex-col lg:flex-row lg:space-x-3 w-full lg:w-[90%] lg:max-w-[500px] h-full lg:h-[80vh] lg:ml-[15%] lg:mt-[5%] rounded-md pointer-events-none lg:items-center">
+        <div className=" flex flex-col xl:flex-row xl:space-x-3 w-full xl:w-[90%] xl:max-w-[500px] h-full xl:h-[80vh] xl:ml-[15%] xl:mt-[5%] rounded-md pointer-events-none xl:items-center">
           {/* Side Navigation - Mobile/Medium: at top, Desktop: at left */}
-          <div className="w-full sm:w-[50%] mx-auto lg:w-[23%] h-[60px] lg:h-fit mt-0 lg:max-h-fit bg-white/30 backdrop-blur-md backdrop-saturate-150 p-1 lg:p-4 flex flex-row justify-center lg:flex-col space-y-0 lg:space-y-5 space-x-2 lg:space-x-0 items-center lg:pt-4 rounded-2xl  lg:rounded-full border border-white/20 lg:py-10 lg:px-6 lg:mt-[-13%] lg:space-y-10 ">
+          <div className="w-[80%] rounded-full mt-[7%] md:mt-[5%] sm:w-[50%] mx-auto xl:w-[23%] h-[60px] xl:h-fit xl:max-h-fit bg-white/30 backdrop-blur-md backdrop-saturate-150 p-1 xl:p-4 flex flex-row justify-center xl:flex-col space-y-0 xl:space-y-5 md:space-x-6 space-x-2 xl:space-x-0 items-center xl:pt-4 xl:rounded-full border border-white/20 xl:py-10 xl:px-6 xl:mt-[-13%] xl:space-y-10 ">
             <button
               onClick={() => {
                 setActiveTab("colors");
                 // For mobile and medium - toggle panel visibility
-                if (window.innerWidth < 1024) {
+                if (window.innerWidth < 1280) {
                   setPanelVisible(prev => activeTab === "colors" ? !prev : true);
                 }
               }}
-              className={`min-h-[45px] aspect-square lg:min-h-[90px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "colors" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
+              className={`min-h-[45px] aspect-square xl:min-h-[90px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "colors" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
               title="Colors"
             >
-              <span className="text-lg lg:text-2xl lg:w-[70%]">
+              <span className="text-lg xl:text-2xl xl:w-[70%]">
                 <img src="/Paint.png" alt="Paint" className="w-full h-full object-contain" />
               </span>
             </button>
@@ -346,11 +359,11 @@ function HoodieCustomizer() {
               onClick={() => {
                 setActiveTab("pattern");
                 // For mobile and medium - toggle panel visibility
-                if (window.innerWidth < 1024) {
+                if (window.innerWidth < 1280) {
                   setPanelVisible(prev => activeTab === "pattern" ? !prev : true);
                 }
               }}
-              className={`min-h-[45px] aspect-square lg:min-h-[90px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "pattern" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
+              className={`min-h-[45px] aspect-square xl:min-h-[90px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "pattern" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
               title="Pattern"
             >
               <img
@@ -363,14 +376,14 @@ function HoodieCustomizer() {
               onClick={() => {
                 setActiveTab("logo");
                 // For mobile and medium - toggle panel visibility
-                if (window.innerWidth < 1024) {
+                if (window.innerWidth < 1280) {
                   setPanelVisible(prev => activeTab === "logo" ? !prev : true);
                 }
               }}
-              className={`min-h-[45px] aspect-square lg:min-h-[90px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "logo" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
+              className={`min-h-[45px] aspect-square xl:min-h-[90px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "logo" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
               title="Logo"
             >
-              <span className="text-lg lg:text-2xl lg:w-[70%]">
+              <span className="text-lg xl:text-2xl xl:w-[70%]">
                 <img src="/Image.png" alt="image" className="w-full h-full object-contain" />
               </span>
             </button>
@@ -378,14 +391,14 @@ function HoodieCustomizer() {
               onClick={() => {
                 setActiveTab("texture");
                 // For mobile and medium - toggle panel visibility
-                if (window.innerWidth < 1024) {
+                if (window.innerWidth < 1280) {
                   setPanelVisible(prev => activeTab === "texture" ? !prev : true);
                 }
               }}
-              className={`min-h-[45px] aspect-square lg:min-h-[90px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "texture" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
+              className={`min-h-[45px] aspect-square xl:min-h-[90px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "texture" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
               title="Texture"
             >
-              <span className="text-lg lg:text-2xl lg:w-[70%]">
+              <span className="text-lg xl:text-2xl xl:w-[70%]">
                 <img src="/Diagonal.png" alt="Diagonal" className="w-full h-full object-contain" />
               </span>
             </button>
@@ -393,34 +406,27 @@ function HoodieCustomizer() {
               onClick={() => {
                 setActiveTab("text");
                 // For mobile and medium - toggle panel visibility
-                if (window.innerWidth < 1024) {
+                if (window.innerWidth < 1280) {
                   setPanelVisible(prev => activeTab === "text" ? !prev : true);
                 }
               }}
-              className={`min-h-[45px] aspect-square lg:min-h-[90px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "text" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
+              className={`min-h-[45px] aspect-square xl:min-h-[90px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "text" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
               title="Text"
             >
-              <span className="text-lg lg:text-2xl lg:w-[70%]">
+              <span className="text-lg xl:text-2xl xl:w-[70%]">
                 <img src="/Text.png" alt="Text" className="w-full h-full object-contain" />
               </span>
             </button>
           </div>
 
           {/* Main Content Panel - Mobile/Medium: slide up from bottom when active, Desktop: always visible */}
-          <div className="flex-1 mt-2 lg:mt-0 pointer-events-none">
+          <div className="flex-1 mt-2 xl:mt-0 pointer-events-none">
             {/* Panel is conditionally rendered for mobile and medium, always shown for large screens */}
             <div
-              className={`${window.innerWidth < 1024 && !panelVisible ? 'translate-y-full' : 'translate-y-0'} 
-      transition-transform duration-700 ease-in-out 
-      w-full h-[45vh] lg:w-[120%] lg:h-[65%] 
-      bg-white/30 backdrop-blur-md backdrop-saturate-150 
-      p-4 lg:p-6 flex flex-col text-white border border-white/20 
-      rounded-t-xl lg:rounded-xl mt-0 lg:mt-[2%]
-      fixed bottom-0 left-0 lg:relative lg:transform-none
-      pointer-events-auto`}
+              className={`${window.innerWidth < 1280 && !panelVisible ? 'translate-y-full' : 'translate-y-0'}  transition-transform duration-700 ease-in-out w-full h-[45vh] xl:w-[120%] xl:h-[65%] backdrop-blur-md backdrop-saturate-150 p-4 xl:p-6 flex flex-col text-white border bg-white/30 xl:rounded-xl  mt-0 xl:mt-[2%] fixed bottom-0 left-0 xl:relative xl:transform-none pointer-events-auto`}
             >
               {/* Close button for mobile and medium view */}
-              {window.innerWidth < 1024 && (
+              {window.innerWidth < 1280 && (
                 <button
                   onClick={() => setPanelVisible(false)}
                   className="absolute top-2 right-2 bg-white/20 rounded-full p-1"
@@ -431,30 +437,30 @@ function HoodieCustomizer() {
                 </button>
               )}
 
-              <div className="flex-1 lg:max-w-full lg:max-h-full overflow-y-auto">
-                <h2 className="text-xl lg:text-2xl font-semibold mb-4 lg:mb-6 capitalize">{activeTab}</h2>
+              <div className="flex-1 xl:max-w-full xl:max-h-full overflow-y-auto">
+                <h2 className="text-xl xl:text-2xl font-semibold mb-4 xl:mb-6 capitalize">{activeTab}</h2>
 
                 {/* Tab content remains the same */}
                 {activeTab === "pattern" && (
                   <div className="h-[520px]">
-                    <div className="flex mb-4 lg:mb-6 overflow-x-auto">
+                    <div className="flex mb-4 xl:mb-6 overflow-x-auto">
                       {patternTabs.map((tab) => (
                         <button
                           key={tab}
                           onClick={() => setPatternTab(tab.toLowerCase())}
-                          className={`px-2 lg:px-4 py-1 lg:py-2 text-xs lg:text-sm whitespace-nowrap ${patternTab === tab.toLowerCase() ? "text-white" : "text-gray-300"}`}
+                          className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm  whitespace-nowrap ${patternTab === tab.toLowerCase() ? "text-white" : "text-gray-300"}`}
                         >
                           {tab}
                         </button>
                       ))}
                     </div>
                     {/* Rest of pattern content */}
-                    <h3 className="text-lg lg:text-xl font-medium mb-2 lg:mb-3">Patterns</h3>
-                    <div className="grid grid-cols-3 lg:grid-cols-5 gap-2 mr-2 lg:mr-3 mb-3">
+                    <h3 className="text-lg xl:text-xl font-medium mb-2 xl:mb-3">Patterns</h3>
+                    <div className="grid grid-cols-3 xl:grid-cols-5 gap-2 mr-2 xl:mr-3 mb-3">
                       {patternTypes.map((patternType) => (
                         <button
                           key={patternType}
-                          className={`w-full aspect-square bg-gray-300 rounded-md hover:ring-2 hover:ring-white ${selectedPattern === patternType ? "ring-2 ring-white" : ""}`}
+                          className={`w-[50%] xl:w-full aspect-square bg-gray-300 rounded-md hover:ring-2 hover:ring-white ${selectedPattern === patternType ? "ring-2 ring-white" : ""}`}
                           onClick={() => handlePatternSelect(patternType)}
                           title={patternType}
                         >
@@ -466,12 +472,12 @@ function HoodieCustomizer() {
                         </button>
                       ))}
                     </div>
-                    <h3 className="text-lg lg:text-xl font-medium mb-2 lg:mb-3">Pattern Color</h3>
-                    <div className="grid grid-cols-5 gap-2 mb-3 mr-2 lg:mr-3">
+                    <h3 className="text-lg xl:text-xl font-medium mb-2 xl:mb-3">Pattern Color</h3>
+                    <div className="grid grid-cols-5 gap-2 mb-3 mr-2 xl:mr-3">
                       {colors.map((color, index) => (
                         <button
                           key={index}
-                          className={`w-full aspect-square rounded-md hover:ring-2 hover:ring-white ${patternColor === color.value ? "ring-2 ring-white" : ""}`}
+                          className={`w-[60%] xl:w-full aspect-square rounded-md hover:ring-2 hover:ring-white ${patternColor === color.value ? "ring-2 ring-white" : ""}`}
                           style={{ backgroundColor: color.value }}
                           onClick={() => setPatternColor(color.value)}
                           title={color.label}
@@ -480,12 +486,12 @@ function HoodieCustomizer() {
                     </div>
                     <div className="space-y-1">
                       <div className="flex justify-between">
-                        <span className="text-xs lg:text-sm text-gray-300">Pattern Scale</span>
-                        <span className="text-xs lg:text-sm text-gray-300">{patternScale.toFixed(2)}x</span>
+                        <span className="text-xs xl:text-sm text-gray-300">Pattern Scale</span>
+                        <span className="text-xs xl:text-sm text-gray-300">{patternScale.toFixed(2)}x</span>
                       </div>
                       <input
                         type="range"
-                        min="0.1"
+                        min="2.0"
                         max="8"
                         step="0.1"
                         value={patternScale}
@@ -495,7 +501,7 @@ function HoodieCustomizer() {
                     </div>
                     <button
                       onClick={() => setSelectedPattern(null)}
-                      className="mt-4 px-3 lg:px-4 py-1 lg:py-2 bg-slate-500 text-white rounded-md text-sm lg:text-base"
+                      className="mt-4 px-3 xl:px-4 py-1 xl:py-2 bg-slate-500 text-white rounded-md text-sm xl:text-base"
                     >
                       Clear Pattern
                     </button>
@@ -548,7 +554,7 @@ function HoodieCustomizer() {
                     <div className="grid grid-cols-2 gap-4">
                       {placementAreas.map((area) => (
                         <div key={area.id} className="flex flex-col items-center">
-                          <div className="bg-slate-300 w-[80%] aspect-square rounded-md flex items-center justify-center mb-1 relative">
+                          <div className="bg-slate-300 w-[30%] xl:w-[80%] aspect-square rounded-md flex items-center justify-center mb-1 relative">
                             {customLogos[area.mapping] ? (
                               <div className="relative w-full h-full">
                                 <img
@@ -613,7 +619,7 @@ function HoodieCustomizer() {
                         <button
                           key={texture.value}
                           onClick={() => setSelectedTexture(texture.value)}
-                          className={`w-full aspect-square rounded-lg overflow-hidden transition-all ${selectedTexture === texture.value
+                          className={`xl:w-full w-[60%] aspect-square rounded-lg overflow-hidden transition-all ${selectedTexture === texture.value
                             ? "ring-2 ring-white"
                             : "ring-1 ring-gray-400 hover:ring-white"
                             }`}
@@ -634,7 +640,7 @@ function HoodieCustomizer() {
                         </div>
                         <input
                           type="range"
-                          min="0.1"
+                          min="0.8"
                           max="2"
                           step="0.1"
                           value={textureScale}
@@ -794,20 +800,36 @@ function HoodieCustomizer() {
                   </div>
                 )}
               </div>
+              {(window.innerWidth < 1280) && (
+                <div className="flex xl:justify-end justify-center space-x-4 py-2 pb-2 xl:mr-[-76px] xl:ml-0 ml-0 mt-2">
+                  <button
+                    onClick={handleGLBDownload}
+                    className="px-6 xl:px-8 py-2 xl:py-3 bg-white/10 backdrop-blur-md text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm xl:text-base pointer-events-auto"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={handleImageDownload}
+                    className="px-6 xl:px-8 py-2 xl:py-3 bg-white/10 backdrop-blur-md text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm xl:text-base pointer-events-auto"
+                  >
+                    Add To Cart
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Only show buttons when panel is visible on mobile and medium */}
-            {(window.innerWidth >= 1024 || panelVisible) && (
-              <div className="flex lg:justify-end justify-center space-x-4 py-2 pb-2 lg:mr-[-76px] lg:ml-0 ml-0 mt-2">
+            {(window.innerWidth >= 1280) && (
+              <div className="flex xl:justify-end justify-center space-x-4 py-2 pb-2 xl:mr-[-76px] xl:ml-0 ml-0 mt-2">
                 <button
                   onClick={handleGLBDownload}
-                  className="px-6 lg:px-8 py-2 lg:py-3 bg-white/10 backdrop-blur-md text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm lg:text-base pointer-events-auto"
+                  className="px-6 xl:px-8 py-2 xl:py-3 bg-white/10 backdrop-blur-md text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm xl:text-base pointer-events-auto"
                 >
                   Save
                 </button>
                 <button
                   onClick={handleImageDownload}
-                  className="px-6 lg:px-8 py-2 lg:py-3 bg-white/10 backdrop-blur-md text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm lg:text-base pointer-events-auto"
+                  className="px-6 xl:px-8 py-2 xl:py-3 bg-white/10 backdrop-blur-md text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm xl:text-base pointer-events-auto"
                 >
                   Add To Cart
                 </button>
