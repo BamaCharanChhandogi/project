@@ -102,7 +102,7 @@ function HoodieModel({
   const { scene } = useGLTF("/patterns/TShirt.glb");
   const { raycaster, camera, mouse, gl: renderer, scene: fullScene } = useThree();
 
-  const baseTextures = useTexture({
+    const baseTextures = useTexture({
     cotton: "/8_flannelette tartan fabric texture-seamless.jpg",
     fleece: "/14_acrylic fabric tartan wallpapers texture-seamless.jpg",
     knit: "/15_wool flannel fabric texture-seamless.jpg",
@@ -171,11 +171,11 @@ function HoodieModel({
   });
 
   const [aspectRatios, setAspectRatios] = useState({
-    chest: 546 / 586, // ≈ 0.932
+    chest: 0.15 / 0.13,
     leftSleeve: 0.16 / 0.15,
     rightSleeve: 0.16 / 0.15,
-    back: 546 / 586,
-    front: 546 / 586,
+    back: 0.15 / 0.13,
+    front: 0.15 / 0.13,
   });
 
   const [activeHandle, setActiveHandle] = useState(null);
@@ -408,12 +408,12 @@ function HoodieModel({
     if (onDownloadGLB) {
       const exporter = new GLTFExporter();
       const sceneToExport = new THREE.Scene();
-
+      
       const clonedHoodie = hoodieRef.current.clone(true);
-
+      
       // Track which meshes will have decals
       const meshesWithDecals = new Set();
-
+      
       // First identify which meshes will have decals
       Object.entries(decalRefs.current).forEach(([position, ref]) => {
         if (ref && decalVisibility[position]) {
@@ -428,7 +428,7 @@ function HoodieModel({
           });
         }
       });
-
+      
       // Process all meshes, being careful with those that have decals
       clonedHoodie.traverse((child) => {
         if (child.isMesh && child.material instanceof PatternMaterial) {
@@ -437,7 +437,7 @@ function HoodieModel({
           canvas.width = 4096; // Higher resolution
           canvas.height = 4096;
           const ctx = canvas.getContext('2d');
-
+          
           // Get material properties
           const baseColor = child.material.uniforms.baseColor.value;
           const patternColor = child.material.uniforms.patternColor.value;
@@ -445,15 +445,15 @@ function HoodieModel({
           const patternTexture = child.material.uniforms.patternTexture.value;
           const textureScale = child.material.uniforms.textureScale.value;
           const patternScale = child.material.uniforms.patternScale.value;
-
+          
           // Convert Three.js colors to CSS colors
           const baseColorCSS = `rgb(${Math.round(baseColor.r * 255)}, ${Math.round(baseColor.g * 255)}, ${Math.round(baseColor.b * 255)})`;
           const patternColorCSS = `rgb(${Math.round(patternColor.r * 255)}, ${Math.round(patternColor.g * 255)}, ${Math.round(patternColor.b * 255)})`;
-
+          
           // Step 1: Fill with base color
           ctx.fillStyle = baseColorCSS;
           ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+          
           // Step 2: Apply base texture with multiply blend
           if (baseTexture && baseTexture.image) {
             // Create an offscreen canvas for the base texture
@@ -462,7 +462,7 @@ function HoodieModel({
             baseCanvas.height = baseTexture.image.height;
             const baseCtx = baseCanvas.getContext('2d');
             baseCtx.drawImage(baseTexture.image, 0, 0);
-
+            
             // Apply base texture with multiply blend mode
             ctx.globalCompositeOperation = 'multiply';
             const basePattern = ctx.createPattern(baseCanvas, 'repeat');
@@ -472,22 +472,22 @@ function HoodieModel({
             ctx.fillRect(0, 0, canvas.width / textureScale, canvas.height / textureScale);
             ctx.restore();
           }
-
+          
           // Reset blend mode for pattern application
           ctx.globalCompositeOperation = 'source-over';
-
+          
           // Step 3: Draw the pattern if selected
           // if (selectedPattern && patternTexture && patternTexture.image) {
           //   const patternCanvas = document.createElement('canvas');
           //   patternCanvas.width = patternTexture.image.width;
           //   patternCanvas.height = patternTexture.image.height;
           //   const patternCtx = patternCanvas.getContext('2d');
-
+            
           //   patternCtx.drawImage(patternTexture.image, 0, 0);
-
+            
           //   const patternImageData = patternCtx.getImageData(0, 0, patternCanvas.width, patternCanvas.height);
           //   const data = patternImageData.data;
-
+            
           //   for (let i = 0; i < data.length; i += 4) {
           //     if (data[i + 3] > 0) {
           //       data[i] = patternColor.r * 255;
@@ -496,13 +496,13 @@ function HoodieModel({
           //       data[i + 3] = data[i + 3] > 240 ? 255 : 0;
           //     }
           //   }
-
+            
           //   patternCtx.putImageData(patternImageData, 0, 0);
-
+            
           //   ctx.globalCompositeOperation = 'source-over';
           //   const pattern = ctx.createPattern(patternCanvas, 'repeat');
           //   ctx.save();
-
+            
           //   // FIX: Apply pattern scale directly without additional adjustments
           //   // This preserves the exact scale set in the UI
           //   ctx.scale(patternScale, patternScale);
@@ -511,45 +511,45 @@ function HoodieModel({
           //   ctx.restore();
           // }
           // Step 3: Draw the pattern if selected
-          if (selectedPattern && patternTexture && patternTexture.image) {
-            const patternCanvas = document.createElement('canvas');
-            patternCanvas.width = patternTexture.image.width;
-            patternCanvas.height = patternTexture.image.height;
-            const patternCtx = patternCanvas.getContext('2d');
-
-            patternCtx.drawImage(patternTexture.image, 0, 0);
-
-            const patternImageData = patternCtx.getImageData(0, 0, patternCanvas.width, patternCanvas.height);
-            const data = patternImageData.data;
-
-            for (let i = 0; i < data.length; i += 4) {
-              if (data[i + 3] > 0) {
-                data[i] = patternColor.r * 255;
-                data[i + 1] = patternColor.g * 255;
-                data[i + 2] = patternColor.b * 255;
-                data[i + 3] = 255; // Ensure full opacity for pattern
-              }
-            }
-
-            patternCtx.putImageData(patternImageData, 0, 0);
-
-            ctx.globalCompositeOperation = 'source-over';
-            const pattern = ctx.createPattern(patternCanvas, 'repeat');
-            ctx.save();
-
-            // Normalize the pattern scale to match the UI view
-            const normalizedScale = 2 / patternScale; // Invert scale to match texture repetition
-            ctx.scale(normalizedScale, normalizedScale);
-            ctx.fillStyle = pattern;
-            ctx.fillRect(0, 0, canvas.width * patternScale, canvas.height * patternScale); // Adjust fill area
-            ctx.restore();
-          }
+if (selectedPattern && patternTexture && patternTexture.image) {
+  const patternCanvas = document.createElement('canvas');
+  patternCanvas.width = patternTexture.image.width;
+  patternCanvas.height = patternTexture.image.height;
+  const patternCtx = patternCanvas.getContext('2d');
+  
+  patternCtx.drawImage(patternTexture.image, 0, 0);
+  
+  const patternImageData = patternCtx.getImageData(0, 0, patternCanvas.width, patternCanvas.height);
+  const data = patternImageData.data;
+  
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] > 0) {
+      data[i] = patternColor.r * 255;
+      data[i + 1] = patternColor.g * 255;
+      data[i + 2] = patternColor.b * 255;
+      data[i + 3] = 255; // Ensure full opacity for pattern
+    }
+  }
+  
+  patternCtx.putImageData(patternImageData, 0, 0);
+  
+  ctx.globalCompositeOperation = 'source-over';
+  const pattern = ctx.createPattern(patternCanvas, 'repeat');
+  ctx.save();
+  
+  // Normalize the pattern scale to match the UI view
+  const normalizedScale = 2/ patternScale; // Invert scale to match texture repetition
+  ctx.scale(normalizedScale, normalizedScale);
+  ctx.fillStyle = pattern;
+  ctx.fillRect(0, 0, canvas.width * patternScale, canvas.height * patternScale); // Adjust fill area
+  ctx.restore();
+}
           // Create texture from the combined canvas
           const combinedTexture = new THREE.Texture(canvas);
           combinedTexture.needsUpdate = true;
           combinedTexture.wrapS = THREE.RepeatWrapping;
           combinedTexture.wrapT = THREE.RepeatWrapping;
-
+          
           // Create standard material for export
           const exportMaterial = new THREE.MeshStandardMaterial({
             map: combinedTexture,
@@ -559,12 +559,12 @@ function HoodieModel({
             transparent: meshesWithDecals.has(child.uuid) ? true : false,
             opacity: 1.0,
           });
-
+          
           // Replace custom material with export-ready standard material
           child.material = exportMaterial;
         }
       });
-
+      
       // Clean up control elements
       clonedHoodie.traverse((obj) => {
         if (obj.isGroup && obj.children) {
@@ -576,7 +576,7 @@ function HoodieModel({
           });
         }
       });
-
+      
       // Add decals as separate objects
       Object.entries(decalRefs.current).forEach(([position, ref]) => {
         if (ref && decalVisibility[position]) {
@@ -593,17 +593,17 @@ function HoodieModel({
               polygonOffset: true,
               polygonOffsetFactor: -10,
             });
-
+            
             decalClone.material = decalMaterial;
-
+            
             // Apply the decal directly to the mesh
             clonedHoodie.add(decalClone);
           }
         }
       });
-
+      
       sceneToExport.add(clonedHoodie);
-
+      
       // Export with high-quality settings
       exporter.parse(
         sceneToExport,
@@ -613,9 +613,9 @@ function HoodieModel({
           onDownloadGLB(url);
         },
         (error) => console.error("GLB Export Error:", error),
-        {
-          binary: true,
-          embedImages: true,
+        { 
+          binary: true, 
+          embedImages: true, 
           forceIndices: true,
           maxTextureSize: 4096 // Allow larger textures
         }
@@ -814,126 +814,62 @@ function HoodieModel({
 
               {isSelected && (
                 <group position={position} rotation={new THREE.Euler(...rotation)}>
-                  {(() => {
-                    // Debug texture dimensions
-                    const isTextDecal = customTexts[meshPosition].show && textTextures[meshPosition];
-                    const textureToApply = isTextDecal ? textTextures[meshPosition] : customLogos[meshPosition];
-                    let textureAspectRatio = aspectRatios[meshPosition]; // Default to aspectRatios if texture data is unavailable
+                  <line>
+                    <bufferGeometry attach="geometry">
+                      <float32BufferAttribute
+                        attach="attributes-position"
+                        array={new Float32Array([
+                          -scale[0],
+                          -scale[1],
+                          0.006,
+                          scale[0],
+                          -scale[1],
+                          0.006,
+                          scale[0],
+                          scale[1],
+                          0.006,
+                          -scale[0],
+                          scale[1],
+                          0.006,
+                          -scale[0],
+                          -scale[1],
+                          0.006,
+                        ])}
+                        count={5}
+                        itemSize={3}
+                      />
+                    </bufferGeometry>
+                    <lineBasicMaterial attach="material" color="#000000" dashSize={0.05} gapSize={0.05} />
+                  </line>
 
-                    if (textureToApply && textureToApply.image) {
-                      const { width, height } = textureToApply.image;
-                      console.log(`Texture Dimensions for ${meshPosition}:`, { width, height });
-                      console.log(`Current Scale:`, scale);
-                      console.log(`Aspect Ratio (from code):`, aspectRatios[meshPosition]);
-                      console.log(`Actual Aspect Ratio (width/height):`, width / height);
-                      textureAspectRatio = width / height; // Use actual aspect ratio if texture is available
-                    }
-
-                    // Calculate visibleScale based on visible content (assume 90% of texture size for now)
-                    const visibleContentFactor = 0.5; // Adjust based on visible area feedback
-                    const visibleScale = [
-                      scale[0] * visibleContentFactor,
-                      (scale[1] / textureAspectRatio) * visibleContentFactor,
-                      scale[2],
-                    ];
-                    console.log(`Adjusted Visible Scale:`, visibleScale);
+                  {Object.entries(handlePositions).map(([handle, pos]) => {
+                    const scaledPos = [pos[0] * scale[0], pos[1] * scale[1], pos[2] + 0.01];
 
                     return (
-                      <>
-                        <line>
-                          <bufferGeometry attach="geometry">
-                            <float32BufferAttribute
-                              attach="attributes-position"
-                              array={new Float32Array([
-                                -visibleScale[0], -visibleScale[1], 0.006,
-                                visibleScale[0], -visibleScale[1], 0.006,
-                                visibleScale[0], visibleScale[1], 0.006,
-                                -visibleScale[0], visibleScale[1], 0.006,
-                                -visibleScale[0], -visibleScale[1], 0.006,
-                              ])}
-                              count={5}
-                              itemSize={3}
-                            />
-                          </bufferGeometry>
-                          <lineBasicMaterial attach="material" color="#000000" dashSize={0.05} gapSize={0.05} />
-                        </line>
-
-                        {(() => {
-                          const visibleBorder = {
-                            topLeft: [-visibleScale[0], visibleScale[1], 0.01],
-                            topRight: [visibleScale[0], visibleScale[1], 0.01],
-                            bottomRight: [visibleScale[0], -visibleScale[1], 0.01],
-                            bottomLeft: [-visibleScale[0], -visibleScale[1], 0.01],
-                          };
-                          const offset = 0.01; // Increased offset
-                          const iconSize = 0.05;
-                          const zPosition = 0.02;
-                          const iconPositions = {
-                            rotate: [visibleBorder.topLeft[0] - offset, visibleBorder.topLeft[1] + offset, zPosition],
-                            delete: [visibleBorder.topRight[0] + offset, visibleBorder.topRight[1] + offset, zPosition],
-                            resize: [visibleBorder.bottomRight[0] + offset, visibleBorder.bottomRight[1] - offset, zPosition],
-                            move: [visibleBorder.bottomLeft[0] - offset, visibleBorder.bottomLeft[1] - offset, zPosition],
-                          };
-                          return (
-                            <>
-                              <mesh
-                                position={iconPositions.rotate}
-                                onPointerDown={(e) => handlePointerDown(e, "rotate", meshPosition)}
-                              >
-                                <planeGeometry args={[iconSize, iconSize]} />
-                                <meshBasicMaterial
-                                  map={rotateIconTexture}
-                                  transparent
-                                  opacity={1}
-                                  depthTest={false}
-                                  side={THREE.DoubleSide}
-                                />
-                              </mesh>
-                              <mesh
-                                position={iconPositions.delete}
-                                onPointerDown={(e) => handlePointerDown(e, "delete", meshPosition)}
-                              >
-                                <planeGeometry args={[iconSize, iconSize]} />
-                                <meshBasicMaterial
-                                  map={deleteIconTexture}
-                                  transparent
-                                  opacity={1}
-                                  depthTest={false}
-                                  side={THREE.DoubleSide}
-                                />
-                              </mesh>
-                              <mesh
-                                position={iconPositions.resize}
-                                onPointerDown={(e) => handlePointerDown(e, "resize", meshPosition)}
-                              >
-                                <planeGeometry args={[iconSize, iconSize]} />
-                                <meshBasicMaterial
-                                  map={resizeIconTexture}
-                                  transparent
-                                  opacity={1}
-                                  depthTest={false}
-                                  side={THREE.DoubleSide}
-                                />
-                              </mesh>
-                              <mesh
-                                position={iconPositions.move}
-                                onPointerDown={(e) => handlePointerDown(e, "move", meshPosition)}
-                              >
-                                <planeGeometry args={[iconSize, iconSize]} />
-                                <meshBasicMaterial
-                                  map={moveIconTexture}
-                                  transparent
-                                  opacity={1}
-                                  depthTest={false}
-                                  side={THREE.DoubleSide}
-                                />
-                              </mesh>
-                            </>
-                          );
-                        })()}
-                      </>
+                      <group key={handle}>
+                        <mesh
+                          position={scaledPos}
+                          onPointerDown={(e) => handlePointerDown(e, handle, meshPosition)}
+                        >
+                          <planeGeometry args={[0.05, 0.05]} />
+                          <meshBasicMaterial
+                            map={
+                              handle === "rotate"
+                                ? rotateIconTexture
+                                : handle === "delete"
+                                  ? deleteIconTexture
+                                  : handle === "resize"
+                                    ? resizeIconTexture
+                                    : moveIconTexture
+                            }
+                            transparent
+                            opacity={1}
+                            side={THREE.DoubleSide}
+                          />
+                        </mesh>
+                      </group>
                     );
-                  })()}
+                  })}
                 </group>
               )}
             </group>

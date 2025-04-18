@@ -8,6 +8,8 @@ import {
 } from "@react-three/drei";
 import * as THREE from "three";
 import HoodieModel from "./Hoodie";
+import CustomEnvironment from "./CustomEnvironment";
+
 
 function HoodieCustomizer() {
   const controlsRef = useRef();
@@ -322,7 +324,9 @@ function HoodieCustomizer() {
             position={modelPosition}
           />
           <ContactShadows position={[0, -1.5, 0]} opacity={0.5} blur={2.5} scale={10} />
-          <Environment preset="sunset" background blur={4} />
+          {/* <Environment preset="sunset" background blur={4} /> */}
+          
+          <CustomEnvironment path="/customizer-bg.jpg"  />
           <OrbitControls
             ref={controlsRef}
             minPolarAngle={Math.PI / 6}
@@ -339,7 +343,7 @@ function HoodieCustomizer() {
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
         <div className=" flex flex-col xl:flex-row xl:space-x-3 w-full xl:w-[90%] xl:max-w-[500px] h-full xl:h-[80vh] xl:ml-[15%] xl:mt-[5%] rounded-md pointer-events-none xl:items-center">
           {/* Side Navigation - Mobile/Medium: at top, Desktop: at left */}
-          <div className="w-[80%] rounded-full mt-[7%] md:mt-[5%] sm:w-[50%] mx-auto xl:w-[23%] h-[60px] xl:h-fit xl:max-h-fit bg-white/30 backdrop-blur-md backdrop-saturate-150 p-1 xl:p-4 flex flex-row justify-center xl:flex-col space-y-0 xl:space-y-5 md:space-x-6 space-x-2 xl:space-x-0 items-center xl:pt-4 xl:rounded-full border border-white/20 xl:py-10 xl:px-6 xl:mt-[-13%] xl:space-y-10 ">
+          <div className="w-[80%] rounded-full mt-[7%] md:mt-[5%] sm:w-[50%] mx-auto xl:w-[18%] 2xl:w-[23%] h-[70px] xl:h-fit xl:max-h-fit bg-white/30 backdrop-blur-md backdrop-saturate-150 p-1 xl:p-4 flex flex-row justify-center xl:flex-col space-y-0 xl:space-y-4 md:space-x-6 space-x-2 xl:space-x-0 items-center xl:pt-4 xl:rounded-full border border-white/20 xl:py-10 xl:px-6 xl:mt-[5%] 2xl:space-y-10">
             <button
               onClick={() => {
                 setActiveTab("colors");
@@ -348,7 +352,7 @@ function HoodieCustomizer() {
                   setPanelVisible(prev => activeTab === "colors" ? !prev : true);
                 }
               }}
-              className={`min-h-[45px] aspect-square xl:min-h-[90px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "colors" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
+              className={`min-h-[45px] aspect-square 2xl:min-h-[90px] xl:min-h-[60px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "colors" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
               title="Colors"
             >
               <span className="text-lg xl:text-2xl xl:w-[70%]">
@@ -363,7 +367,7 @@ function HoodieCustomizer() {
                   setPanelVisible(prev => activeTab === "pattern" ? !prev : true);
                 }
               }}
-              className={`min-h-[45px] aspect-square xl:min-h-[90px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "pattern" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
+              className={`min-h-[45px] aspect-square 2xl:min-h-[90px] xl:min-h-[60px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "pattern" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
               title="Pattern"
             >
               <img
@@ -380,7 +384,7 @@ function HoodieCustomizer() {
                   setPanelVisible(prev => activeTab === "logo" ? !prev : true);
                 }
               }}
-              className={`min-h-[45px] aspect-square xl:min-h-[90px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "logo" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
+              className={`min-h-[45px] aspect-square 2xl:min-h-[90px] xl:min-h-[60px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "logo" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
               title="Logo"
             >
               <span className="text-lg xl:text-2xl xl:w-[70%]">
@@ -395,7 +399,7 @@ function HoodieCustomizer() {
                   setPanelVisible(prev => activeTab === "texture" ? !prev : true);
                 }
               }}
-              className={`min-h-[45px] aspect-square xl:min-h-[90px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "texture" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
+              className={`min-h-[45px] aspect-square 2xl:min-h-[90px] xl:min-h-[60px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "texture" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
               title="Texture"
             >
               <span className="text-lg xl:text-2xl xl:w-[70%]">
@@ -410,7 +414,7 @@ function HoodieCustomizer() {
                   setPanelVisible(prev => activeTab === "text" ? !prev : true);
                 }
               }}
-              className={`min-h-[45px] aspect-square xl:min-h-[90px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "text" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
+              className={`min-h-[45px] aspect-square 2xl:min-h-[90px] xl:min-h-[60px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "text" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
               title="Text"
             >
               <span className="text-lg xl:text-2xl xl:w-[70%]">
@@ -423,7 +427,10 @@ function HoodieCustomizer() {
           <div className="flex-1 mt-2 xl:mt-0 pointer-events-none">
             {/* Panel is conditionally rendered for mobile and medium, always shown for large screens */}
             <div
-              className={`${window.innerWidth < 1280 && !panelVisible ? 'translate-y-full' : 'translate-y-0'}  transition-transform duration-700 ease-in-out w-full h-[45vh] xl:w-[120%] xl:h-[65%] backdrop-blur-md backdrop-saturate-150 p-4 xl:p-6 flex flex-col text-white border bg-white/30 xl:rounded-xl  mt-0 xl:mt-[2%] fixed bottom-0 left-0 xl:relative xl:transform-none pointer-events-auto`}
+              className={`${window.innerWidth < 1280 && !panelVisible ? 'translate-y-full' : 'translate-y-0'}  transition-transform duration-700 ease-in-out 
+              w-full h-[45vh] xl:w-[90%] 2xl:w-[120%] xl:h-[25rem] 2xl:h-[40rem] backdrop-blur-md backdrop-saturate-150 
+              p-4 xl:p-6 flex flex-col text-white border bg-white/30 xl:rounded-xl
+               mt-0 xl:mt-[30%] fixed bottom-0 left-0 xl:relative xl:transform-none pointer-events-auto`}
             >
               {/* Close button for mobile and medium view */}
               {window.innerWidth < 1280 && (
@@ -477,7 +484,7 @@ function HoodieCustomizer() {
                       {colors.map((color, index) => (
                         <button
                           key={index}
-                          className={`w-[60%] xl:w-full aspect-square rounded-md hover:ring-2 hover:ring-white ${patternColor === color.value ? "ring-2 ring-white" : ""}`}
+                          className={`w-[80%] xl:w-full aspect-square rounded-md hover:ring-2 hover:ring-white ${patternColor === color.value ? "ring-2 ring-white" : ""}`}
                           style={{ backgroundColor: color.value }}
                           onClick={() => setPatternColor(color.value)}
                           title={color.label}
@@ -804,7 +811,7 @@ function HoodieCustomizer() {
                 <div className="flex xl:justify-end justify-center space-x-4 py-2 pb-2 xl:mr-[-76px] xl:ml-0 ml-0 mt-2">
                   <button
                     onClick={handleGLBDownload}
-                    className="px-6 xl:px-8 py-2 xl:py-3 bg-white/10 backdrop-blur-md text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm xl:text-base pointer-events-auto"
+                    className="px-7 xl:px-8 py-3 xl:py-3 bg-white/10 backdrop-blur-md text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm xl:text-base pointer-events-auto"
                   >
                     Save
                   </button>
@@ -820,7 +827,7 @@ function HoodieCustomizer() {
 
             {/* Only show buttons when panel is visible on mobile and medium */}
             {(window.innerWidth >= 1280) && (
-              <div className="flex xl:justify-end justify-center space-x-4 py-2 pb-2 xl:mr-[-76px] xl:ml-0 ml-0 mt-2">
+              <div className="flex xl:justify-end justify-center space-x-4 py-2 pb-2 2xl:mr-[-76px] xl:mr-[43px] ml-0 mt-2">
                 <button
                   onClick={handleGLBDownload}
                   className="px-6 xl:px-8 py-2 xl:py-3 bg-white/10 backdrop-blur-md text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm xl:text-base pointer-events-auto"
