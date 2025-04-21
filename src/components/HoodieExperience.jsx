@@ -316,7 +316,7 @@ function HoodieCustomizer() {
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
         <div className=" flex flex-col xl:flex-row xl:space-x-3 w-full xl:w-[90%] xl:max-w-[500px] h-full xl:h-[80vh] xl:ml-[15%] xl:mt-[5%] rounded-md pointer-events-none xl:items-center">
           {/* Side Navigation - Mobile/Medium: at top, Desktop: at left */}
-          <div className="w-[80%] rounded-full mt-[7%] md:mt-[5%] sm:w-[50%] mx-auto xl:w-[18%] 2xl:max-h-[60%] 2xl:w-[21%] 3xl:w-[23%] h-[70px] xl:h-fit xl:max-h-fit 3xl:max-h-fit bg-white/30 backdrop-blur-md backdrop-saturate-150 p-1 xl:p-4 flex flex-row justify-center xl:flex-col space-y-0 xl:space-y-4 md:space-x-6 space-x-2 xl:space-x-0 items-center xl:pt-4 2xl:pt-9 3xl:pt-4 xl:rounded-full border border-white/20 xl:py-10 xl:px-6 xl:mt-[5%] 2xl:space-y-3 3xl:space-y-10">
+          <div className="w-[80%] rounded-full mt-[7%] md:mt-[5%] sm:w-[50%] mx-auto xl:w-[18%] 2xl:max-h-[90%] 2xl:w-[21%] 3xl:w-[23%] h-[70px] xl:h-fit xl:max-h-fit 3xl:max-h-fit bg-white/30 backdrop-blur-md backdrop-saturate-150 p-1 xl:p-4 flex flex-row justify-center xl:flex-col space-y-0 xl:space-y-4 md:space-x-6 space-x-2 xl:space-x-0 items-center xl:pt-4 2xl:pt-9 3xl:pt-4 xl:rounded-full border border-white/20 xl:py-10 xl:px-6 xl:mt-[5%] 2xl:mt-[10%] 3xl:mt-[5%] 2xl:space-y-6 3xl:space-y-10">
             <button
               onClick={() => {
                 setActiveTab("colors");
