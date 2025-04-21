@@ -9,8 +9,6 @@ import {
 import * as THREE from "three";
 import HoodieModel from "./Hoodie";
 import CustomEnvironment from "./CustomEnvironment";
-
-
 function HoodieCustomizer() {
   const controlsRef = useRef();
   const fileInputRefs = useRef({
@@ -34,64 +32,49 @@ function HoodieCustomizer() {
   const [downloadImageTrigger, setDownloadImageTrigger] = useState(null);
   const [downloadGLBTrigger, setDownloadGLBTrigger] = useState(null);
   const [activeTab, setActiveTab] = useState("pattern");
-  const [selectedColor, setSelectedColor] = useState("#3b82f6");
-  const [selectedTexture, setSelectedTexture] = useState("cotton");
+  const [selectedColor, setSelectedColor] = useState("#FFFFFF");
+  const [selectedTexture, setSelectedTexture] = useState(null); // Changed to null
   const [selectedEnvironment, setSelectedEnvironment] = useState("studio");
   const [selectedTab, setSelectedTab] = useState("front");
   const [patternTab, setPatternTab] = useState("collar");
   const [textureScale, setTextureScale] = useState(1);
   const [roughness, setRoughness] = useState(0.7);
   const [showAreasOnGarment, setShowAreasOnGarment] = useState(false);
-  const [selectedPattern, setSelectedPattern] = useState("checker");
+  const [selectedPattern, setSelectedPattern] = useState(null); // Changed to null
   const [patternColor, setPatternColor] = useState("#FFFFFF");
   const [patternScale, setPatternScale] = useState(2);
   const [selectedTextArea, setSelectedTextArea] = useState(null);
   const [cameraFov, setCameraFov] = useState(40);
-  // Add model position state that can be adjusted based on screen size
   const [modelPosition, setModelPosition] = useState([0, 0, 0]);
   const [panelVisible, setPanelVisible] = useState(false);
-
   const [partColors, setPartColors] = useState({
-    front: "#3B82F6",
-    leftSleeve: "#3B82F6",
-    rightSleeve: "#3B82F6",
-    back: "#3B82F6",
+    front: "#FFFFFF",
+    leftSleeve: "#FFFFFF",
+    rightSleeve: "#FFFFFF",
+    back: "#FFFFFF",
   });
-
-  // Handle window resize for dynamic adjustments
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
       const aspect = width / height;
-
-      // Adjust camera FOV based on aspect ratio
       setCameraFov(aspect > 1 ? 40 : 50);
-
-      // Adjust model position based on screen size
-      if (width < 768) { // Mobile
-        setModelPosition([0, -0.2, 0]); // Move model down slightly on small screens
-      } else if (width < 1024) { // Tablet
-      
-        setModelPosition([0.5, 0, 0]); // Position for medium screens
+      if (width < 768) {
+        setModelPosition([0, -0.2, 0]);
+      } else if (width < 1024) {
+        setModelPosition([0.5, 0, 0]);
+      } else if (width < 1280) {
+        setModelPosition([0.5, 0, 0]);
+      } else if (width >= 1280 && width < 1536) {
+        setModelPosition([1, 1, 0]);
+      } else {
+        setModelPosition([2, 0, 0]);
       }
-      else if(width < 1280) { // Small Desktop
-        setModelPosition([0.5, 0, 0]); // Position for small desktops
-
-      } else if (width >= 1280 && width < 1536) { // Medium Desktop
-        setModelPosition([1, 1, 0]); // Position for medium desktops
-      } else { // Desktop
-        setModelPosition([2, 0, 0]); // Default position for large screens
-      }
-
     };
-
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
-  // Scrollbar hiding logic (unchanged)
   useEffect(() => {
     const scrollableElements = document.querySelectorAll('.overflow-y-auto');
     scrollableElements.forEach(el => {
@@ -112,13 +95,11 @@ function HoodieCustomizer() {
       return () => document.head.removeChild(styleEl);
     });
   }, []);
-
   useEffect(() => {
     if (activeTab !== "text") {
       setSelectedTextArea(null);
     }
   }, [activeTab]);
-
   const handleLogoUpload = (event, position) => {
     const file = event.target.files[0];
     if (file) {
@@ -151,7 +132,6 @@ function HoodieCustomizer() {
       reader.readAsDataURL(file);
     }
   };
-
   const handleDeleteDecal = (position) => {
     const positionMapping = {
       back: "leftChest",
@@ -174,7 +154,6 @@ function HoodieCustomizer() {
       }));
     }
   };
-
   const handleColorChange = (color) => {
     setSelectedColor(color);
     setPartColors((prev) => ({
@@ -182,7 +161,6 @@ function HoodieCustomizer() {
       [selectedTab]: color,
     }));
   };
-
   const handleTextChange = (position, field, value) => {
     setCustomTexts((prev) => {
       const updated = {
@@ -198,10 +176,8 @@ function HoodieCustomizer() {
       return updated;
     });
   };
-
   const handleImageDownload = () => setDownloadImageTrigger(Date.now());
   const handleGLBDownload = () => setDownloadGLBTrigger(Date.now());
-
   const handleImageDownloadComplete = (dataURL) => {
     if (dataURL) {
       const link = document.createElement("a");
@@ -211,7 +187,6 @@ function HoodieCustomizer() {
       setDownloadImageTrigger(null);
     }
   };
-
   const handleGLBDownloadComplete = (url) => {
     if (url) {
       const link = document.createElement("a");
@@ -222,11 +197,9 @@ function HoodieCustomizer() {
       setDownloadGLBTrigger(null);
     }
   };
-
   const handlePatternSelect = (patternType) => {
     setSelectedPattern(patternType);
   };
-
   const patternTabs = ["Collar", "Placket", "Chest Pocket", "Cuff"];
   const placementAreas = [
     { id: "rightChest", label: "Right Chest", mapping: "front" },
@@ -343,7 +316,7 @@ function HoodieCustomizer() {
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
         <div className=" flex flex-col xl:flex-row xl:space-x-3 w-full xl:w-[90%] xl:max-w-[500px] h-full xl:h-[80vh] xl:ml-[15%] xl:mt-[5%] rounded-md pointer-events-none xl:items-center">
           {/* Side Navigation - Mobile/Medium: at top, Desktop: at left */}
-          <div className="w-[80%] rounded-full mt-[7%] md:mt-[5%] sm:w-[50%] mx-auto xl:w-[18%] 2xl:w-[23%] h-[70px] xl:h-fit xl:max-h-fit bg-white/30 backdrop-blur-md backdrop-saturate-150 p-1 xl:p-4 flex flex-row justify-center xl:flex-col space-y-0 xl:space-y-4 md:space-x-6 space-x-2 xl:space-x-0 items-center xl:pt-4 xl:rounded-full border border-white/20 xl:py-10 xl:px-6 xl:mt-[5%] 2xl:space-y-10">
+          <div className="w-[80%] rounded-full mt-[7%] md:mt-[5%] sm:w-[50%] mx-auto xl:w-[18%] 2xl:max-h-[60%] 2xl:w-[21%] 3xl:w-[23%] h-[70px] xl:h-fit xl:max-h-fit 3xl:max-h-fit bg-white/30 backdrop-blur-md backdrop-saturate-150 p-1 xl:p-4 flex flex-row justify-center xl:flex-col space-y-0 xl:space-y-4 md:space-x-6 space-x-2 xl:space-x-0 items-center xl:pt-4 2xl:pt-9 3xl:pt-4 xl:rounded-full border border-white/20 xl:py-10 xl:px-6 xl:mt-[5%] 2xl:space-y-3 3xl:space-y-10">
             <button
               onClick={() => {
                 setActiveTab("colors");
@@ -352,7 +325,7 @@ function HoodieCustomizer() {
                   setPanelVisible(prev => activeTab === "colors" ? !prev : true);
                 }
               }}
-              className={`min-h-[45px] aspect-square 2xl:min-h-[90px] xl:min-h-[60px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "colors" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
+              className={`min-h-[45px] aspect-square 2xl:min-h-[80px] 3xl:min-h-[90px] xl:min-h-[60px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "colors" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
               title="Colors"
             >
               <span className="text-lg xl:text-2xl xl:w-[70%]">
@@ -367,7 +340,7 @@ function HoodieCustomizer() {
                   setPanelVisible(prev => activeTab === "pattern" ? !prev : true);
                 }
               }}
-              className={`min-h-[45px] aspect-square 2xl:min-h-[90px] xl:min-h-[60px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "pattern" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
+              className={`min-h-[45px] aspect-square 2xl:min-h-[80px] 3xl:min-h-[90px] xl:min-h-[60px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "pattern" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
               title="Pattern"
             >
               <img
@@ -384,7 +357,7 @@ function HoodieCustomizer() {
                   setPanelVisible(prev => activeTab === "logo" ? !prev : true);
                 }
               }}
-              className={`min-h-[45px] aspect-square 2xl:min-h-[90px] xl:min-h-[60px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "logo" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
+              className={`min-h-[45px] aspect-square 2xl:min-h-[80px] 3xl:min-h-[90px] xl:min-h-[60px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "logo" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
               title="Logo"
             >
               <span className="text-lg xl:text-2xl xl:w-[70%]">
@@ -399,7 +372,7 @@ function HoodieCustomizer() {
                   setPanelVisible(prev => activeTab === "texture" ? !prev : true);
                 }
               }}
-              className={`min-h-[45px] aspect-square 2xl:min-h-[90px] xl:min-h-[60px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "texture" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
+              className={`min-h-[45px] aspect-square 2xl:min-h-[80px] 3xl:min-h-[90px] xl:min-h-[60px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "texture" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
               title="Texture"
             >
               <span className="text-lg xl:text-2xl xl:w-[70%]">
@@ -414,7 +387,7 @@ function HoodieCustomizer() {
                   setPanelVisible(prev => activeTab === "text" ? !prev : true);
                 }
               }}
-              className={`min-h-[45px] aspect-square 2xl:min-h-[90px] xl:min-h-[60px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "text" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
+              className={`min-h-[45px] aspect-square 2xl:min-h-[80px] 3xl:min-h-[90px] xl:min-h-[60px] rounded-full flex items-center justify-center transition-all pointer-events-auto ${activeTab === "text" ? "bg-white text-gray-600" : "bg-[#D9D9D9] text-gray-700 hover:bg-gray-300"}`}
               title="Text"
             >
               <span className="text-lg xl:text-2xl xl:w-[70%]">
@@ -428,7 +401,7 @@ function HoodieCustomizer() {
             {/* Panel is conditionally rendered for mobile and medium, always shown for large screens */}
             <div
               className={`${window.innerWidth < 1280 && !panelVisible ? 'translate-y-full' : 'translate-y-0'}  transition-transform duration-700 ease-in-out 
-              w-full h-[45vh] xl:w-[90%] 2xl:w-[120%] xl:h-[25rem] 2xl:h-[40rem] backdrop-blur-md backdrop-saturate-150 
+              w-full h-[45vh] xl:w-[90%] 2xl:w-[100%] 3xl:w-[120%] xl:h-[25rem] 2xl:h-[33rem] 3xl:h-[40rem] backdrop-blur-md backdrop-saturate-150 
               p-4 xl:p-6 flex flex-col text-white border bg-white/30 xl:rounded-xl
                mt-0 xl:mt-[30%] fixed bottom-0 left-0 xl:relative xl:transform-none pointer-events-auto`}
             >
@@ -827,7 +800,7 @@ function HoodieCustomizer() {
 
             {/* Only show buttons when panel is visible on mobile and medium */}
             {(window.innerWidth >= 1280) && (
-              <div className="flex xl:justify-end justify-center space-x-4 py-2 pb-2 2xl:mr-[-76px] xl:mr-[43px] ml-0 mt-2">
+              <div className="flex xl:justify-end justify-center space-x-4 py-2 pb-2 2xl:mr-[5px] 3xl:mr-[-76px] xl:mr-[43px] ml-0 mt-2">
                 <button
                   onClick={handleGLBDownload}
                   className="px-6 xl:px-8 py-2 xl:py-3 bg-white/10 backdrop-blur-md text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm xl:text-base pointer-events-auto"
