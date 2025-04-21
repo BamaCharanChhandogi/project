@@ -259,70 +259,135 @@ function HoodieModel({
         });
         
         const totalTextHeight = lineHeight * lines.length;
-        const padding = fontSize * 0.5; // Consistent padding based on font size
+        
+        // Calculate padding based on font size for consistent scaling
+        const padding = fontSize * 0.5; // Scale padding with font size
         
         // Set canvas dimensions
         const totalWidth = maxWidth + padding * 2;
         const totalHeight = totalTextHeight + padding * 2;
         
-        canvas.width = totalWidth;
-        canvas.height = totalHeight;
+        // For shapes, add extra padding based on font size to ensure text fits properly
+        let effectiveWidth = totalWidth;
+        let effectiveHeight = totalHeight;
+        
+        // Add additional padding for rounded shapes (circle and oval)
+        if (shape === "circle" || shape === "oval") {
+          // Add more space for circle/oval shapes based on font size
+          const shapeExtraPadding = fontSize * 0.3;
+          effectiveWidth = totalWidth + shapeExtraPadding * 2;
+          effectiveHeight = totalHeight + shapeExtraPadding * 2;
+          
+          // For circles, ensure width and height are the same (use the larger dimension)
+          if (shape === "circle") {
+            const maxDimension = Math.max(effectiveWidth, effectiveHeight);
+            effectiveWidth = maxDimension;
+            effectiveHeight = maxDimension;
+          }
+          
+          // For ovals, adjust the width to maintain a pleasing oval shape
+          if (shape === "oval") {
+            // Make oval wider than it is tall
+            effectiveWidth = Math.max(effectiveWidth, effectiveHeight * 1.2);
+          }
+        }
+        
+        // Set final canvas dimensions
+        canvas.width = effectiveWidth;
+        canvas.height = effectiveHeight;
         
         // Clear canvas with transparent background
-        ctx.clearRect(0, 0, totalWidth, totalHeight);
+        ctx.clearRect(0, 0, effectiveWidth, effectiveHeight);
   
         // Update dimensions and aspect ratio
         newDimensions[position] = {
-          width: totalWidth / 1000, // Normalize to reasonable 3D scale
-          height: totalHeight / 1000,
+          width: effectiveWidth / 1000, // Normalize to reasonable 3D scale
+          height: effectiveHeight / 1000,
         };
-        newAspectRatios[position] = totalWidth / totalHeight;
+        newAspectRatios[position] = effectiveWidth / effectiveHeight;
   
         // Draw background if needed
         let bgColor = background;
-        if (background === "transparent") {
-          bgColor = "rgba(0, 0, 0, 0)";
-        } else if (background.startsWith("#")) {
-          const hex = background.replace("#", "");
-          const r = parseInt(hex.substring(0, 2), 16);
-          const g = parseInt(hex.substring(2, 4), 16);
-          const b = parseInt(hex.substring(4, 6), 16);
-          bgColor = `rgba(${r}, ${g}, ${b}, 1)`;
-        }
-  
+        
         if (bgColor !== "rgba(0, 0, 0, 0)") {
           ctx.fillStyle = bgColor;
+          
+          // Draw the appropriate shape with properly scaled dimensions
           if (shape === "circle") {
+            const centerX = effectiveWidth / 2;
+            const centerY = effectiveHeight / 2;
+            const radius = Math.min(effectiveWidth, effectiveHeight) / 2;
+            
             ctx.beginPath();
-            ctx.arc(totalWidth / 2, totalHeight / 2, Math.min(totalWidth, totalHeight) / 2, 0, Math.PI * 2);
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
             ctx.fill();
-          } else if (shape === "oval") {
+            
+            // Create a clipping path for text to stay within the circle
             ctx.save();
-            ctx.scale(1.5, 1);
             ctx.beginPath();
-            ctx.arc(totalWidth / 2 / 1.5, totalHeight / 2, Math.min(totalWidth, totalHeight) / 2, 0, Math.PI * 2);
-            ctx.restore();
+            ctx.arc(centerX, centerY, radius * 0.9, 0, Math.PI * 2);
+            ctx.clip();
+          } else if (shape === "oval") {
+            const centerX = effectiveWidth / 2;
+            const centerY = effectiveHeight / 2;
+            const radiusX = effectiveWidth / 2;
+            const radiusY = effectiveHeight / 2;
+            
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, Math.PI * 2);
             ctx.fill();
+            
+            // Create a clipping path for text to stay within the oval
+            ctx.save();
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY, radiusX * 0.9, radiusY * 0.9, 0, 0, Math.PI * 2);
+            ctx.clip();
           } else {
-            ctx.fillRect(0, 0, totalWidth, totalHeight);
+            // Rectangle with padding that scales with font size
+            ctx.fillRect(0, 0, effectiveWidth, effectiveHeight);
           }
         }
   
         // Configure text rendering
         ctx.shadowColor = selectedStyle.shadow.color;
-        ctx.shadowBlur = selectedStyle.shadow.blur;
-        ctx.shadowOffsetX = selectedStyle.shadow.offsetX;
-        ctx.shadowOffsetY = selectedStyle.shadow.offsetY;
+        ctx.shadowBlur = selectedStyle.shadow.blur * (fontSize / 30); // Scale blur with font size
+        ctx.shadowOffsetX = selectedStyle.shadow.offsetX * (fontSize / 30); // Scale shadow offset with font size
+        ctx.shadowOffsetY = selectedStyle.shadow.offsetY * (fontSize / 30);
         ctx.fillStyle = selectedStyle.color;
         ctx.font = selectedStyle.font;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
+  
+        // Calculate text safe area based on shape
+        const safeAreaPadding = (shape === "circle" || shape === "oval") ? 
+                                fontSize * 0.3 : // More padding for rounded shapes
+                                padding;
         
-        // Draw each line of text
+        const safeWidth = effectiveWidth - safeAreaPadding * 2;
+  
+        // Draw each line of text, adjusting for the shape
         lines.forEach((line, i) => {
-          const y = padding + (i * lineHeight) + (lineHeight / 2);
-          ctx.fillText(line, totalWidth / 2, y);
+          const y = effectiveHeight / 2 - ((lines.length - 1) * lineHeight / 2) + (i * lineHeight);
+          
+          // For non-rectangular shapes, we need to ensure the text doesn't overflow
+          if (shape === "circle" || shape === "oval") {
+            // For longer text, scale down if needed
+            const metrics = ctx.measureText(line);
+            if (metrics.width > safeWidth) {
+              const scaleFactor = safeWidth / metrics.width;
+              const newFontSize = Math.floor(fontSize * scaleFactor);
+              const adjustedFont = selectedStyle.font.replace(/\d+px/, `${newFontSize}px`);
+              ctx.font = adjustedFont;
+            }
+          }
+          
+          ctx.fillText(line, effectiveWidth / 2, y);
         });
+  
+        // Restore the canvas state if we applied clipping
+        if (shape === "circle" || shape === "oval") {
+          ctx.restore();
+        }
         
         // Reset shadow settings
         ctx.shadowBlur = 0;
@@ -340,9 +405,7 @@ function HoodieModel({
         newTextTextures[position] = texture;
       }
     });
-  
-
-    // Handle custom logos
+   // Handle custom logos
     Object.keys(customLogos).forEach((position) => {
       if (customLogos[position]) {
         positionsToResetScale.add(position);
