@@ -9,6 +9,7 @@ import {
 import * as THREE from "three";
 import HoodieModel from "./Hoodie";
 import CustomEnvironment from "./CustomEnvironment";
+
 function HoodieCustomizer() {
   const controlsRef = useRef();
   const fileInputRefs = useRef({
@@ -23,11 +24,12 @@ function HoodieCustomizer() {
     rightSleeve: null,
     back: null,
   });
+  
   const [customTexts, setCustomTexts] = useState({
-    front: { text: "", show: false, color: "#000000", background: "transparent", fontSize: 60, style: "classic", shape: "rectangle" },
-    leftSleeve: { text: "", show: false, color: "#000000", background: "transparent", fontSize: 60, style: "classic", shape: "rectangle" },
-    rightSleeve: { text: "", show: false, color: "#000000", background: "transparent", fontSize: 60, style: "classic", shape: "rectangle" },
-    back: { text: "", show: false, color: "#000000", background: "transparent", fontSize: 60, style: "classic", shape: "rectangle" },
+    front: { text: "", show: false, color: "#000000", background: "transparent", fontSize: 140, style: "classic", shape: "rectangle" },
+    leftSleeve: { text: "", show: false, color: "#000000", background: "transparent", fontSize: 140, style: "classic", shape: "rectangle" },
+    rightSleeve: { text: "", show: false, color: "#000000", background: "transparent", fontSize: 140, style: "classic", shape: "rectangle" },
+    back: { text: "", show: false, color: "#000000", background: "transparent", fontSize: 140, style: "classic", shape: "rectangle" },
   });
   const [downloadImageTrigger, setDownloadImageTrigger] = useState(null);
   const [downloadGLBTrigger, setDownloadGLBTrigger] = useState(null);
@@ -47,18 +49,39 @@ function HoodieCustomizer() {
   const [cameraFov, setCameraFov] = useState(40);
   const [modelPosition, setModelPosition] = useState([0, 0, 0]);
   const [panelVisible, setPanelVisible] = useState(false);
+
   const [partColors, setPartColors] = useState({
     front: "#FFFFFF",
     leftSleeve: "#FFFFFF",
     rightSleeve: "#FFFFFF",
     back: "#FFFFFF",
   });
+
+  const handleKeyDown = (e, position) => {
+    if (e.key === "Enter") {
+      e.preventDefault(); // Prevent default behavior
+      setCustomTexts((prevTexts) => {
+        const updated = {
+          ...prevTexts,
+          [position]: {
+            ...prevTexts[position],
+            text: prevTexts[position].text + "\n",
+          },
+        };
+        console.log(`Updated text for ${position}:`, updated[position].text); // Debug log
+        return updated;
+      });
+    }
+  };
+
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
       const aspect = width / height;
+
       setCameraFov(aspect > 1 ? 40 : 50);
+
       if (width < 768) {
         setModelPosition([0, -0.2, 0]);
       } else if (width < 1024) {
@@ -71,13 +94,15 @@ function HoodieCustomizer() {
         setModelPosition([2, 0, 0]);
       }
     };
+
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
   useEffect(() => {
     const scrollableElements = document.querySelectorAll('.overflow-y-auto');
-    scrollableElements.forEach(el => {
+    scrollableElements.forEach((el) => {
       el.style.msOverflowStyle = 'none';
       el.style.scrollbarWidth = 'none';
       if (!el.id) {
@@ -95,11 +120,13 @@ function HoodieCustomizer() {
       return () => document.head.removeChild(styleEl);
     });
   }, []);
+
   useEffect(() => {
     if (activeTab !== "text") {
       setSelectedTextArea(null);
     }
   }, [activeTab]);
+
   const handleLogoUpload = (event, position) => {
     const file = event.target.files[0];
     if (file) {
@@ -132,6 +159,7 @@ function HoodieCustomizer() {
       reader.readAsDataURL(file);
     }
   };
+
   const handleDeleteDecal = (position) => {
     const positionMapping = {
       back: "leftChest",
@@ -154,6 +182,7 @@ function HoodieCustomizer() {
       }));
     }
   };
+
   const handleColorChange = (color) => {
     setSelectedColor(color);
     setPartColors((prev) => ({
@@ -161,6 +190,7 @@ function HoodieCustomizer() {
       [selectedTab]: color,
     }));
   };
+  
   const handleTextChange = (position, field, value) => {
     setCustomTexts((prev) => {
       const updated = {
@@ -176,8 +206,10 @@ function HoodieCustomizer() {
       return updated;
     });
   };
+
   const handleImageDownload = () => setDownloadImageTrigger(Date.now());
   const handleGLBDownload = () => setDownloadGLBTrigger(Date.now());
+
   const handleImageDownloadComplete = (dataURL) => {
     if (dataURL) {
       const link = document.createElement("a");
@@ -187,6 +219,7 @@ function HoodieCustomizer() {
       setDownloadImageTrigger(null);
     }
   };
+
   const handleGLBDownloadComplete = (url) => {
     if (url) {
       const link = document.createElement("a");
@@ -197,9 +230,11 @@ function HoodieCustomizer() {
       setDownloadGLBTrigger(null);
     }
   };
+
   const handlePatternSelect = (patternType) => {
     setSelectedPattern(patternType);
   };
+
   const patternTabs = ["Collar", "Placket", "Chest Pocket", "Cuff"];
   const placementAreas = [
     { id: "rightChest", label: "Right Chest", mapping: "front" },
@@ -237,7 +272,7 @@ function HoodieCustomizer() {
     "city",
     "park",
     "lobby",
-  ];
+  ]
 
   return (
     
@@ -662,8 +697,7 @@ function HoodieCustomizer() {
                               {selectedTextArea.charAt(0).toUpperCase() +
                                 selectedTextArea.slice(1)}
                             </span>
-                            <input
-                              type="text"
+                            <textarea
                               placeholder="Enter your text"
                               value={customTexts[selectedTextArea].text}
                               onChange={(e) =>
@@ -673,7 +707,9 @@ function HoodieCustomizer() {
                                   e.target.value
                                 )
                               }
+                              onKeyDown={(e) => handleKeyDown(e, selectedTextArea)}
                               className="w-full p-2 bg-slate-500 border border-slate-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-white text-white"
+                              rows={4}
                             />
                           </label>
                           <div className="flex justify-between items-center">
@@ -719,8 +755,8 @@ function HoodieCustomizer() {
                             </div>
                             <input
                               type="range"
-                              min="20"
-                              max="100"
+                              min="100"
+                              max="300"
                               step="1"
                               value={customTexts[selectedTextArea].fontSize}
                               onChange={(e) =>

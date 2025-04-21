@@ -89,6 +89,7 @@ function HoodieModel({
   patternColor,
   patternScale,
   position
+  
 }) {
   const { scene } = useGLTF("/patterns/TShirt.glb");
   const { raycaster, camera, mouse, gl: renderer, scene: fullScene } = useThree();
@@ -100,6 +101,7 @@ function HoodieModel({
     denim: "/29_wool silk tartan fabric texture-seamless.jpg",
     polyester: "/74_navy blue fabric striped wallpaper texture-seamless.jpg",
   });
+  
 
   const patternTextures = useTexture({
     ...patternSets.checker.reduce((acc, path) => ({ ...acc, [path]: path }), {}),
@@ -152,6 +154,8 @@ function HoodieModel({
     back: [0, Math.PI, 0],
     front: [0.00, 0.13, 0.00],
   });
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [cursorStyle, setCursorStyle] = useState("auto");
 
   const [decalUniformScales, setDecalUniformScales] = useState({
     chest: 0.14,
@@ -162,11 +166,19 @@ function HoodieModel({
   });
 
   const [aspectRatios, setAspectRatios] = useState({
-    chest: 0.15 / 0.13,
-    leftSleeve: 0.16 / 0.15,
-    rightSleeve: 0.16 / 0.15,
-    back: 0.15 / 0.13,
-    front: 0.15 / 0.13,
+    chest: 1,
+    leftSleeve: 1,
+    rightSleeve: 1,
+    back: 1,
+    front: 1,
+  });
+
+  const [decalDimensions, setDecalDimensions] = useState({
+    chest: { width: 0.15, height: 0.13 },
+    leftSleeve: { width: 0.16, height: 0.15 },
+    rightSleeve: { width: 0.16, height: 0.15 },
+    back: { width: 0.15, height: 0.13 },
+    front: { width: 0.15, height: 0.13 },
   });
 
   const [activeHandle, setActiveHandle] = useState(null);
@@ -179,8 +191,8 @@ function HoodieModel({
   const handlePositions = {
     rotate: [-1.2, 1.2, 0],
     delete: [1.2, 1.2, 0],
-    resize: [1.2, -1.2, 0],
-    move: [-1.2, -1.2, 0],
+    resize: [1.2, -1.2, 0.04],
+    move: [-1.2, -1.2, 0.04],
   };
 
   const meshPartMapping = {
@@ -197,12 +209,15 @@ function HoodieModel({
 
   useEffect(() => {
     const newTextTextures = { chest: null, leftSleeve: null, rightSleeve: null, back: null, front: null };
-
+    const newAspectRatios = { ...aspectRatios };
+    const newDimensions = { ...decalDimensions };
+    const positionsToResetScale = new Set();
     Object.keys(customTexts).forEach((position) => {
       const { text, show, color, background, fontSize, style, shape } = customTexts[position];
-
+  
       if (text && show) {
         const canvas = document.createElement("canvas");
+        positionsToResetScale.add(position);
         const ctx = canvas.getContext("2d", { alpha: true });
         const styles = {
           classic: {
@@ -227,18 +242,43 @@ function HoodieModel({
           },
         };
         const selectedStyle = styles[style] || styles.classic;
-
+  
         ctx.font = selectedStyle.font;
-        const metrics = ctx.measureText(text);
-        const textWidth = metrics.width;
-        const textHeight = fontSize * 1.2;
-        const padding = Math.max(textWidth, textHeight) * 0.2;
-        const totalWidth = textWidth + 2 * padding;
-        const totalHeight = textHeight + 2 * padding;
-
+        
+        // Split text by newline characters
+        const lines = text.split('\n');
+        
+        // Calculate dimensions for all lines
+        let maxWidth = 0;
+        const lineHeight = fontSize * 1.2;
+        
+        lines.forEach(line => {
+          const metrics = ctx.measureText(line);
+          const lineWidth = metrics.width;
+          maxWidth = Math.max(maxWidth, lineWidth);
+        });
+        
+        const totalTextHeight = lineHeight * lines.length;
+        const padding = fontSize * 0.5; // Consistent padding based on font size
+        
+        // Set canvas dimensions
+        const totalWidth = maxWidth + padding * 2;
+        const totalHeight = totalTextHeight + padding * 2;
+        
         canvas.width = totalWidth;
         canvas.height = totalHeight;
-
+        
+        // Clear canvas with transparent background
+        ctx.clearRect(0, 0, totalWidth, totalHeight);
+  
+        // Update dimensions and aspect ratio
+        newDimensions[position] = {
+          width: totalWidth / 1000, // Normalize to reasonable 3D scale
+          height: totalHeight / 1000,
+        };
+        newAspectRatios[position] = totalWidth / totalHeight;
+  
+        // Draw background if needed
         let bgColor = background;
         if (background === "transparent") {
           bgColor = "rgba(0, 0, 0, 0)";
@@ -249,7 +289,7 @@ function HoodieModel({
           const b = parseInt(hex.substring(4, 6), 16);
           bgColor = `rgba(${r}, ${g}, ${b}, 1)`;
         }
-
+  
         if (bgColor !== "rgba(0, 0, 0, 0)") {
           ctx.fillStyle = bgColor;
           if (shape === "circle") {
@@ -267,22 +307,29 @@ function HoodieModel({
             ctx.fillRect(0, 0, totalWidth, totalHeight);
           }
         }
-
+  
+        // Configure text rendering
         ctx.shadowColor = selectedStyle.shadow.color;
         ctx.shadowBlur = selectedStyle.shadow.blur;
         ctx.shadowOffsetX = selectedStyle.shadow.offsetX;
         ctx.shadowOffsetY = selectedStyle.shadow.offsetY;
-
         ctx.fillStyle = selectedStyle.color;
         ctx.font = selectedStyle.font;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(text, totalWidth / 2, totalHeight / 2);
-
+        
+        // Draw each line of text
+        lines.forEach((line, i) => {
+          const y = padding + (i * lineHeight) + (lineHeight / 2);
+          ctx.fillText(line, totalWidth / 2, y);
+        });
+        
+        // Reset shadow settings
         ctx.shadowBlur = 0;
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
-
+  
+        // Create and configure texture
         const texture = new THREE.Texture(canvas);
         texture.needsUpdate = true;
         texture.generateMipmaps = true;
@@ -293,13 +340,47 @@ function HoodieModel({
         newTextTextures[position] = texture;
       }
     });
+  
+
+    // Handle custom logos
+    Object.keys(customLogos).forEach((position) => {
+      if (customLogos[position]) {
+        positionsToResetScale.add(position);
+        const texture = customLogos[position];
+        if (texture.image) {
+          const { width, height } = texture.image;
+          newDimensions[position] = {
+            width: width / 1000,
+            height: height / 1000,
+          };
+          newAspectRatios[position] = width / height;
+        }
+      }
+    });
+    if (positionsToResetScale.size > 0) {
+      setDecalUniformScales(prev => {
+        const updated = {...prev};
+        positionsToResetScale.forEach(position => {
+          // Set default scale for new content
+          // You can adjust these default values as needed
+          if (customTexts[position].show && customTexts[position].text) {
+            updated[position] = 0.14; // Default text scale
+          } else if (customLogos[position]) {
+            updated[position] = 0.14; // Default image scale
+          }
+        });
+        return updated;
+      });
+    }
 
     setTextTextures(newTextTextures);
-  }, [customTexts, renderer]);
+    setAspectRatios(newAspectRatios);
+    setDecalDimensions(newDimensions);
+  }, [customTexts, customLogos, renderer]);
 
-  // Find this useEffect that creates materials for each mesh part
   useEffect(() => {
     if (!scene) return;
+
     const meshMap = {
       chest: null,
       leftSleeve: null,
@@ -307,20 +388,20 @@ function HoodieModel({
       back: null,
       front: null,
     };
+
     scene.traverse((child) => {
       if (child.isMesh) {
         const partName = meshPartMapping[child.name];
         if (partName) {
           meshMap[partName] = child;
           const partColor = partColors[partName] || "#FFFFFF";
-          // Always use PatternMaterial for consistency, regardless of whether texture or pattern is selected
+
           let baseTexture = selectedTexture ? baseTextures[selectedTexture] : null;
           if (baseTexture) {
             baseTexture.wrapS = baseTexture.wrapT = THREE.RepeatWrapping;
             baseTexture.repeat.set(textureScale, textureScale);
             baseTexture.needsUpdate = true;
           } else {
-            // Create an empty white texture when no texture is selected
             const emptyCanvas = document.createElement("canvas");
             emptyCanvas.width = emptyCanvas.height = 1;
             const emptyCtx = emptyCanvas.getContext("2d");
@@ -329,7 +410,7 @@ function HoodieModel({
             baseTexture = new THREE.Texture(emptyCanvas);
             baseTexture.needsUpdate = true;
           }
-          // Get pattern texture if selected, otherwise use empty transparent texture
+
           let patternTexture;
           if (selectedPattern && patternSets[selectedPattern]) {
             const patternTexturePath = patternSets[selectedPattern][0];
@@ -338,7 +419,6 @@ function HoodieModel({
             patternTexture.repeat.set(patternScale, patternScale);
             patternTexture.needsUpdate = true;
           } else {
-            // Create an empty transparent texture when no pattern is selected
             const transparentCanvas = document.createElement("canvas");
             transparentCanvas.width = transparentCanvas.height = 1;
             const transparentCtx = transparentCanvas.getContext("2d");
@@ -346,7 +426,7 @@ function HoodieModel({
             patternTexture = new THREE.Texture(transparentCanvas);
             patternTexture.needsUpdate = true;
           }
-          // Always use PatternMaterial for all parts
+
           const material = new PatternMaterial({
             baseTexture: baseTexture,
             patternTexture: patternTexture,
@@ -356,18 +436,21 @@ function HoodieModel({
             patternScale: patternScale,
             roughness: roughness,
             metalness: 0.1,
-            patternOpacity: selectedPattern ? 1.0 : 0.0, // Set opacity to 0 when no pattern is selected
+            patternOpacity: selectedPattern ? 1.0 : 0.0,
           });
+
           material.depthTest = true;
           material.depthWrite = true;
           material.polygonOffset = true;
           material.polygonOffsetFactor = -5;
           material.polygonOffsetUnits = -5;
           material.needsUpdate = true;
+
           child.material = material;
         }
       }
     });
+
     setDecalMeshes([meshMap.chest, meshMap.leftSleeve, meshMap.rightSleeve, meshMap.back, meshMap.front].filter(Boolean));
   }, [
     scene,
@@ -380,6 +463,7 @@ function HoodieModel({
     patternColor,
     patternScale,
   ]);
+
   useEffect(() => {
     const newVisibility = { ...decalVisibility };
     Object.keys(customLogos).forEach((position) => {
@@ -408,11 +492,11 @@ function HoodieModel({
     if (onDownloadGLB) {
       const exporter = new GLTFExporter();
       const sceneToExport = new THREE.Scene();
-
+      
       const clonedHoodie = hoodieRef.current.clone(true);
-
+      
       const meshesWithDecals = new Set();
-
+      
       Object.entries(decalRefs.current).forEach(([position, ref]) => {
         if (ref && decalVisibility[position]) {
           clonedHoodie.traverse((child) => {
@@ -425,36 +509,36 @@ function HoodieModel({
           });
         }
       });
-
+      
       clonedHoodie.traverse((child) => {
         if (child.isMesh && child.material) {
           const canvas = document.createElement('canvas');
           canvas.width = 4096;
           canvas.height = 4096;
           const ctx = canvas.getContext('2d');
-
+          
           const baseColor = child.material.color || child.material.uniforms?.baseColor?.value || new THREE.Color(1, 1, 1);
           const baseColorCSS = `rgb(${Math.round(baseColor.r * 255)}, ${Math.round(baseColor.g * 255)}, ${Math.round(baseColor.b * 255)})`;
-
+          
           ctx.fillStyle = baseColorCSS;
           ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+          
           if (child.material instanceof PatternMaterial && selectedTexture && selectedPattern) {
             const patternColor = child.material.uniforms.patternColor.value;
             const baseTexture = child.material.uniforms.baseTexture.value;
             const patternTexture = child.material.uniforms.patternTexture.value;
             const textureScale = child.material.uniforms.textureScale.value;
             const patternScale = child.material.uniforms.patternScale.value;
-
+            
             const patternColorCSS = `rgb(${Math.round(patternColor.r * 255)}, ${Math.round(patternColor.g * 255)}, ${Math.round(patternColor.b * 255)})`;
-
+            
             if (baseTexture && baseTexture.image) {
               const baseCanvas = document.createElement('canvas');
               baseCanvas.width = baseTexture.image.width;
               baseCanvas.height = baseTexture.image.height;
               const baseCtx = baseCanvas.getContext('2d');
               baseCtx.drawImage(baseTexture.image, 0, 0);
-
+              
               ctx.globalCompositeOperation = 'multiply';
               const basePattern = ctx.createPattern(baseCanvas, 'repeat');
               ctx.save();
@@ -463,20 +547,20 @@ function HoodieModel({
               ctx.fillRect(0, 0, canvas.width / textureScale, canvas.height / textureScale);
               ctx.restore();
             }
-
+            
             ctx.globalCompositeOperation = 'source-over';
-
+            
             if (selectedPattern && patternTexture && patternTexture.image) {
               const patternCanvas = document.createElement('canvas');
               patternCanvas.width = patternTexture.image.width;
               patternCanvas.height = patternTexture.image.height;
               const patternCtx = patternCanvas.getContext('2d');
-
+              
               patternCtx.drawImage(patternTexture.image, 0, 0);
-
+              
               const patternImageData = patternCtx.getImageData(0, 0, patternCanvas.width, patternCanvas.height);
               const data = patternImageData.data;
-
+              
               for (let i = 0; i < data.length; i += 4) {
                 if (data[i + 3] > 0) {
                   data[i] = patternColor.r * 255;
@@ -485,13 +569,13 @@ function HoodieModel({
                   data[i + 3] = 255;
                 }
               }
-
+              
               patternCtx.putImageData(patternImageData, 0, 0);
-
+              
               ctx.globalCompositeOperation = 'source-over';
               const pattern = ctx.createPattern(patternCanvas, 'repeat');
               ctx.save();
-
+              
               const normalizedScale = 2 / patternScale;
               ctx.scale(normalizedScale, normalizedScale);
               ctx.fillStyle = pattern;
@@ -499,12 +583,12 @@ function HoodieModel({
               ctx.restore();
             }
           }
-
+          
           const combinedTexture = new THREE.Texture(canvas);
           combinedTexture.needsUpdate = true;
           combinedTexture.wrapS = THREE.RepeatWrapping;
           combinedTexture.wrapT = THREE.RepeatWrapping;
-
+          
           const exportMaterial = new THREE.MeshStandardMaterial({
             map: selectedTexture && selectedPattern ? combinedTexture : null,
             color: baseColor,
@@ -513,11 +597,11 @@ function HoodieModel({
             transparent: meshesWithDecals.has(child.uuid) ? true : false,
             opacity: 1.0,
           });
-
+          
           child.material = exportMaterial;
         }
       });
-
+      
       clonedHoodie.traverse((obj) => {
         if (obj.isGroup && obj.children) {
           obj.children = obj.children.filter(child => {
@@ -528,7 +612,7 @@ function HoodieModel({
           });
         }
       });
-
+      
       Object.entries(decalRefs.current).forEach(([position, ref]) => {
         if (ref && decalVisibility[position]) {
           const decalClone = ref.clone();
@@ -543,15 +627,15 @@ function HoodieModel({
               polygonOffset: true,
               polygonOffsetFactor: -10,
             });
-
+            
             decalClone.material = decalMaterial;
             clonedHoodie.add(decalClone);
           }
         }
       });
-
+      
       sceneToExport.add(clonedHoodie);
-
+      
       exporter.parse(
         sceneToExport,
         (gltf) => {
@@ -560,9 +644,9 @@ function HoodieModel({
           onDownloadGLB(url);
         },
         (error) => console.error("GLB Export Error:", error),
-        {
-          binary: true,
-          embedImages: true,
+        { 
+          binary: true, 
+          embedImages: true, 
           forceIndices: true,
           maxTextureSize: 4096
         }
@@ -600,6 +684,29 @@ function HoodieModel({
     setInitialRotation(decalRotations[location][2]);
     setInitialPosition([...decalPositions[location]]);
     setIsDragging(true);
+    setCursorStyle("grabbing");
+
+    const rect = renderer.domElement.getBoundingClientRect();
+    const mouse = new THREE.Vector2(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1
+    );
+    raycaster.setFromCamera(mouse, camera);
+
+    const decal = decalRefs.current[location];
+    if (decal) {
+      const normal = new THREE.Vector3(0, 0, 1);
+      decal.getWorldDirection(normal);
+      const position = new THREE.Vector3().fromArray(decalPositions[location]);
+      decal.localToWorld(position);
+      const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, position);
+      
+      const intersectPoint = new THREE.Vector3();
+      if (raycaster.ray.intersectPlane(plane, intersectPoint)) {
+        const offset = intersectPoint.clone().sub(position);
+        setDragOffset({ x: offset.x, y: offset.y, z: offset.z });
+      }
+    }
 
     if (handle === "delete") {
       setDecalVisibility((prev) => ({
@@ -617,6 +724,7 @@ function HoodieModel({
       }
       setActiveHandle(null);
       setIsDragging(false);
+      setCursorStyle("auto");
       controlsRef.current.enabled = true;
     }
   };
@@ -624,10 +732,14 @@ function HoodieModel({
   const handlePointerMove = (event) => {
     if (!activeHandle || !isDragging) return;
 
-    const deltaX = (event.clientX - initialMouse[0]) * 0.005;
-    const deltaY = (event.clientY - initialMouse[1]) * 0.005;
+    const rect = renderer.domElement.getBoundingClientRect();
+    const mouse = new THREE.Vector2(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1
+    );
 
     if (activeHandle === "rotate") {
+      const deltaX = (event.clientX - initialMouse[0]) * 0.005;
       const rotationChange = deltaX;
       const newRotZ = initialRotation + rotationChange;
       setDecalRotations((prev) => ({
@@ -635,15 +747,31 @@ function HoodieModel({
         [selectedTab]: [prev[selectedTab][0], prev[selectedTab][1], newRotZ],
       }));
     } else if (activeHandle === "move") {
-      const newPosX = initialPosition[0] + deltaX;
-      const newPosY = initialPosition[1] - deltaY;
-      setDecalPositions((prev) => ({
-        ...prev,
-        [selectedTab]: [newPosX, newPosY, prev[selectedTab][2]],
-      }));
+      raycaster.setFromCamera(mouse, camera);
+      
+      const decal = decalRefs.current[selectedTab];
+      if (decal) {
+        const normal = new THREE.Vector3(0, 0, 1);
+        decal.getWorldDirection(normal);
+        const position = new THREE.Vector3().fromArray(decalPositions[selectedTab]);
+        decal.localToWorld(position);
+        const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, position);
+
+        const intersectPoint = new THREE.Vector3();
+        if (raycaster.ray.intersectPlane(plane, intersectPoint)) {
+          const newPosition = intersectPoint.clone().sub(
+            new THREE.Vector3(dragOffset.x, dragOffset.y, dragOffset.z)
+          );
+          const localPosition = decal.worldToLocal(newPosition.clone());
+          setDecalPositions((prev) => ({
+            ...prev,
+            [selectedTab]: [localPosition.x, localPosition.y, prev[selectedTab][2]],
+          }));
+        }
+      }
     } else if (activeHandle === "resize") {
-      const scaleDelta = deltaX;
-      const newScale = Math.max(0.05, initialScale + scaleDelta);
+      const deltaX = (event.clientX - initialMouse[0]) * 0.005;
+      const newScale = Math.max(0.05, initialScale + deltaX);
       setDecalUniformScales((prev) => ({
         ...prev,
         [selectedTab]: newScale,
@@ -657,7 +785,16 @@ function HoodieModel({
     }
     setActiveHandle(null);
     setIsDragging(false);
+    setCursorStyle("auto");
+    setDragOffset({ x: 0, y: 0, z: 0 });
   };
+
+  useEffect(() => {
+    renderer.domElement.style.cursor = cursorStyle;
+    return () => {
+      renderer.domElement.style.cursor = "auto";
+    };
+  }, [cursorStyle, renderer]);
 
   useEffect(() => {
     const handleGlobalPointerMove = (event) => {
@@ -709,9 +846,10 @@ function HoodieModel({
           const rotation = decalRotations[meshPosition];
           const uniformScale = decalUniformScales[meshPosition];
           const fontSizeAdjustment = isTextDecal ? customTexts[meshPosition].fontSize / 60 : 1;
+          const dimensions = decalDimensions[meshPosition];
           const scale = [
-            uniformScale * aspectRatios[meshPosition] * fontSizeAdjustment,
-            uniformScale * fontSizeAdjustment,
+            dimensions.width * uniformScale * fontSizeAdjustment,
+            dimensions.height * uniformScale * fontSizeAdjustment,
             1,
           ];
 
@@ -761,36 +899,33 @@ function HoodieModel({
 
               {isSelected && (
                 <group position={position} rotation={new THREE.Euler(...rotation)}>
+                  {/* Black Bounding Box */}
+
+                  {/* Dashed Line Outline */}
                   <line>
                     <bufferGeometry attach="geometry">
                       <float32BufferAttribute
                         attach="attributes-position"
                         array={new Float32Array([
-                          -scale[0],
-                          -scale[1],
-                          0.006,
-                          scale[0],
-                          -scale[1],
-                          0.006,
-                          scale[0],
-                          scale[1],
-                          0.006,
-                          -scale[0],
-                          scale[1],
-                          0.006,
-                          -scale[0],
-                          -scale[1],
-                          0.006,
+                          -scale[0]/2, -scale[1]/2, 0.006,
+                          scale[0]/2, -scale[1]/2, 0.006,
+                          scale[0]/2, scale[1]/2, 0.006,
+                          -scale[0]/2, scale[1]/2, 0.006,
+                          -scale[0]/2, -scale[1]/2, 0.006,
                         ])}
                         count={5}
                         itemSize={3}
                       />
                     </bufferGeometry>
-                    <lineBasicMaterial attach="material" color="#000000" dashSize={0.05} gapSize={0.05} />
+                    <lineBasicMaterial attach="material" color="#FFFFFF" dashSize={0.05} gapSize={0.05} />
                   </line>
 
                   {Object.entries(handlePositions).map(([handle, pos]) => {
-                    const scaledPos = [pos[0] * scale[0], pos[1] * scale[1], pos[2] + 0.01];
+                    const scaledPos = [
+                      pos[0] * scale[0] / 2,
+                      pos[1] * scale[1] / 2,
+                      pos[2] + 0.01
+                    ];
 
                     return (
                       <group key={handle}>
@@ -827,4 +962,4 @@ function HoodieModel({
   );
 }
 
-export default HoodieModel
+export default HoodieModel;
