@@ -24,7 +24,7 @@ function HoodieCustomizer() {
     rightSleeve: null,
     back: null,
   });
-  
+
   const [customTexts, setCustomTexts] = useState({
     front: { text: "", show: false, color: "#000000", background: "transparent", fontSize: 140, style: "classic", shape: "rectangle" },
     leftSleeve: { text: "", show: false, color: "#000000", background: "transparent", fontSize: 140, style: "classic", shape: "rectangle" },
@@ -40,11 +40,13 @@ function HoodieCustomizer() {
   const [selectedTab, setSelectedTab] = useState("front");
   const [patternTab, setPatternTab] = useState("collar");
   const [textureScale, setTextureScale] = useState(1);
+
   const [roughness, setRoughness] = useState(0.7);
   const [showAreasOnGarment, setShowAreasOnGarment] = useState(false);
   const [selectedPattern, setSelectedPattern] = useState(null); // Changed to null
   const [patternColor, setPatternColor] = useState("#FFFFFF");
   const [patternScale, setPatternScale] = useState(2);
+  const [patternOpacity, setPatternOpacity] = useState(1.0);
   const [selectedTextArea, setSelectedTextArea] = useState(null);
   const [cameraFov, setCameraFov] = useState(40);
   const [modelPosition, setModelPosition] = useState([0, 0, 0]);
@@ -190,7 +192,7 @@ function HoodieCustomizer() {
       [selectedTab]: color,
     }));
   };
-  
+
   const handleTextChange = (position, field, value) => {
     setCustomTexts((prev) => {
       const updated = {
@@ -275,23 +277,23 @@ function HoodieCustomizer() {
   ]
 
   return (
-    
+
     <div className="overflow-hidden w-screen h-screen bg-gradient-to-l from-[#263D44] to-[#577A8B]">
       <Canvas
         shadows
         gl={{ preserveDrawingBuffer: true, antialias: true }}
-      style={{
-  width:
-    window.innerWidth >= 1536 ? "130vw" :
-    window.innerWidth >= 1280 ? "160vw" :
-    "100vw",
-  height: "100vh",
-  transition: "transform 0.7s ease-in-out",
-  transform:
-    window.innerWidth < 1280 && panelVisible
-      ? "translateY(-15vh)"
-      : "translateY(0)"
-}}
+        style={{
+          width:
+            window.innerWidth >= 1536 ? "130vw" :
+              window.innerWidth >= 1280 ? "160vw" :
+                "100vw",
+          height: "100vh",
+          transition: "transform 0.7s ease-in-out",
+          transform:
+            window.innerWidth < 1280 && panelVisible
+              ? "translateY(-15vh)"
+              : "translateY(0)"
+        }}
 
         className="fixed top-0 left-0"
       >
@@ -329,12 +331,13 @@ function HoodieCustomizer() {
             selectedPattern={selectedPattern}
             patternColor={patternColor}
             patternScale={patternScale}
+            patternOpacity={patternOpacity}
             position={modelPosition}
           />
           <ContactShadows position={[0, -1.5, 0]} opacity={0.5} blur={2.5} scale={10} />
           {/* <Environment preset="sunset" background blur={4} /> */}
-          
-          <CustomEnvironment path="/customizer-bg.jpg"  />
+
+          <CustomEnvironment path="/customizer-bg.jpg" />
           <OrbitControls
             ref={controlsRef}
             minPolarAngle={Math.PI / 6}
@@ -511,6 +514,21 @@ function HoodieCustomizer() {
                         step="0.1"
                         value={patternScale}
                         onChange={(e) => setPatternScale(parseFloat(e.target.value))}
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="space-y-1"> {/* Add this new block */}
+                      <div className="flex justify-between">
+                        <span className="text-xs xl:text-sm text-gray-300">Pattern Opacity</span>
+                        <span className="text-xs xl:text-sm text-gray-300">{patternOpacity.toFixed(2)}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.5"
+                        max="2"
+                        step="0.01"
+                        value={patternOpacity}
+                        onChange={(e) => setPatternOpacity(parseFloat(e.target.value))}
                         className="w-full"
                       />
                     </div>

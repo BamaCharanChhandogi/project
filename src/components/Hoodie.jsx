@@ -49,9 +49,9 @@ const PatternMaterial = shaderMaterial(
       vec4 patternTexel = texture2D(patternTexture, scaledPatternUv);
       vec4 pattern = vec4(patternTexel.rgb * patternColor, patternTexel.a);
       if (pattern.a > 0.1) {
-        pattern.a = patternOpacity;
-        vec4 result = mix(base, vec4(pattern.rgb, 1.0), pattern.a);
-        gl_FragColor = result;
+       float alpha = pattern.a * patternOpacity;
+        vec4 result = mix(base, vec4(pattern.rgb, 1.0), alpha);
+       gl_FragColor = vec4(result.rgb, 1.0);
       } else {
         gl_FragColor = base;
       }
@@ -88,11 +88,11 @@ function HoodieModel({
   selectedPattern,
   patternColor,
   patternScale,
-  position
-  
+  position,
+  patternOpacity
 }) {
   const { scene } = useGLTF("/patterns/TShirt.glb");
-  const { raycaster, camera, mouse, gl: renderer, scene: fullScene } = useThree();
+  const { raycaster, camera, gl: renderer, scene: fullScene } = useThree();
 
   const baseTextures = useTexture({
     cotton: "/8_flannelette tartan fabric texture-seamless.jpg",
@@ -101,7 +101,6 @@ function HoodieModel({
     denim: "/29_wool silk tartan fabric texture-seamless.jpg",
     polyester: "/74_navy blue fabric striped wallpaper texture-seamless.jpg",
   });
-  
 
   const patternTextures = useTexture({
     ...patternSets.checker.reduce((acc, path) => ({ ...acc, [path]: path }), {}),
@@ -149,12 +148,12 @@ function HoodieModel({
   });
   const [decalRotations, setDecalRotations] = useState({
     chest: [0.00, 0.13, 0.00],
-    leftSleeve: [-1.62, -Math.PI / 2, 0],
-    rightSleeve: [-1.62, -Math.PI / 2, 0],
+    leftSleeve: [0, Math.PI / 2, 0],
+    rightSleeve: [0, Math.PI / 2, 0],
     back: [0, Math.PI, 0],
     front: [0.00, 0.13, 0.00],
   });
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0, z: 0 });
   const [cursorStyle, setCursorStyle] = useState("auto");
 
   const [decalUniformScales, setDecalUniformScales] = useState({
@@ -182,29 +181,17 @@ function HoodieModel({
   });
 
   const [activeHandle, setActiveHandle] = useState(null);
-  const [initialMouse, setInitialMouse] = useState([0, 0]);
+  const [initialMouse, setInitialMouse] = useState({ x: 0, y: 0 });
   const [initialScale, setInitialScale] = useState(0);
   const [initialRotation, setInitialRotation] = useState(0);
   const [initialPosition, setInitialPosition] = useState([0, 0, 0]);
   const [isDragging, setIsDragging] = useState(false);
-
-  const handlePositions = {
-    rotate: [-1.2, 1.2, 0],
-    delete: [1.2, 1.2, 0],
-    resize: [1.2, -1.2, 0.04],
-    move: [-1.2, -1.2, 0.04],
-  };
 
   const meshPartMapping = {
     Front: "front",
     Left_Sleeve: "leftSleeve",
     Right_Sleeve: "rightSleeve",
     Back: "back",
-  };
-
-  const handleDecalClick = (e, position) => {
-    e.stopPropagation();
-    setSelectedTab(position);
   };
 
   useEffect(() => {
@@ -214,7 +201,7 @@ function HoodieModel({
     const positionsToResetScale = new Set();
     Object.keys(customTexts).forEach((position) => {
       const { text, show, color, background, fontSize, style, shape } = customTexts[position];
-  
+
       if (text && show) {
         const canvas = document.createElement("canvas");
         positionsToResetScale.add(position);
@@ -242,87 +229,61 @@ function HoodieModel({
           },
         };
         const selectedStyle = styles[style] || styles.classic;
-  
+
         ctx.font = selectedStyle.font;
-        
-        // Split text by newline characters
+
         const lines = text.split('\n');
-        
-        // Calculate dimensions for all lines
         let maxWidth = 0;
         const lineHeight = fontSize * 1.2;
-        
+
         lines.forEach(line => {
           const metrics = ctx.measureText(line);
           const lineWidth = metrics.width;
           maxWidth = Math.max(maxWidth, lineWidth);
         });
-        
+
         const totalTextHeight = lineHeight * lines.length;
-        
-        // Calculate padding based on font size for consistent scaling
-        const padding = fontSize * 0.5; // Scale padding with font size
-        
-        // Set canvas dimensions
+        const padding = fontSize * 0.5;
         const totalWidth = maxWidth + padding * 2;
         const totalHeight = totalTextHeight + padding * 2;
-        
-        // For shapes, add extra padding based on font size to ensure text fits properly
+
         let effectiveWidth = totalWidth;
         let effectiveHeight = totalHeight;
-        
-        // Add additional padding for rounded shapes (circle and oval)
+
         if (shape === "circle" || shape === "oval") {
-          // Add more space for circle/oval shapes based on font size
           const shapeExtraPadding = fontSize * 0.3;
           effectiveWidth = totalWidth + shapeExtraPadding * 2;
           effectiveHeight = totalHeight + shapeExtraPadding * 2;
-          
-          // For circles, ensure width and height are the same (use the larger dimension)
+
           if (shape === "circle") {
             const maxDimension = Math.max(effectiveWidth, effectiveHeight);
             effectiveWidth = maxDimension;
             effectiveHeight = maxDimension;
-          }
-          
-          // For ovals, adjust the width to maintain a pleasing oval shape
-          if (shape === "oval") {
-            // Make oval wider than it is tall
+          } else if (shape === "oval") {
             effectiveWidth = Math.max(effectiveWidth, effectiveHeight * 1.2);
           }
         }
-        
-        // Set final canvas dimensions
+
         canvas.width = effectiveWidth;
         canvas.height = effectiveHeight;
-        
-        // Clear canvas with transparent background
         ctx.clearRect(0, 0, effectiveWidth, effectiveHeight);
-  
-        // Update dimensions and aspect ratio
+
         newDimensions[position] = {
-          width: effectiveWidth / 1000, // Normalize to reasonable 3D scale
+          width: effectiveWidth / 1000,
           height: effectiveHeight / 1000,
         };
         newAspectRatios[position] = effectiveWidth / effectiveHeight;
-  
-        // Draw background if needed
+
         let bgColor = background;
-        
         if (bgColor !== "rgba(0, 0, 0, 0)") {
           ctx.fillStyle = bgColor;
-          
-          // Draw the appropriate shape with properly scaled dimensions
           if (shape === "circle") {
             const centerX = effectiveWidth / 2;
             const centerY = effectiveHeight / 2;
             const radius = Math.min(effectiveWidth, effectiveHeight) / 2;
-            
             ctx.beginPath();
             ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
             ctx.fill();
-            
-            // Create a clipping path for text to stay within the circle
             ctx.save();
             ctx.beginPath();
             ctx.arc(centerX, centerY, radius * 0.9, 0, Math.PI * 2);
@@ -332,46 +293,33 @@ function HoodieModel({
             const centerY = effectiveHeight / 2;
             const radiusX = effectiveWidth / 2;
             const radiusY = effectiveHeight / 2;
-            
             ctx.beginPath();
             ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, Math.PI * 2);
             ctx.fill();
-            
-            // Create a clipping path for text to stay within the oval
             ctx.save();
             ctx.beginPath();
             ctx.ellipse(centerX, centerY, radiusX * 0.9, radiusY * 0.9, 0, 0, Math.PI * 2);
             ctx.clip();
           } else {
-            // Rectangle with padding that scales with font size
             ctx.fillRect(0, 0, effectiveWidth, effectiveHeight);
           }
         }
-  
-        // Configure text rendering
+
         ctx.shadowColor = selectedStyle.shadow.color;
-        ctx.shadowBlur = selectedStyle.shadow.blur * (fontSize / 30); // Scale blur with font size
-        ctx.shadowOffsetX = selectedStyle.shadow.offsetX * (fontSize / 30); // Scale shadow offset with font size
+        ctx.shadowBlur = selectedStyle.shadow.blur * (fontSize / 30);
+        ctx.shadowOffsetX = selectedStyle.shadow.offsetX * (fontSize / 30);
         ctx.shadowOffsetY = selectedStyle.shadow.offsetY * (fontSize / 30);
         ctx.fillStyle = selectedStyle.color;
         ctx.font = selectedStyle.font;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-  
-        // Calculate text safe area based on shape
-        const safeAreaPadding = (shape === "circle" || shape === "oval") ? 
-                                fontSize * 0.3 : // More padding for rounded shapes
-                                padding;
-        
+
+        const safeAreaPadding = (shape === "circle" || shape === "oval") ? fontSize * 0.3 : padding;
         const safeWidth = effectiveWidth - safeAreaPadding * 2;
-  
-        // Draw each line of text, adjusting for the shape
+
         lines.forEach((line, i) => {
           const y = effectiveHeight / 2 - ((lines.length - 1) * lineHeight / 2) + (i * lineHeight);
-          
-          // For non-rectangular shapes, we need to ensure the text doesn't overflow
           if (shape === "circle" || shape === "oval") {
-            // For longer text, scale down if needed
             const metrics = ctx.measureText(line);
             if (metrics.width > safeWidth) {
               const scaleFactor = safeWidth / metrics.width;
@@ -380,21 +328,17 @@ function HoodieModel({
               ctx.font = adjustedFont;
             }
           }
-          
           ctx.fillText(line, effectiveWidth / 2, y);
         });
-  
-        // Restore the canvas state if we applied clipping
+
         if (shape === "circle" || shape === "oval") {
           ctx.restore();
         }
-        
-        // Reset shadow settings
+
         ctx.shadowBlur = 0;
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
-  
-        // Create and configure texture
+
         const texture = new THREE.Texture(canvas);
         texture.needsUpdate = true;
         texture.generateMipmaps = true;
@@ -405,7 +349,7 @@ function HoodieModel({
         newTextTextures[position] = texture;
       }
     });
-   // Handle custom logos
+
     Object.keys(customLogos).forEach((position) => {
       if (customLogos[position]) {
         positionsToResetScale.add(position);
@@ -420,16 +364,15 @@ function HoodieModel({
         }
       }
     });
+
     if (positionsToResetScale.size > 0) {
-      setDecalUniformScales(prev => {
-        const updated = {...prev};
-        positionsToResetScale.forEach(position => {
-          // Set default scale for new content
-          // You can adjust these default values as needed
+      setDecalUniformScales((prev) => {
+        const updated = { ...prev };
+        positionsToResetScale.forEach((position) => {
           if (customTexts[position].show && customTexts[position].text) {
-            updated[position] = 0.14; // Default text scale
+            updated[position] = 0.14;
           } else if (customLogos[position]) {
-            updated[position] = 0.14; // Default image scale
+            updated[position] = 0.14;
           }
         });
         return updated;
@@ -497,9 +440,10 @@ function HoodieModel({
             patternColor: new THREE.Color(patternColor),
             textureScale: textureScale,
             patternScale: patternScale,
+            textureOffset: new THREE.Vector2(0, 0),
             roughness: roughness,
             metalness: 0.1,
-            patternOpacity: selectedPattern ? 1.0 : 0.0,
+            patternOpacity: patternOpacity,
           });
 
           material.depthTest = true;
@@ -525,6 +469,7 @@ function HoodieModel({
     selectedPattern,
     patternColor,
     patternScale,
+    patternOpacity,
   ]);
 
   useEffect(() => {
@@ -555,11 +500,11 @@ function HoodieModel({
     if (onDownloadGLB) {
       const exporter = new GLTFExporter();
       const sceneToExport = new THREE.Scene();
-      
+
       const clonedHoodie = hoodieRef.current.clone(true);
-      
+
       const meshesWithDecals = new Set();
-      
+
       Object.entries(decalRefs.current).forEach(([position, ref]) => {
         if (ref && decalVisibility[position]) {
           clonedHoodie.traverse((child) => {
@@ -572,36 +517,36 @@ function HoodieModel({
           });
         }
       });
-      
+
       clonedHoodie.traverse((child) => {
         if (child.isMesh && child.material) {
           const canvas = document.createElement('canvas');
           canvas.width = 4096;
           canvas.height = 4096;
           const ctx = canvas.getContext('2d');
-          
+
           const baseColor = child.material.color || child.material.uniforms?.baseColor?.value || new THREE.Color(1, 1, 1);
           const baseColorCSS = `rgb(${Math.round(baseColor.r * 255)}, ${Math.round(baseColor.g * 255)}, ${Math.round(baseColor.b * 255)})`;
-          
+
           ctx.fillStyle = baseColorCSS;
           ctx.fillRect(0, 0, canvas.width, canvas.height);
-          
+
           if (child.material instanceof PatternMaterial && selectedTexture && selectedPattern) {
             const patternColor = child.material.uniforms.patternColor.value;
             const baseTexture = child.material.uniforms.baseTexture.value;
             const patternTexture = child.material.uniforms.patternTexture.value;
             const textureScale = child.material.uniforms.textureScale.value;
             const patternScale = child.material.uniforms.patternScale.value;
-            
+
             const patternColorCSS = `rgb(${Math.round(patternColor.r * 255)}, ${Math.round(patternColor.g * 255)}, ${Math.round(patternColor.b * 255)})`;
-            
+
             if (baseTexture && baseTexture.image) {
               const baseCanvas = document.createElement('canvas');
               baseCanvas.width = baseTexture.image.width;
               baseCanvas.height = baseTexture.image.height;
               const baseCtx = baseCanvas.getContext('2d');
               baseCtx.drawImage(baseTexture.image, 0, 0);
-              
+
               ctx.globalCompositeOperation = 'multiply';
               const basePattern = ctx.createPattern(baseCanvas, 'repeat');
               ctx.save();
@@ -610,20 +555,20 @@ function HoodieModel({
               ctx.fillRect(0, 0, canvas.width / textureScale, canvas.height / textureScale);
               ctx.restore();
             }
-            
+
             ctx.globalCompositeOperation = 'source-over';
-            
+
             if (selectedPattern && patternTexture && patternTexture.image) {
               const patternCanvas = document.createElement('canvas');
               patternCanvas.width = patternTexture.image.width;
               patternCanvas.height = patternTexture.image.height;
               const patternCtx = patternCanvas.getContext('2d');
-              
+
               patternCtx.drawImage(patternTexture.image, 0, 0);
-              
+
               const patternImageData = patternCtx.getImageData(0, 0, patternCanvas.width, patternCanvas.height);
               const data = patternImageData.data;
-              
+
               for (let i = 0; i < data.length; i += 4) {
                 if (data[i + 3] > 0) {
                   data[i] = patternColor.r * 255;
@@ -632,13 +577,13 @@ function HoodieModel({
                   data[i + 3] = 255;
                 }
               }
-              
+
               patternCtx.putImageData(patternImageData, 0, 0);
-              
+
               ctx.globalCompositeOperation = 'source-over';
               const pattern = ctx.createPattern(patternCanvas, 'repeat');
               ctx.save();
-              
+
               const normalizedScale = 2 / patternScale;
               ctx.scale(normalizedScale, normalizedScale);
               ctx.fillStyle = pattern;
@@ -646,12 +591,12 @@ function HoodieModel({
               ctx.restore();
             }
           }
-          
+
           const combinedTexture = new THREE.Texture(canvas);
           combinedTexture.needsUpdate = true;
           combinedTexture.wrapS = THREE.RepeatWrapping;
           combinedTexture.wrapT = THREE.RepeatWrapping;
-          
+
           const exportMaterial = new THREE.MeshStandardMaterial({
             map: selectedTexture && selectedPattern ? combinedTexture : null,
             color: baseColor,
@@ -660,11 +605,11 @@ function HoodieModel({
             transparent: meshesWithDecals.has(child.uuid) ? true : false,
             opacity: 1.0,
           });
-          
+
           child.material = exportMaterial;
         }
       });
-      
+
       clonedHoodie.traverse((obj) => {
         if (obj.isGroup && obj.children) {
           obj.children = obj.children.filter(child => {
@@ -675,7 +620,7 @@ function HoodieModel({
           });
         }
       });
-      
+
       Object.entries(decalRefs.current).forEach(([position, ref]) => {
         if (ref && decalVisibility[position]) {
           const decalClone = ref.clone();
@@ -690,15 +635,15 @@ function HoodieModel({
               polygonOffset: true,
               polygonOffsetFactor: -10,
             });
-            
+
             decalClone.material = decalMaterial;
             clonedHoodie.add(decalClone);
           }
         }
       });
-      
+
       sceneToExport.add(clonedHoodie);
-      
+
       exporter.parse(
         sceneToExport,
         (gltf) => {
@@ -707,9 +652,9 @@ function HoodieModel({
           onDownloadGLB(url);
         },
         (error) => console.error("GLB Export Error:", error),
-        { 
-          binary: true, 
-          embedImages: true, 
+        {
+          binary: true,
+          embedImages: true,
           forceIndices: true,
           maxTextureSize: 4096
         }
@@ -721,9 +666,13 @@ function HoodieModel({
     if (onDownloadImage) {
       const controlElements = [];
       fullScene.traverse((obj) => {
-        if ((obj.isLine || (obj.isMesh && obj.geometry &&
-          obj.geometry.type === 'PlaneGeometry' &&
-          obj.geometry.parameters.width === 0.05))) {
+        if (
+          obj.isLine ||
+          (obj.isMesh &&
+            obj.geometry &&
+            obj.geometry.type === "PlaneGeometry" &&
+            obj.geometry.parameters.width === 0.05)
+        ) {
           controlElements.push(obj);
           obj.visible = false;
         }
@@ -732,17 +681,66 @@ function HoodieModel({
       renderer.render(fullScene, camera);
       onDownloadImage(renderer.domElement.toDataURL("image/png"));
 
-      controlElements.forEach(obj => {
+      controlElements.forEach((obj) => {
         obj.visible = true;
       });
     }
   }, [onDownloadImage, renderer, fullScene, camera]);
 
+  const getEventCoordinates = (event) => {
+    const isTouch = event.type.includes('touch');
+    return isTouch
+      ? { x: event.touches[0].clientX, y: event.touches[0].clientY }
+      : { x: event.clientX, y: event.clientY };
+  };
+
+  const handleCanvasClick = (event) => {
+    event.stopPropagation();
+    const coords = getEventCoordinates(event);
+    const rect = renderer.domElement.getBoundingClientRect();
+    const mouse = new THREE.Vector2(
+      ((coords.x - rect.left) / rect.width) * 2 - 1,
+      -((coords.y - rect.top) / rect.height) * 2 + 1
+    );
+    raycaster.setFromCamera(mouse, camera);
+
+    const intersects = raycaster.intersectObjects(fullScene.children, true);
+    let hitDecal = false;
+    let hitPosition = null;
+
+    for (const intersect of intersects) {
+      const object = intersect.object;
+      if (object === decalRefs.current.chest || object === decalRefs.current.leftSleeve ||
+        object === decalRefs.current.rightSleeve || object === decalRefs.current.back ||
+        object === decalRefs.current.front) {
+        hitDecal = true;
+        hitPosition = Object.keys(decalRefs.current).find(
+          (key) => decalRefs.current[key] === object
+        );
+        break;
+      }
+    }
+
+    if (hitDecal && hitPosition && decalVisibility[hitPosition]) {
+      setSelectedTab(hitPosition);
+    } else {
+      setSelectedTab(null);
+    }
+  };
+
+  const handleDecalClick = (e, position) => {
+    e.stopPropagation();
+    if (decalVisibility[position]) {
+      setSelectedTab(position);
+    }
+  };
+
   const handlePointerDown = (event, handle, location) => {
     event.stopPropagation();
     controlsRef.current.enabled = false;
     setActiveHandle(handle);
-    setInitialMouse([event.clientX, event.clientY]);
+    const coords = getEventCoordinates(event);
+    setInitialMouse(coords);
     setInitialScale(decalUniformScales[location]);
     setInitialRotation(decalRotations[location][2]);
     setInitialPosition([...decalPositions[location]]);
@@ -751,19 +749,19 @@ function HoodieModel({
 
     const rect = renderer.domElement.getBoundingClientRect();
     const mouse = new THREE.Vector2(
-      ((event.clientX - rect.left) / rect.width) * 2 - 1,
-      -((event.clientY - rect.top) / rect.height) * 2 + 1
+      ((coords.x - rect.left) / rect.width) * 2 - 1,
+      -((coords.y - rect.top) / rect.height) * 2 + 1
     );
     raycaster.setFromCamera(mouse, camera);
 
     const decal = decalRefs.current[location];
-    if (decal) {
+    if (decal && handle === "move") {
       const normal = new THREE.Vector3(0, 0, 1);
       decal.getWorldDirection(normal);
       const position = new THREE.Vector3().fromArray(decalPositions[location]);
       decal.localToWorld(position);
       const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, position);
-      
+
       const intersectPoint = new THREE.Vector3();
       if (raycaster.ray.intersectPlane(plane, intersectPoint)) {
         const offset = intersectPoint.clone().sub(position);
@@ -785,6 +783,7 @@ function HoodieModel({
       if (onDeleteDecal) {
         onDeleteDecal(location);
       }
+      setSelectedTab(null);
       setActiveHandle(null);
       setIsDragging(false);
       setCursorStyle("auto");
@@ -795,14 +794,15 @@ function HoodieModel({
   const handlePointerMove = (event) => {
     if (!activeHandle || !isDragging) return;
 
+    const coords = getEventCoordinates(event);
     const rect = renderer.domElement.getBoundingClientRect();
     const mouse = new THREE.Vector2(
-      ((event.clientX - rect.left) / rect.width) * 2 - 1,
-      -((event.clientY - rect.top) / rect.height) * 2 + 1
+      ((coords.x - rect.left) / rect.width) * 2 - 1,
+      -((coords.y - rect.top) / rect.height) * 2 + 1
     );
 
     if (activeHandle === "rotate") {
-      const deltaX = (event.clientX - initialMouse[0]) * 0.005;
+      const deltaX = (coords.x - initialMouse.x) * 0.005;
       const rotationChange = deltaX;
       const newRotZ = initialRotation + rotationChange;
       setDecalRotations((prev) => ({
@@ -811,7 +811,7 @@ function HoodieModel({
       }));
     } else if (activeHandle === "move") {
       raycaster.setFromCamera(mouse, camera);
-      
+
       const decal = decalRefs.current[selectedTab];
       if (decal) {
         const normal = new THREE.Vector3(0, 0, 1);
@@ -833,7 +833,7 @@ function HoodieModel({
         }
       }
     } else if (activeHandle === "resize") {
-      const deltaX = (event.clientX - initialMouse[0]) * 0.005;
+      const deltaX = (coords.x - initialMouse.x) * 0.005;
       const newScale = Math.max(0.05, initialScale + deltaX);
       setDecalUniformScales((prev) => ({
         ...prev,
@@ -874,12 +874,27 @@ function HoodieModel({
 
     window.addEventListener("pointermove", handleGlobalPointerMove);
     window.addEventListener("pointerup", handleGlobalPointerUp);
+    window.addEventListener("touchmove", handleGlobalPointerMove, { passive: false });
+    window.addEventListener("touchend", handleGlobalPointerUp);
 
     return () => {
       window.removeEventListener("pointermove", handleGlobalPointerMove);
       window.removeEventListener("pointerup", handleGlobalPointerUp);
+      window.removeEventListener("touchmove", handleGlobalPointerMove);
+      window.removeEventListener("touchend", handleGlobalPointerUp);
     };
   }, [isDragging, activeHandle, initialMouse, initialScale, initialRotation, initialPosition]);
+
+  useEffect(() => {
+    const canvas = renderer.domElement;
+    canvas.addEventListener("click", handleCanvasClick);
+    canvas.addEventListener("touchstart", handleCanvasClick, { passive: true });
+
+    return () => {
+      canvas.removeEventListener("click", handleCanvasClick);
+      canvas.removeEventListener("touchstart", handleCanvasClick);
+    };
+  }, [renderer, fullScene, decalVisibility]);
 
   return (
     <group ref={hoodieRef} position={position} rotation={[0, 0, 0]} scale={[2, 2, 2]}>
@@ -916,6 +931,13 @@ function HoodieModel({
             1,
           ];
 
+          const cornerOffsets = {
+            rotate: [-1.0, 1.0, 0.01],  // Top-left
+            delete: [1.0, 1.0, 0.01],  // Top-right
+            move: [-1.0, -1.0, 0.01],  // Bottom-left
+            resize: [1.0, -1.0, 0.01], // Bottom-right
+          };
+
           return (
             <group key={`${mesh.name}-${meshPosition}`}>
               <mesh geometry={mesh.geometry}>
@@ -936,8 +958,10 @@ function HoodieModel({
                   }
                   depthTest={true}
                   depthWrite={true}
-                  renderOrder={isSelected ? 10 : 5}
+                  renderOrder={isSelected ? 10 : 5} // Reduce this value to ensure controls are on top
                   onClick={(e) => handleDecalClick(e, meshPosition)}
+                  onPointerDown={(e) => handlePointerDown(e, "move", meshPosition)}
+                  onTouchStart={(e) => handlePointerDown(e, "move", meshPosition)}
                   material={
                     new THREE.MeshStandardMaterial({
                       map: textureToApply,
@@ -955,67 +979,75 @@ function HoodieModel({
                               meshPosition === "back" ? -24 :
                                 meshPosition === "front" ? -26 : -20
                       ),
+                      renderOrder: isSelected ? 10 : 5, // Add renderOrder here too
                     })
                   }
                 />
+
+                {isSelected &&
+                  Object.entries(cornerOffsets).map(([handle, [xOffset, yOffset, zOffset]]) => {
+                    const scaledPos = [
+                      position[0] + xOffset * scale[0] / 2,
+                      position[1] + yOffset * scale[1] / 2,
+                      position[2] + zOffset,
+                    ];
+                    const iconTexture =
+                      handle === "rotate"
+                        ? rotateIconTexture
+                        : handle === "delete"
+                          ? deleteIconTexture
+                          : handle === "move"
+                            ? moveIconTexture
+                            : resizeIconTexture;
+
+                    return (
+                      <Decal
+                        key={handle}
+                        position={scaledPos}
+                        rotation={new THREE.Euler(0, Math.PI, 0)}
+                        scale={[0.05, 0.05, 1]}
+                        map={iconTexture}
+                        transparent={true}
+                        opacity={1.0}
+                        depthTest={false}
+                        depthWrite={false}
+                        polygonOffset={true}
+                        polygonOffsetFactor={-30}
+                        renderOrder={15}
+                        onPointerDown={(e) => handlePointerDown(e, handle, meshPosition)}
+                        onTouchStart={(e) => handlePointerDown(e, handle, meshPosition)}
+                        material={new THREE.MeshStandardMaterial({
+                          map: iconTexture,
+                          transparent: true,
+                          opacity: 1.0,
+                          side: THREE.FrontSide,
+                          depthTest: false, // Change to false to ignore depth testing
+                          polygonOffsetFactor: -30, // Use a more negative value
+                          renderOrder: 20,
+                        })}
+                      />
+                    );
+                  })}
               </mesh>
 
               {isSelected && (
-                <group position={position} rotation={new THREE.Euler(...rotation)}>
-                  {/* Black Bounding Box */}
-
-                  {/* Dashed Line Outline */}
-                  <line>
-                    <bufferGeometry attach="geometry">
-                      <float32BufferAttribute
-                        attach="attributes-position"
-                        array={new Float32Array([
-                          -scale[0]/2, -scale[1]/2, 0.006,
-                          scale[0]/2, -scale[1]/2, 0.006,
-                          scale[0]/2, scale[1]/2, 0.006,
-                          -scale[0]/2, scale[1]/2, 0.006,
-                          -scale[0]/2, -scale[1]/2, 0.006,
-                        ])}
-                        count={5}
-                        itemSize={3}
-                      />
-                    </bufferGeometry>
-                    <lineBasicMaterial attach="material" color="#FFFFFF" dashSize={0.05} gapSize={0.05} />
-                  </line>
-
-                  {Object.entries(handlePositions).map(([handle, pos]) => {
-                    const scaledPos = [
-                      pos[0] * scale[0] / 2,
-                      pos[1] * scale[1] / 2,
-                      pos[2] + 0.01
-                    ];
-
-                    return (
-                      <group key={handle}>
-                        <mesh
-                          position={scaledPos}
-                          onPointerDown={(e) => handlePointerDown(e, handle, meshPosition)}
-                        >
-                          <planeGeometry args={[0.05, 0.05]} />
-                          <meshBasicMaterial
-                            map={
-                              handle === "rotate"
-                                ? rotateIconTexture
-                                : handle === "delete"
-                                  ? deleteIconTexture
-                                  : handle === "resize"
-                                    ? resizeIconTexture
-                                    : moveIconTexture
-                            }
-                            transparent
-                            opacity={1}
-                            side={THREE.DoubleSide}
-                          />
-                        </mesh>
-                      </group>
-                    );
-                  })}
-                </group>
+                <line>
+                  <bufferGeometry attach="geometry">
+                    <float32BufferAttribute
+                      attach="attributes-position"
+                      array={new Float32Array([
+                        -scale[0] / 2, -scale[1] / 2, 0.006,
+                        scale[0] / 2, -scale[1] / 2, 0.006,
+                        scale[0] / 2, scale[1] / 2, 0.006,
+                        -scale[0] / 2, scale[1] / 2, 0.006,
+                        -scale[0] / 2, -scale[1] / 2, 0.006,
+                      ])}
+                      count={5}
+                      itemSize={3}
+                    />
+                  </bufferGeometry>
+                  <lineBasicMaterial attach="material" color="#FFFFFF" dashSize={0.05} gapSize={0.05} />
+                </line>
               )}
             </group>
           );
