@@ -8,7 +8,7 @@ const PatternMaterial = shaderMaterial(
   {
     baseTexture: null,
     patternTexture: null,
-    baseColor: new THREE.Color(0xffffff),
+    baseColor: new THREE.Color("0xffffff"),
     patternColor: new THREE.Color(0xffffff),
     textureScale: 1.0,
     patternScale: 1.0,

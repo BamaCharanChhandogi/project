@@ -37,7 +37,7 @@ function HoodieCustomizer() {
   const [downloadGLBTrigger, setDownloadGLBTrigger] = useState(null);
   const [activeTab, setActiveTab] = useState("pattern");
   const [selectedColor, setSelectedColor] = useState("#FFFFFF");
-  const [selectedTexture, setSelectedTexture] = useState(null); // Changed to null
+  const [selectedTexture, setSelectedTexture] = useState("cotton"); // Changed to null
   const [selectedEnvironment, setSelectedEnvironment] = useState("studio");
   const [selectedTab, setSelectedTab] = useState("front");
   const [patternTab, setPatternTab] = useState("Front");
@@ -886,12 +886,22 @@ function HoodieCustomizer() {
                   <button
                     onClick={handleGLBDownload}
                     className="px-7 xl:px-8 py-3 xl:py-3 bg-white/10 backdrop-blur-md text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm xl:text-base pointer-events-auto"
+                    style={{
+                      background: "rgba(61, 182, 67, 0.1)",
+                      backdropFilter: "blur(8px)",
+                      WebkitBackdropFilter: "blur(8px)"
+                    }}
                   >
                     Save
                   </button>
                   <button
                     onClick={handleImageDownload}
                     className="px-6 xl:px-8 py-2 xl:py-3 bg-white/10 backdrop-blur-md text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm xl:text-base pointer-events-auto"
+                    style={{
+                      background: "rgba(204, 69, 69, 0.1)",
+                      backdropFilter: "blur(8px)",
+                      WebkitBackdropFilter: "blur(8px)"
+                    }}
                   >
                     Add To Cart
                   </button>
@@ -905,12 +915,22 @@ function HoodieCustomizer() {
                 <button
                   onClick={handleGLBDownload}
                   className="px-6 xl:px-8 py-2 xl:py-3 bg-white/10 backdrop-blur-md text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm xl:text-base pointer-events-auto"
+                  style={{
+                    background: "rgba(255, 255, 255, 0.1)",
+                    backdropFilter: "blur(8px)",
+                    WebkitBackdropFilter: "blur(8px)"
+                  }}
                 >
                   Save
                 </button>
                 <button
                   
                   className="px-6 xl:px-8 py-2 xl:py-3 bg-white/10 backdrop-blur-md text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm xl:text-base pointer-events-auto"
+                  style={{
+                    background: "rgba(255, 255, 255, 0.1)",
+                    backdropFilter: "blur(8px)",
+                    WebkitBackdropFilter: "blur(8px)"
+                  }}
                 >
                   Add To Cart
                 </button>
