@@ -24,7 +24,7 @@ function HoodieCustomizer() {
     rightSleeve: null,
     back: null,
   });
-  
+
   const [customTexts, setCustomTexts] = useState({
     front: { text: "", show: false, color: "#000000", background: "transparent", fontSize: 140, style: "classic", shape: "rectangle" },
     leftSleeve: { text: "", show: false, color: "#000000", background: "transparent", fontSize: 140, style: "classic", shape: "rectangle" },
@@ -40,11 +40,13 @@ function HoodieCustomizer() {
   const [selectedTab, setSelectedTab] = useState("front");
   const [patternTab, setPatternTab] = useState("collar");
   const [textureScale, setTextureScale] = useState(1);
+
   const [roughness, setRoughness] = useState(0.7);
   const [showAreasOnGarment, setShowAreasOnGarment] = useState(false);
   const [selectedPattern, setSelectedPattern] = useState(null); // Changed to null
   const [patternColor, setPatternColor] = useState("#FFFFFF");
   const [patternScale, setPatternScale] = useState(2);
+  const [patternOpacity, setPatternOpacity] = useState(1.0);
   const [selectedTextArea, setSelectedTextArea] = useState(null);
   const [cameraFov, setCameraFov] = useState(40);
   const [modelPosition, setModelPosition] = useState([0, 0, 0]);
@@ -102,6 +104,8 @@ function HoodieCustomizer() {
 
   useEffect(() => {
     const scrollableElements = document.querySelectorAll('.overflow-y-auto');
+    const styleElements = [];
+  
     scrollableElements.forEach((el) => {
       el.style.msOverflowStyle = 'none';
       el.style.scrollbarWidth = 'none';
@@ -117,9 +121,17 @@ function HoodieCustomizer() {
         }
       `;
       document.head.appendChild(styleEl);
-      return () => document.head.removeChild(styleEl);
+      styleElements.push(styleEl);
     });
-  }, []);
+  
+    return () => {
+      styleElements.forEach((styleEl) => {
+        if (document.head.contains(styleEl)) {
+          document.head.removeChild(styleEl);
+        }
+      });
+    };
+  }, [activeTab, selectedTextArea]);
 
   useEffect(() => {
     if (activeTab !== "text") {
@@ -190,7 +202,7 @@ function HoodieCustomizer() {
       [selectedTab]: color,
     }));
   };
-  
+
   const handleTextChange = (position, field, value) => {
     setCustomTexts((prev) => {
       const updated = {
@@ -275,23 +287,23 @@ function HoodieCustomizer() {
   ]
 
   return (
-    
+
     <div className="overflow-hidden w-screen h-screen bg-gradient-to-l from-[#263D44] to-[#577A8B]">
       <Canvas
         shadows
         gl={{ preserveDrawingBuffer: true, antialias: true }}
-      style={{
-  width:
-    window.innerWidth >= 1536 ? "130vw" :
-    window.innerWidth >= 1280 ? "160vw" :
-    "100vw",
-  height: "100vh",
-  transition: "transform 0.7s ease-in-out",
-  transform:
-    window.innerWidth < 1280 && panelVisible
-      ? "translateY(-15vh)"
-      : "translateY(0)"
-}}
+        style={{
+          width:
+            window.innerWidth >= 1536 ? "130vw" :
+              window.innerWidth >= 1280 ? "160vw" :
+                "100vw",
+          height: "100vh",
+          transition: "transform 0.7s ease-in-out",
+          transform:
+            window.innerWidth < 1280 && panelVisible
+              ? "translateY(-15vh)"
+              : "translateY(0)"
+        }}
 
         className="fixed top-0 left-0"
       >
@@ -329,12 +341,13 @@ function HoodieCustomizer() {
             selectedPattern={selectedPattern}
             patternColor={patternColor}
             patternScale={patternScale}
+            patternOpacity={patternOpacity}
             position={modelPosition}
           />
           <ContactShadows position={[0, -1.5, 0]} opacity={0.5} blur={2.5} scale={10} />
           {/* <Environment preset="sunset" background blur={4} /> */}
-          
-          <CustomEnvironment path="/customizer-bg.jpg"  />
+
+          <CustomEnvironment path="/customizer-bg.jpg" />
           <OrbitControls
             ref={controlsRef}
             minPolarAngle={Math.PI / 6}
@@ -457,71 +470,92 @@ function HoodieCustomizer() {
 
                 {/* Tab content remains the same */}
                 {activeTab === "pattern" && (
-                  <div className="h-[520px]">
-                    <div className="flex mb-4 xl:mb-6 overflow-x-auto">
-                      {patternTabs.map((tab) => (
-                        <button
-                          key={tab}
-                          onClick={() => setPatternTab(tab.toLowerCase())}
-                          className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm  whitespace-nowrap ${patternTab === tab.toLowerCase() ? "text-white" : "text-gray-300"}`}
-                        >
-                          {tab}
-                        </button>
-                      ))}
-                    </div>
-                    {/* Rest of pattern content */}
-                    <h3 className="text-lg xl:text-xl font-medium mb-2 xl:mb-3">Patterns</h3>
-                    <div className="grid grid-cols-3 xl:grid-cols-5 gap-2 mr-2 xl:mr-3 mb-3">
-                      {patternTypes.map((patternType) => (
-                        <button
-                          key={patternType}
-                          className={`w-[50%] xl:w-full aspect-square bg-gray-300 rounded-md hover:ring-2 hover:ring-white ${selectedPattern === patternType ? "ring-2 ring-white" : ""}`}
-                          onClick={() => handlePatternSelect(patternType)}
-                          title={patternType}
-                        >
-                          <img
-                            src={`/patterns/${patternType}_logo.png`}
-                            alt={patternType}
-                            className="w-full h-full object-cover"
-                          />
-                        </button>
-                      ))}
-                    </div>
-                    <h3 className="text-lg xl:text-xl font-medium mb-2 xl:mb-3">Pattern Color</h3>
-                    <div className="grid grid-cols-5 gap-2 mb-3 mr-2 xl:mr-3">
-                      {colors.map((color, index) => (
-                        <button
-                          key={index}
-                          className={`w-[80%] xl:w-full aspect-square rounded-md hover:ring-2 hover:ring-white ${patternColor === color.value ? "ring-2 ring-white" : ""}`}
-                          style={{ backgroundColor: color.value }}
-                          onClick={() => setPatternColor(color.value)}
-                          title={color.label}
-                        />
-                      ))}
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex justify-between">
-                        <span className="text-xs xl:text-sm text-gray-300">Pattern Scale</span>
-                        <span className="text-xs xl:text-sm text-gray-300">{patternScale.toFixed(2)}x</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="2.0"
-                        max="8"
-                        step="0.1"
-                        value={patternScale}
-                        onChange={(e) => setPatternScale(parseFloat(e.target.value))}
-                        className="w-full"
-                      />
-                    </div>
-                    <button
-                      onClick={() => setSelectedPattern(null)}
-                      className="mt-4 px-3 xl:px-4 py-1 xl:py-2 bg-slate-500 text-white rounded-md text-sm xl:text-base"
-                    >
-                      Clear Pattern
-                    </button>
-                  </div>
-                )}
+  <div className="h-[520px]">
+    <div className="flex mb-4 xl:mb-6 overflow-x-auto">
+      {patternTabs.map((tab) => (
+        <button
+          key={tab}
+          onClick={() => setPatternTab(tab.toLowerCase())}
+          className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm whitespace-nowrap ${
+            patternTab === tab.toLowerCase() ? "text-white" : "text-gray-300"
+          }`}
+        >
+          {tab}
+        </button>
+      ))}
+    </div>
+    {/* Rest of pattern content */}
+    <h3 className="text-lg xl:text-xl font-medium mb-2 xl:mb-3">Patterns</h3>
+    <div className="grid grid-cols-3 xl:grid-cols-5 gap-2 mr-2 xl:mr-3 mb-3">
+      {patternTypes.map((patternType) => (
+        <button
+          key={patternType}
+          className={`w-[50%] xl:w-full aspect-square bg-gray-300 rounded-md hover:ring-2 hover:ring-white ${
+            selectedPattern === patternType ? "ring-2 ring-white" : ""
+          }`}
+          onClick={() => handlePatternSelect(patternType)}
+          title={patternType}
+        >
+          <img
+            src={`/patterns/${patternType}_logo.png`}
+            alt={patternType}
+            className="w-full h-full object-cover"
+          />
+        </button>
+      ))}
+    </div>
+    <h3 className="text-lg xl:text-xl font-medium mb-2 xl:mb-3">Pattern Color</h3>
+    <div className="grid grid-cols-5 gap-2 mb-3 mr-2 xl:mr-3">
+      {colors.map((color, index) => (
+        <button
+          key={index}
+          className={`w-[80%] xl:w-full aspect-square rounded-md hover:ring-2 hover:ring-white ${
+            patternColor === color.value ? "ring-2 ring-white" : ""
+          }`}
+          style={{ backgroundColor: color.value }}
+          onClick={() => setPatternColor(color.value)}
+          title={color.label}
+        />
+      ))}
+    </div>
+    <div className="space-y-1">
+      <div className="flex justify-between">
+        <span className="text-xs xl:text-sm text-gray-300">Pattern Scale</span>
+        <span className="text-xs xl:text-sm text-gray-300">{patternScale.toFixed(2)}x</span>
+      </div>
+      <input
+        type="range"
+        min="2.0"
+        max="8"
+        step="0.1"
+        value={patternScale}
+        onChange={(e) => setPatternScale(parseFloat(e.target.value))}
+        className="w-full"
+      />
+    </div>
+    <div className="space-y-1">
+      <div className="flex justify-between">
+        <span className="text-xs xl:text-sm text-gray-300">Pattern Opacity</span>
+        <span className="text-xs xl:text-sm text-gray-300">{patternOpacity.toFixed(2)}</span>
+      </div>
+      <input
+        type="range"
+        min="0.5"
+        max="2"
+        step="0.01"
+        value={patternOpacity}
+        onChange={(e) => setPatternOpacity(parseFloat(e.target.value))}
+        className="w-full"
+      />
+    </div>
+    <button
+      onClick={() => setSelectedPattern(null)}
+      className="mt-4 px-3 xl:px-4 py-1 xl:py-2 bg-slate-500 text-white rounded-md text-sm xl:text-base"
+    >
+      Clear Pattern
+    </button>
+  </div>
+)}
 
                 {/* Colors tab */}
                 {activeTab === "colors" && (
@@ -669,152 +703,128 @@ function HoodieCustomizer() {
 
                 {/* Text tab */}
                 {activeTab === "text" && (
-                  <div className="h-[520px] overflow-y-auto">
-                    <h3 className="text-xl font-medium mb-4">Add Text</h3>
-                    <div className="flex flex-wrap gap-2 mb-6">
-                      {placementAreas.map((area) => (
-                        <button
-                          key={area.id}
-                          onClick={() => {
-                            setSelectedTab(area.mapping);
-                            setSelectedTextArea(area.mapping);
-                          }}
-                          className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${selectedTab === area.mapping
-                            ? "bg-slate-500 text-white"
-                            : "bg-slate-400 text-white hover:bg-slate-500"
-                            }`}
-                        >
-                          {area.label}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="space-y-4">
-                      {selectedTextArea ? (
-                        <>
-                          <label className="block">
-                            <span className="text-white font-medium mb-2 block">
-                              Custom Text for{" "}
-                              {selectedTextArea.charAt(0).toUpperCase() +
-                                selectedTextArea.slice(1)}
-                            </span>
-                            <textarea
-                              placeholder="Enter your text"
-                              value={customTexts[selectedTextArea].text}
-                              onChange={(e) =>
-                                handleTextChange(
-                                  selectedTextArea,
-                                  "text",
-                                  e.target.value
-                                )
-                              }
-                              onKeyDown={(e) => handleKeyDown(e, selectedTextArea)}
-                              className="w-full p-2 bg-slate-500 border border-slate-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-white text-white"
-                              rows={4}
-                            />
-                          </label>
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-white">Text Color</span>
-                            <input
-                              type="color"
-                              value={customTexts[selectedTextArea].color}
-                              onChange={(e) =>
-                                handleTextChange(
-                                  selectedTextArea,
-                                  "color",
-                                  e.target.value
-                                )
-                              }
-                              className="h-8 w-8 rounded cursor-pointer"
-                            />
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-white">Background</span>
-                            <input
-                              type="color"
-                              value={
-                                customTexts[selectedTextArea].background.startsWith("#")
-                                  ? customTexts[selectedTextArea].background
-                                  : "#FFFFFF"
-                              }
-                              onChange={(e) =>
-                                handleTextChange(
-                                  selectedTextArea,
-                                  "background",
-                                  e.target.value
-                                )
-                              }
-                              className="h-8 w-8 rounded cursor-pointer"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <div className="flex justify-between">
-                              <span className="text-sm text-white">Font Size</span>
-                              <span className="text-sm text-white">
-                                {customTexts[selectedTextArea].fontSize}px
-                              </span>
-                            </div>
-                            <input
-                              type="range"
-                              min="100"
-                              max="300"
-                              step="1"
-                              value={customTexts[selectedTextArea].fontSize}
-                              onChange={(e) =>
-                                handleTextChange(
-                                  selectedTextArea,
-                                  "fontSize",
-                                  parseInt(e.target.value)
-                                )
-                              }
-                              className="w-full"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <span className="text-sm text-white">Text Style</span>
-                            <select
-                              value={customTexts[selectedTextArea].style}
-                              onChange={(e) =>
-                                handleTextChange(
-                                  selectedTextArea,
-                                  "style",
-                                  e.target.value
-                                )
-                              }
-                              className="w-full p-2 bg-slate-500 border border-slate-400 rounded-lg text-white"
-                            >
-                              <option value="classic">Classic</option>
-                              <option value="bold">Bold</option>
-                              <option value="fancy">Fancy</option>
-                              <option value="modern">Modern</option>
-                            </select>
-                          </div>
-                          <div className="space-y-1">
-                            <span className="text-sm text-white">Text Shape</span>
-                            <select
-                              value={customTexts[selectedTextArea].shape}
-                              onChange={(e) =>
-                                handleTextChange(
-                                  selectedTextArea,
-                                  "shape",
-                                  e.target.value
-                                )
-                              }
-                              className="w-full p-2 bg-slate-500 border border-slate-400 rounded-lg text-white"
-                            >
-                              <option value="rectangle">Rectangle</option>
-                              <option value="circle">Circle</option>
-                              <option value="oval">Oval</option>
-                            </select>
-                          </div>
-                        </>
-                      ) : (
-                        <p className="text-gray-300">
-                          Please select a placement area to add text.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
+  <div className="h-[520px] overflow-y-auto">
+    <h3 className="text-xl font-medium mb-4">Add Text</h3>
+    <div className="flex flex-wrap gap-2 mb-6">
+      {placementAreas.map((area) => (
+        <button
+          key={area.id}
+          onClick={() => {
+            setSelectedTab(area.mapping);
+            setSelectedTextArea(area.mapping);
+          }}
+          className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+            selectedTab === area.mapping
+              ? "bg-slate-500 text-white"
+              : "bg-slate-400 text-white hover:bg-slate-500"
+          }`}
+        >
+          {area.label}
+        </button>
+      ))}
+    </div>
+    <div className="space-y-4">
+      {selectedTextArea ? (
+        <div> {/* Removed overflow-y-auto */}
+          <label className="block">
+            <span className="text-white font-medium mb-2 block">
+              Custom Text for{" "}
+              {selectedTextArea.charAt(0).toUpperCase() + selectedTextArea.slice(1)}
+            </span>
+            <textarea
+              placeholder="Enter your text"
+              value={customTexts[selectedTextArea].text}
+              onChange={(e) =>
+                handleTextChange(selectedTextArea, "text", e.target.value)
+              }
+              onKeyDown={(e) => handleKeyDown(e, selectedTextArea)}
+              className="w-full p-2 bg-slate-500 border border-slate-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-white text-white"
+              rows={4}
+            />
+          </label>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-white">Text Color</span>
+            <input
+              type="color"
+              value={customTexts[selectedTextArea].color}
+              onChange={(e) =>
+                handleTextChange(selectedTextArea, "color", e.target.value)
+              }
+              className="h-8 w-8 rounded cursor-pointer"
+            />
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-white">Background</span>
+            <input
+              type="color"
+              value={
+                customTexts[selectedTextArea].background.startsWith("#")
+                  ? customTexts[selectedTextArea].background
+                  : "#FFFFFF"
+              }
+              onChange={(e) =>
+                handleTextChange(selectedTextArea, "background", e.target.value)
+              }
+              className="h-8 w-8 rounded cursor-pointer"
+            />
+          </div>
+          <div className="space-y-1">
+            <div className="flex justify-between">
+              <span className="text-sm text-white">Font Size</span>
+              <span className="text-sm text-white">
+                {customTexts[selectedTextArea].fontSize}px
+              </span>
+            </div>
+            <input
+              type="range"
+              min="100"
+              max="300"
+              step="1"
+              value={customTexts[selectedTextArea].fontSize}
+              onChange={(e) =>
+                handleTextChange(selectedTextArea, "fontSize", parseInt(e.target.value))
+              }
+              className="w-full"
+            />
+          </div>
+          <div className="space-y-1">
+            <span className="text-sm text-white">Text Style</span>
+            <select
+              value={customTexts[selectedTextArea].style}
+              onChange={(e) =>
+                handleTextChange(selectedTextArea, "style", e.target.value)
+              }
+              className="w-full p-2 bg-slate-500 border border-slate-400 rounded-lg text-white"
+            >
+              <option value="classic">Classic</option>
+              <option value="bold">Bold</option>
+              <option value="fancy">Fancy</option>
+              <option value="modern">Modern</option>
+            </select>
+          </div>
+          <div className="space-y-1">
+            <span className="text-sm text-white">Text Shape</span>
+            <select
+              value={customTexts[selectedTextArea].shape}
+              onChange={(e) =>
+                handleTextChange(selectedTextArea, "shape", e.target.value)
+              }
+              className="w-full p-2 bg-slate-500 border border-slate-400 rounded-lg text-white"
+            >
+              <option value="rectangle">Rectangle</option>
+              <option value="circle">Circle</option>
+              <option value="oval">Oval</option>
+            </select>
+          </div>
+        </div>
+      ) : (
+        <p className="text-gray-300">
+          Please select a placement area to add text.
+        </p>
+      )}
+    </div>
+  </div>
+)}
               </div>
               {(window.innerWidth < 1280) && (
                 <div className="flex xl:justify-end justify-center space-x-4 py-2 pb-2 xl:mr-[-76px] xl:ml-0 ml-0 mt-2">
