@@ -19,6 +19,7 @@ function HoodieCustomizer() {
     leftSleeve: null,
     rightSleeve: null,
   });
+  const [clearPatternTrigger, setClearPatternTrigger] = useState(null);
   const [customLogos, setCustomLogos] = useState({
     front: null,
     leftSleeve: null,
@@ -76,7 +77,11 @@ function HoodieCustomizer() {
       });
     }
   };
-
+  // useEffect(() => {
+  //   if (clearPatternTrigger) {
+  //     setClearPatternTrigger(null); // Reset after processing
+  //   }
+  // }, [clearPatternTrigger]);
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
@@ -243,7 +248,32 @@ function HoodieCustomizer() {
       setDownloadGLBTrigger(null);
     }
   };
-
+  const tabToPositionMap = {
+    'front': 'front',
+    'back': 'back',
+    'left sleeve': 'leftSleeve',
+    'right sleeve': 'rightSleeve'
+  };
+  const handleClearPattern = () => {
+    // Make sure patternTab is defined and has correct case
+    if (!patternTab) return;
+    
+    const position = tabToPositionMap[patternTab.toLowerCase()];
+    console.log("Clearing pattern at position:", position);
+    
+    // Verify the position is valid
+    if (!position) {
+      console.error("Invalid position mapping for tab:", patternTab);
+      return;
+    }
+    
+    setSelectedPattern(null);
+    setClearPatternTrigger(position);
+  };
+  const handlePatternCleared = () => {
+    console.log("Pattern cleared callback received");
+    setClearPatternTrigger(null);
+  };
   const handlePatternSelect = (patternType) => {
     setSelectedPattern(patternType);
   };
@@ -345,6 +375,8 @@ function HoodieCustomizer() {
             patternOpacity={patternOpacity}
             position={modelPosition}
             activeTab={patternTab}
+            onClearPattern={clearPatternTrigger}
+            onPatternCleared={handlePatternCleared}
           />
           <ContactShadows position={[0, -1.5, 0]} opacity={0.5} blur={2.5} scale={10} />
           {/* <Environment preset="sunset" background blur={4} /> */}
@@ -486,8 +518,8 @@ function HoodieCustomizer() {
                 </button>
               )}
 
-              <div className="flex-1 xl:max-w-full xl:max-h-full overflow-y-auto ">
-                <h2 className="text-xl xl:text-2xl font-semibold mb-4 xl:mb-6 capitalize">{activeTab}</h2>
+              <div className="flex-1 xl:max-w-[full] xl:max-h-full overflow-y-auto">
+                <h2 className="text-xl xl:text-2xl font-semibold mb-4 xl:mb-6 capitalize ml-1">{activeTab}</h2>
 
                 {/* Tab content remains the same */}
                 {activeTab === "pattern" && (
@@ -497,7 +529,7 @@ function HoodieCustomizer() {
         <button
         key={tab}
         onClick={() => setPatternTab(tab.toLowerCase())}
-        className={`px-0 xl:px-0 py-1 mr-9 xl:py-2 text-xs xl:text-sm whitespace-nowrap text-left ${
+        className={`px-0 xl:px-0 py-1 mr-6 xl:py-2 text-xs xl:text-sm whitespace-nowrap text-left ml-1 ${
           patternTab === tab.toLowerCase() ? "text-white" : "text-[#D9D9D9]"
         }`}
       >
@@ -506,12 +538,12 @@ function HoodieCustomizer() {
       ))}
     </div>
     {/* Rest of pattern content */}
-    <h3 className="text-lg xl:text-xl font-medium mb-2 xl:mb-3">Patterns</h3>
-    <div className="grid grid-cols-3 bg-red-900 xl:grid-cols-5 gap-2 mr-2 xl:mr-3 mb-3">
+    <h3 className="text-lg xl:text-xl font-medium mb-2 xl:mb-3 ml-1">Patterns</h3>
+    <div className="grid grid-cols-3 xl:grid-cols-5 gap-2 mr-2 xl:mr-3 mb-3">
       {patternTypes.map((patternType) => (
         <button
           key={patternType}
-          className={`w-[60%] xl:w-full aspect-square bg-gray-300 rounded-md hover:ring-2 hover:ring-white ${
+          className={`w-[80%] xl:w-full ml-1 aspect-square bg-gray-300 rounded-md hover:ring-2 hover:ring-white ${
             selectedPattern === patternType ? "ring-2 ring-white" : ""
           }`}
           onClick={() => handlePatternSelect(patternType)}
@@ -525,8 +557,8 @@ function HoodieCustomizer() {
         </button>
       ))}
     </div>
-    <h3 className="text-lg xl:text-xl font-medium mb-2 xl:mb-3">Pattern Color</h3>
-    <div className="grid grid-cols-5 gap-2 mb-3 mr-2 xl:mr-3">
+    <h3 className="text-lg xl:text-xl font-medium mb-2 xl:mb-3 ml-1">Pattern Color</h3>
+    <div className="grid grid-cols-5 gap-2 ml-1 mb-3 mr-2 xl:mr-3">
       {colors.map((color, index) => (
         <button
           key={index}
@@ -571,8 +603,8 @@ function HoodieCustomizer() {
       />
     </div>
     <button
-      onClick={() => setSelectedPattern(null)}
-      className="mt-4 px-3 xl:px-4 py-1 xl:py-2 bg-white/30 backdrop-blur-xl text-white rounded-md text-sm xl:text-base"
+      onClick={handleClearPattern}
+      className="mt-4 h-[10%] px-3 xl:px-4 py-1 xl:py-2 bg-white/30 backdrop-blur-xl text-white rounded-md text-md xl:text-base"
 
     >
       Clear Pattern
@@ -582,7 +614,7 @@ function HoodieCustomizer() {
 
                 {/* Colors tab */}
                 {activeTab === "colors" && (
-                  <div className="h-[520px] overflow-y-auto">
+                  <div className="h-full">
                     <h3 className="text-xl font-medium mb-4">Apply Color to</h3>
                     <div className="flex flex-wrap gap-2 mb-6">
                       {placementAreas.map((area) => (
@@ -621,7 +653,7 @@ function HoodieCustomizer() {
 
                 {/* Logo tab */}
                 {activeTab === "logo" && (
-                  <div className="h-[520px] overflow-y-auto">
+                  <div className="h-full">
                     <h3 className="text-xl font-medium mb-4">Add Image</h3>
                     <div className="grid grid-cols-2 gap-4">
                       {placementAreas.map((area) => (
@@ -684,7 +716,7 @@ function HoodieCustomizer() {
 
                 {/* Texture tab */}
                 {activeTab === "texture" && (
-                  <div className="h-[520px] overflow-y-auto">
+                  <div className="h-full">
                     <h3 className="text-xl font-medium mb-4">Material Type</h3>
                     <div className="grid grid-cols-4 gap-2 mb-6">
                       {textures.map((texture) => (
@@ -726,7 +758,7 @@ function HoodieCustomizer() {
 
                 {/* Text tab */}
                 {activeTab === "text" && (
-  <div className="h-[520px] overflow-y-auto">
+  <div className="h-full">
     <h3 className="text-xl font-medium mb-4">Add Text</h3>
     <div className="flex flex-wrap gap-2 mb-6">
       {placementAreas.map((area) => (
@@ -817,7 +849,7 @@ function HoodieCustomizer() {
               onChange={(e) =>
                 handleTextChange(selectedTextArea, "style", e.target.value)
               }
-              className="w-full p-2 bg-white/30 backdrop-blur-xl border border-slate-400 rounded-lg text-white"
+              className="w-full p-2 bg-white/30 backdrop-blur-xl border border-slate-400 rounded-lg text-gray-500"
             >
               <option value="classic">Classic</option>
               <option value="bold">Bold</option>
@@ -832,7 +864,7 @@ function HoodieCustomizer() {
               onChange={(e) =>
                 handleTextChange(selectedTextArea, "shape", e.target.value)
               }
-              className="w-full p-2 bg-white/30 backdrop-blur-xl border border-slate-400 rounded-lg text-white"
+              className="w-full p-2 bg-white/10 backdrop-blur-xl border border-slate-400 rounded-lg text-gray-500"
             >
               <option value="rectangle">Rectangle</option>
               <option value="circle">Circle</option>

@@ -2101,7 +2101,9 @@ function HoodieModel({
   patternScale,
   position,
   patternOpacity,
-  activeTab
+  activeTab,
+  onClearPattern,
+  onPatternCleared,
 }) {
   const { scene } = useGLTF("/patterns/TShirt.glb");
   const { raycaster, camera, gl: renderer, scene: fullScene } = useThree();
@@ -2233,7 +2235,7 @@ function HoodieModel({
     back: null,
     front: null,
   });
-
+  
   const updatePartPattern = (position) => {
     if (selectedPattern) {
       setPartPatterns(prev => ({
@@ -2247,6 +2249,28 @@ function HoodieModel({
       }));
     }
   };
+  useEffect(() => {
+    if (onClearPattern) {
+      console.log("Clearing pattern for:", onClearPattern); // Add logging
+      setPartPatterns((prev) => {
+        const updated = { ...prev };
+        updated[onClearPattern] = null;
+        return updated;
+      });
+      
+      // Don't reset the trigger here - let the parent component handle it
+      // after the pattern is verified to be cleared
+    }
+  }, [onClearPattern]);
+  useEffect(() => {
+    // Only call when onClearPattern is set and the specific pattern is null
+    if (onClearPattern && onPatternCleared && partPatterns[onClearPattern] === null) {
+      console.log("Pattern cleared for:", onClearPattern);
+      onPatternCleared();
+    }
+  }, [partPatterns, onClearPattern, onPatternCleared]);
+  
+ 
 
   // Set zoom limits for OrbitControls
   useEffect(() => {
@@ -2958,6 +2982,20 @@ function HoodieModel({
     setCursorStyle("auto");
     setDragOffset({ x: 0, y: 0, z: 0 });
   };
+  // Inside HoodieModel component
+useEffect(() => {
+  if (onClearPattern) {
+    setPartPatterns((prev) => ({
+      ...prev,
+      [onClearPattern]: null,
+    }));
+    
+    // Call the onPatternCleared callback after clearing the pattern
+    if (onPatternCleared) {
+      onPatternCleared();
+    }
+  }
+}, [onClearPattern, onPatternCleared]);
 
   useEffect(() => {
     renderer.domElement.style.cursor = cursorStyle;
