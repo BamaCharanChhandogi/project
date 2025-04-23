@@ -40,23 +40,3 @@ body {
   height: 0 !important;
 }
 
-.custom-button {
-  background: rgba(255, 255, 255, 0.1); /* Fallback for iOS */
-  -webkit-backdrop-filter: blur(6px); /* Vendor prefix for Safari */
-  backdrop-filter: blur(6px); /* Standard property */
-}
-
-/* Hover state */
-.custom-button:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-/* Fallback for browsers that don't support backdrop-filter */
-@supports not (backdrop-filter: blur(6px)) {
-  .custom-button {
-    background: rgba(50, 50, 50, 0.8); /* Darker fallback background */
-  }
-  .custom-button:hover {
-    background: rgba(70, 70, 70, 0.8);
-  }
-}
