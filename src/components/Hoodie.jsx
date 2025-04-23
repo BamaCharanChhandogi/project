@@ -2333,8 +2333,8 @@ function HoodieModel({
   });
 
   const meshPartOrder = ["chest", "leftSleeve", "rightSleeve", "back", "front"];
-  const rotateIconTexture = useTexture("/Rotate1.jpg");
-  const deleteIconTexture = useTexture("/Delete.jpeg");
+  const rotateIconTexture = useTexture("/Rotate1.png");
+  const deleteIconTexture = useTexture("/Delete.png");
   const resizeIconTexture = useTexture("/Zoom.png");
   const moveIconTexture = useTexture("/Move.webp");
 
@@ -3171,7 +3171,11 @@ function HoodieModel({
           { position: "front", meshName: "Front", side: THREE.FrontSide },
           { position: "leftSleeve", meshName: "Left_Sleeve", side: THREE.FrontSide },
           { position: "rightSleeve", meshName: "Right_Sleeve", side: THREE.FrontSide },
+<<<<<<< HEAD
           { position: "back", meshName: "Back", side: THREE.BackSide },
+=======
+          { position: "back", meshName: "Back", side: THREE.FrontSide },
+>>>>>>> ac88e8d88c0fba2a6eed026eb6505b2580bbc508
         ];
   
         return decalConfigs.map((config) => {
