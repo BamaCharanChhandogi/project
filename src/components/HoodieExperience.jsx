@@ -1,3 +1,4 @@
+
 import React, { useRef, Suspense, useState, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
 import {
@@ -470,7 +471,6 @@ function HoodieCustomizer() {
 
                 {/* Tab content remains the same */}
                 {activeTab === "pattern" && (
-<<<<<<< HEAD
   <div className="h-[520px]">
     <div className="flex mb-4 xl:mb-6 overflow-x-auto">
       {patternTabs.map((tab) => (
@@ -557,88 +557,6 @@ function HoodieCustomizer() {
     </button>
   </div>
 )}
-=======
-                  <div className="h-[520px]">
-                    <div className="flex mb-4 xl:mb-6 overflow-x-auto">
-                      {patternTabs.map((tab) => (
-                        <button
-                          key={tab}
-                          onClick={() => setPatternTab(tab.toLowerCase())}
-                          className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm  whitespace-nowrap ${patternTab === tab.toLowerCase() ? "text-white" : "text-gray-300"}`}
-                        >
-                          {tab}
-                        </button>
-                      ))}
-                    </div>
-                    {/* Rest of pattern content */}
-                    <h3 className="text-lg xl:text-xl font-medium mb-2 xl:mb-3">Patterns</h3>
-                    <div className="grid grid-cols-3 xl:grid-cols-5 gap-2 mr-2 xl:mr-3 mb-3">
-                      {patternTypes.map((patternType) => (
-                        <button
-                          key={patternType}
-                          className={`w-[50%] xl:w-full aspect-square bg-gray-300 rounded-md hover:ring-2 hover:ring-white ${selectedPattern === patternType ? "ring-2 ring-white" : ""}`}
-                          onClick={() => handlePatternSelect(patternType)}
-                          title={patternType}
-                        >
-                          <img
-                            src={`/patterns/${patternType}_logo.png`}
-                            alt={patternType}
-                            className="w-full h-full object-cover"
-                          />
-                        </button>
-                      ))}
-                    </div>
-                    <h3 className="text-lg xl:text-xl font-medium mb-2 xl:mb-3">Pattern Color</h3>
-                    <div className="grid grid-cols-5 gap-2 mb-3 mr-2 xl:mr-3">
-                      {colors.map((color, index) => (
-                        <button
-                          key={index}
-                          className={`w-[80%] xl:w-full aspect-square rounded-md hover:ring-2 hover:ring-white ${patternColor === color.value ? "ring-2 ring-white" : ""}`}
-                          style={{ backgroundColor: color.value }}
-                          onClick={() => setPatternColor(color.value)}
-                          title={color.label}
-                        />
-                      ))}
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex justify-between">
-                        <span className="text-xs xl:text-sm text-gray-300">Pattern Scale</span>
-                        <span className="text-xs xl:text-sm text-gray-300">{patternScale.toFixed(2)}x</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="2.0"
-                        max="8"
-                        step="0.1"
-                        value={patternScale}
-                        onChange={(e) => setPatternScale(parseFloat(e.target.value))}
-                        className="w-full"
-                      />
-                    </div>
-                    <div className="space-y-1"> {/* Add this new block */}
-                      <div className="flex justify-between">
-                        <span className="text-xs xl:text-sm text-gray-300">Pattern Opacity</span>
-                        <span className="text-xs xl:text-sm text-gray-300">{patternOpacity.toFixed(2)}</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0.5"
-                        max="2"
-                        step="0.01"
-                        value={patternOpacity}
-                        onChange={(e) => setPatternOpacity(parseFloat(e.target.value))}
-                        className="w-full"
-                      />
-                    </div>
-                    <button
-                      onClick={() => setSelectedPattern(null)}
-                      className="mt-4 px-3 xl:px-4 py-1 xl:py-2 bg-slate-500 text-white rounded-md text-sm xl:text-base"
-                    >
-                      Clear Pattern
-                    </button>
-                  </div>
-                )}
->>>>>>> ac88e8d88c0fba2a6eed026eb6505b2580bbc508
 
                 {/* Colors tab */}
                 {activeTab === "colors" && (
@@ -951,4 +869,4 @@ function HoodieCustomizer() {
   );
 }
 
-export default HoodieCustomizer;
+export default HoodieCustomizer; 
