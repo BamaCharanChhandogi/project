@@ -26,7 +26,8 @@ function HDREnvironment({ path, intensity = 0.3, useAsBackground = true }) {
         envMap.intensity = intensity;
         
         // Set environment for reflections
-        scene.environment = envMap;
+        scene.background = texture;
+        scene.environment = null;
         
         // Optionally use as background
         if (useAsBackground) {
