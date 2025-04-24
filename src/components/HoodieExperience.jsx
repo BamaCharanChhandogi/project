@@ -796,7 +796,7 @@ function HoodieCustomizer() {
                 {/* Colors tab */}
                 {activeTab === "colors" && (
                   <div className="h-full">
-                    <h3 className="text-xl font-medium mb-4">Apply Colors to</h3>
+                    <h3 className="text-xl font-medium mb-4">Apply Color to</h3>
                     <div className="flex flex-wrap gap-2 mb-6">
                       {placementAreas.map((area) => (
                         <button
