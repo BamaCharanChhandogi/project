@@ -650,7 +650,7 @@ function HoodieCustomizer() {
                       </div> */}
                     <button
                       onClick={handleClearPattern}
-                      className="mt-4 h-[10%] px-3 xl:px-4 py-1 xl:py-2 bg-white/30 backdrop-blur-xl text-white rounded-md text-md xl:text-base"
+                      className="glass-button mt-4 h-[10%] px-3 xl:px-4 py-1 xl:py-2 bg-white/30 backdrop-blur-xl text-white rounded-md text-md xl:text-base"
 
                     >
                       Clear Pattern
@@ -661,13 +661,13 @@ function HoodieCustomizer() {
                 {/* Colors tab */}
                 {activeTab === "colors" && (
                   <div className="h-full">
-                    <h3 className="text-xl font-medium mb-4">Apply Color to</h3>
+                    <h3 className="text-xl font-medium mb-4">Apply Colors to</h3>
                     <div className="flex flex-wrap gap-2 mb-6">
                       {placementAreas.map((area) => (
                         <button
                           key={area.id}
                           onClick={() => setSelectedTab(area.mapping)}
-                          className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${selectedTab === area.mapping
+                          className={`glass-button px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${selectedTab === area.mapping
                             ? "bg-gray-500 text-white"
                             : "bg-white/30 backdrop-blur-xl text-white hover:bg-gray-500"
                             }`}
@@ -805,7 +805,7 @@ function HoodieCustomizer() {
                 {/* Text tab */}
                 {activeTab === "text" && (
                   <div className="h-full">
-                    <h3 className="text-xl font-medium mb-4 ml-1">Add Texts</h3>
+                    <h3 className="text-xl font-medium mb-4 ml-1">Add Text</h3>
                     <div className="flex flex-wrap gap-2 mb-6 ml-1">
                       {placementAreas2.map((area) => (
                         <button
