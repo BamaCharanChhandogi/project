@@ -1025,26 +1025,9 @@ function HoodieCustomizer() {
                               className="h-8 w-8 rounded cursor-pointer mt-3"
                             />
                           </div>
-                          {/* <div className="space-y-1">
-                            <div className="flex justify-between">
-                              <span className="text-sm text-white mt-3 ml-1">Font Size</span>
-                              <span className="text-sm text-white mt-3">
-                                {customTexts[selectedTextArea].fontSize}px
-                              </span>
-                            </div>
-                            <input
-                              type="range"
-                              min="0.8"
-                              max="2"
-                              step="0.1"
-                              value={textureScale}
-                              onChange={(e) => setTextureScale(parseFloat(e.target.value))}
-                              className="w-full ml-1 custom-range-slider"
-                            />
-                          </div> */}
                           <div className="space-y-3 mt-5">
                             <span className="text-sm text-white mt-3 ml-1">Text Style</span>
-                            {/* <select
+                            <select
                               value={customTexts[selectedTextArea].style}
                               onChange={(e) =>
                                 handleTextChange(selectedTextArea, "style", e.target.value)
@@ -1057,30 +1040,7 @@ function HoodieCustomizer() {
                                 <option value="fancy">Fancy</option>
                                 <option value="modern">Modern</option>
                               </div>
-                            </select> */}
-                            <select
-                              value={customTexts[selectedTextArea].style}
-                              onChange={(e) =>
-                                handleTextChange(selectedTextArea, "style", e.target.value)
-                              }
-                              className="w-[99%] p-2 bg-white/30 backdrop-blur-xl  rounded-lg text-gray-500 ml-1"
-                            >
-                              {/* <div>
-                                <option value="classic">Classic</option>
-                                <option value="bold">Bold</option>
-                                <option value="fancy">Fancy</option>
-                                <option value="modern">Modern</option>
-                              </div> */}
-                             < div className="space-y-3 mt-5">
-  <span className="text-sm text-white mt-3 ml-1">Text Style</span>
-  <CustomDropdown
-    options={["classic", "bold", "fancy", "modern"]}
-    value={customTexts[selectedTextArea].style}
-    onChange={(e) => handleTextChange(selectedTextArea, "style", e.target.value)}
-  />
-</div>
                             </select>
-
                           </div>
                           <div className="space-y-1 mt-5">
                             <span className="text-sm text-white mt-4 ml-1">Text Shape</span>
