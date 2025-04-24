@@ -132,7 +132,7 @@ function HoodieCustomizer() {
     return (
       <div className="relative w-[99%] ml-1" ref={dropdownRef}>
         <div
-          className="w-full p-2 bg-white/30 backdrop-blur-xl border border-slate-400 rounded-lg text-gray-500 flex justify-between items-center cursor-pointer"
+          className="w-full p-2 bg-white/30 backdrop-blur-xl rounded-lg text-gray-500 flex justify-between items-center cursor-pointer"
           onClick={() => setIsOpen(!isOpen)}
         >
           <span>{value.charAt(0).toUpperCase() + value.slice(1)}</span>
@@ -140,7 +140,7 @@ function HoodieCustomizer() {
         </div>
 
         {isOpen && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-white/30 backdrop-blur-xl border border-slate-400 rounded-lg z-10">
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white/30 backdrop-blur-xl  rounded-lg z-10">
             {options.map((option) => (
               <div
                 key={option}
@@ -995,7 +995,7 @@ function HoodieCustomizer() {
                                 handleTextChange(selectedTextArea, "text", e.target.value)
                               }
                               onKeyDown={(e) => handleKeyDown(e, selectedTextArea)}
-                              className="w-[97%] ml-1 p-2 bg-white/10 backdrop-blur-xl border border-slate-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-white text-white"
+                              className="w-[97%] ml-1 p-2 bg-white/10 backdrop-blur-xl  rounded-lg focus:outline-none focus:ring-2 focus:ring-white text-white"
                               rows={4}
                             />
                           </label>
@@ -1063,7 +1063,7 @@ function HoodieCustomizer() {
                               onChange={(e) =>
                                 handleTextChange(selectedTextArea, "style", e.target.value)
                               }
-                              className="w-[99%] p-2 bg-white/30 backdrop-blur-xl border border-slate-400 rounded-lg text-gray-500 ml-1"
+                              className="w-[99%] p-2 bg-white/30 backdrop-blur-xl  rounded-lg text-gray-500 ml-1"
                             >
                               {/* <div>
                                 <option value="classic">Classic</option>
@@ -1089,7 +1089,7 @@ function HoodieCustomizer() {
                               onChange={(e) =>
                                 handleTextChange(selectedTextArea, "shape", e.target.value)
                               }
-                              className="w-[99%] ml-1 p-2 bg-white/10 backdrop-blur-xl border border-slate-400 rounded-lg text-gray-500"
+                              className="w-[99%] ml-1 p-2 bg-white/10 backdrop-blur-xl rounded-lg text-gray-500"
                             >
                               <option value="rectangle">Rectangle</option>
                               <option value="circle">Circle</option>
@@ -1129,14 +1129,14 @@ function HoodieCustomizer() {
               <div className="flex xl:justify-end justify-center space-x-4 py-2 pb-2 2xl:mr-[-18px] 3xl:mr-[-76px] xl:mr-[43px] ml-0 mt-2">
                 <button
                   onClick={handleGLBDownload}
-                  className="px-6 xl:px-8 py-2 xl:py-3 bg-opacity-10 bg-white backdrop-blur-md backdrop-saturate-150 text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm xl:text-base pointer-events-auto"
+                  className="px-6 xl:px-8 py-2 xl:py-3 bg-opacity-10 bg-white backdrop-blur-md backdrop-saturate-150 text-white rounded-md hover:bg-white/20 shadow-md  text-sm xl:text-base pointer-events-auto"
 
                 >
                   Save
                 </button>
                 <button
 
-                  className="px-6 xl:px-8 py-2 xl:py-3 bg-opacity-10 bg-white backdrop-blur-md backdrop-saturate-150 text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm xl:text-base pointer-events-auto"
+                  className="px-6 xl:px-8 py-2 xl:py-3 bg-opacity-10 bg-white backdrop-blur-md backdrop-saturate-150 text-white rounded-md hover:bg-white/20 shadow-md  text-sm xl:text-base pointer-events-auto"
                 >
                   Add To Cart
                 </button>

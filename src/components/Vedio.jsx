@@ -112,12 +112,8 @@ const VideoLoader = () => {
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          borderRadius: "12px",
-          overflow: "hidden",
-          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
-          background: "rgba(38, 61, 68, 0.6)", // Match your gradient background
-          backdropFilter: "blur(10px)",
           zIndex: 10,
+          mixBlendMode: "screen",
         }}
       >
         <video
@@ -126,7 +122,7 @@ const VideoLoader = () => {
           muted
           playsInline
           style={{
-            width: "100%",
+            width: "50%",
             height: "auto",
             objectFit: "contain",
           }}
