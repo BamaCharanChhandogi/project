@@ -930,13 +930,13 @@ function HoodieCustomizer() {
                 <div className="flex xl:justify-end justify-center space-x-4 py-2 pb-2 xl:mr-[-76px] xl:ml-0 ml-0 mt-2">
                   <button
                     onClick={handleGLBDownload}
-                    className="px-7 xl:px-8 py-3 xl:py-3 bg-white/30 backdrop-blur-md backdrop-saturate-150 text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm xl:text-base pointer-events-auto"
+                    className="px-7 xl:px-8 py-3 xl:py-3 bg-opacity-10 bg-white backdrop-blur-md backdrop-saturate-150 text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm xl:text-base pointer-events-auto"
                   >
                     Save
                   </button>
                   <button
                     onClick={handleImageDownload}
-                    className="px-6 xl:px-8 py-2 xl:py-3 bg-white/30 backdrop-blur-md backdrop-saturate-150 text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm xl:text-base pointer-events-auto"
+                    className="px-6 xl:px-8 py-2 xl:py-3 bg-opacity-10 bg-white backdrop-blur-md backdrop-saturate-150 text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm xl:text-base pointer-events-auto"
                   >
                     Add To Cart
                   </button>
@@ -949,14 +949,14 @@ function HoodieCustomizer() {
               <div className="flex xl:justify-end justify-center space-x-4 py-2 pb-2 2xl:mr-[5px] 3xl:mr-[-76px] xl:mr-[43px] ml-0 mt-2">
                 <button
                   onClick={handleGLBDownload}
-                  className="px-6 xl:px-8 py-2 xl:py-3 bg-white/30 backdrop-blur-md backdrop-saturate-150 text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm xl:text-base pointer-events-auto"
+                  className="px-6 xl:px-8 py-2 xl:py-3 bg-opacity-10 bg-white backdrop-blur-md backdrop-saturate-150 text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm xl:text-base pointer-events-auto"
                   
                 >
                   Save
                 </button>
                 <button
 
-                  className="px-6 xl:px-8 py-2 xl:py-3 bg-white/30 backdrop-blur-md backdrop-saturate-150 text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm xl:text-base pointer-events-auto"
+                  className="px-6 xl:px-8 py-2 xl:py-3 bg-opacity-10 bg-white backdrop-blur-md backdrop-saturate-150 text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm xl:text-base pointer-events-auto"
                 >
                   Add To Cart
                 </button>
