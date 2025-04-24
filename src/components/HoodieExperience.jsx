@@ -8,6 +8,7 @@ import {
   PerspectiveCamera,
 } from "@react-three/drei";
 import * as THREE from "three";
+import VideoLoader from './Vedio'
 import HoodieModel from "./Hoodie";
 import CustomEnvironment from "./CustomEnvironment";
 
@@ -33,6 +34,7 @@ function HoodieCustomizer() {
     rightSleeve: { text: "", show: false, color: "#000000", background: "transparent", fontSize: 140, style: "classic", shape: "rectangle" },
     back: { text: "", show: false, color: "#000000", background: "transparent", fontSize: 140, style: "classic", shape: "rectangle" },
   });
+ 
   const [downloadImageTrigger, setDownloadImageTrigger] = useState(null);
   const [downloadGLBTrigger, setDownloadGLBTrigger] = useState(null);
   const [activeTab, setActiveTab] = useState("pattern");
@@ -53,6 +55,7 @@ function HoodieCustomizer() {
   const [cameraFov, setCameraFov] = useState(40);
   const [modelPosition, setModelPosition] = useState([0, 0, 0]);
   const [panelVisible, setPanelVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [partColors, setPartColors] = useState({
     front: "#FFFFFF",
@@ -76,6 +79,11 @@ function HoodieCustomizer() {
         return updated;
       });
     }
+  };
+  const calculateProgress = (value) => {
+    const min = 2.0; // Match your min value
+    const max = 8.0; // Match your max value
+    return ((value - min) / (max - min)) * 100;
   };
   // useEffect(() => {
   //   if (clearPatternTrigger) {
@@ -107,6 +115,49 @@ function HoodieCustomizer() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+  const CustomDropdown = ({ options, value, onChange }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    useEffect(() => {
+      function handleClickOutside(event) {
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+          setIsOpen(false);
+        }
+      }
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    return (
+      <div className="relative w-[99%] ml-1" ref={dropdownRef}>
+        <div
+          className="w-full p-2 bg-white/30 backdrop-blur-xl border border-slate-400 rounded-lg text-gray-500 flex justify-between items-center cursor-pointer"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          <span>{value.charAt(0).toUpperCase() + value.slice(1)}</span>
+          <span>{isOpen ? '▲' : '▼'}</span>
+        </div>
+
+        {isOpen && (
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white/30 backdrop-blur-xl border border-slate-400 rounded-lg z-10">
+            {options.map((option) => (
+              <div
+                key={option}
+                className="p-2 hover:bg-white/50 cursor-pointer text-gray-500"
+                onClick={() => {
+                  onChange({ target: { value: option } });
+                  setIsOpen(false);
+                }}
+              >
+                {option.charAt(0).toUpperCase() + option.slice(1)}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   useEffect(() => {
     const scrollableElements = document.querySelectorAll('.overflow-y-auto');
@@ -144,26 +195,89 @@ function HoodieCustomizer() {
       setSelectedTextArea(null);
     }
   }, [activeTab]);
+  // useEffect(() => {
+  //   const range = document.querySelector('.custom-range-slider');
+  //   if (range) {
+  //     const min = parseFloat(range.min) || 0.8;
+  //     const max = parseFloat(range.max) || 2;
+  //     const value = parseFloat(range.value);
+  //     const percentage = ((value - min) / (max - min)) * 100;
+  //     range.style.setProperty('--range-progress', `${percentage}%`);
+  //   }
+  // }, [textureScale]);
   useEffect(() => {
+    const updateRangeProgress = () => {
+      const range = document.querySelector('.custom-range-slider');
+      if (range) {
+        const min = 1; // Match your actual min value
+        const max = 2; // Match your actual max value
+        const value = parseFloat(range.value);
+        const percentage = ((value - min) / (max - min)) * 100;
+        range.style.setProperty('--range-progress', `${percentage}%`);
+      }
+    };
+
+    // Run immediately on mount
+    updateRangeProgress();
+
+    // Handle tab visibility changes
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        updateRangeProgress();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Clean up
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [textureScale]); // Keep textureScale in dependencies
+  // Calculate the percentage for the slider based on current value
+  const calculateProgress2 = (value) => {
+    const min = 1; // Match your min value
+    const max = 2; // Match your max value
+    return ((value - min) / (max - min)) * 100;
+  };
+  // useEffect(() => {
+  //   const range = document.querySelector('.custom-range-slider');
+  //   if (range) {
+  //     const min = parseFloat(range.min) || 0.8;
+  //     const max = parseFloat(range.max) || 2;
+  //     const value = parseFloat(range.value);
+  //     const percentage = ((value - min) / (max - min)) * 100;
+  //     range.style.setProperty('--range-progress', `${percentage}%`);
+  //   }
+  // }, [patternScale]);
+  // Make sure the useEffect runs on component mount
+  useEffect(() => {
+    const updateRangeProgress = () => {
+      const range = document.querySelector('.custom-range-slider');
+      if (range) {
+        const min = parseFloat(range.min) || 2.0; // Match your actual min value
+        const max = parseFloat(range.max) || 8.0; // Match your actual max value
+        const value = parseFloat(range.value);
+        const percentage = ((value - min) / (max - min)) * 100;
+        range.style.setProperty('--range-progress', `${percentage}%`);
+      }
+    };
+
+    // Run immediately on mount
+    updateRangeProgress();
+
+    // Optional: Set up a MutationObserver to watch for DOM changes
+    const observer = new MutationObserver(updateRangeProgress);
     const range = document.querySelector('.custom-range-slider');
     if (range) {
-      const min = parseFloat(range.min) || 0.8;
-      const max = parseFloat(range.max) || 2;
-      const value = parseFloat(range.value);
-      const percentage = ((value - min) / (max - min)) * 100;
-      range.style.setProperty('--range-progress', `${percentage}%`);
+      observer.observe(range, { attributes: true });
     }
-  }, [textureScale]);
-  useEffect(() => {
-    const range = document.querySelector('.custom-range-slider');
-    if (range) {
-      const min = parseFloat(range.min) || 0.8;
-      const max = parseFloat(range.max) || 2;
-      const value = parseFloat(range.value);
-      const percentage = ((value - min) / (max - min)) * 100;
-      range.style.setProperty('--range-progress', `${percentage}%`);
-    }
-  }, [patternScale]);
+
+    // Clean up
+    return () => {
+      if (observer) observer.disconnect();
+    };
+  }, [patternScale]); // Keep patternScale in dependencies
   useEffect(() => {
     const range = document.querySelector('.custom-range-slider');
     if (range) {
@@ -174,6 +288,21 @@ function HoodieCustomizer() {
       range.style.setProperty('--range-progress', `${percentage}%`);
     }
   }, [patternOpacity]);
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        const range = document.querySelector('.custom-range-slider');
+        if (range) {
+          range.style.setProperty('--range-progress', `${calculateProgress(patternScale)}%`);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [patternScale]);
 
   const handleLogoUpload = (event, position) => {
     const file = event.target.files[0];
@@ -332,7 +461,7 @@ function HoodieCustomizer() {
     { id: "leftChest", label: "Back", mapping: "back" },
     { id: "leftSleeve", label: "Left Sleeve", mapping: "leftSleeve" },
     { id: "rightSleeve", label: "Right Sleeve", mapping: "rightSleeve" },
-   
+
   ];
   const patternTypes = ["checker", "stripes", "circles"];
   const colors = [
@@ -365,10 +494,10 @@ function HoodieCustomizer() {
     "park",
     "lobby",
   ]
-
+  const [isModelLoaded, setIsModelLoaded] = useState(false);
   return (
-
     <div className="overflow-hidden w-screen h-screen bg-gradient-to-l from-[#263D44] to-[#577A8B]">
+       {!isModelLoaded && <VideoLoader />}
       <Canvas
         shadows
         gl={{ preserveDrawingBuffer: true, antialias: true }}
@@ -394,12 +523,10 @@ function HoodieCustomizer() {
         />
         <Suspense
           fallback={
-            <mesh>
-              <boxGeometry args={[0.5, 0.5, 0.5]} />
-              <meshBasicMaterial color="blue" wireframe />
-            </mesh>
+            null
           }
         >
+          
           <ambientLight intensity={0.1} />
           <directionalLight position={[5, 5, 5]} intensity={0.3} castShadow />
           <HoodieModel
@@ -426,6 +553,7 @@ function HoodieCustomizer() {
             activeTab={patternTab}
             onClearPattern={clearPatternTrigger}
             onPatternCleared={handlePatternCleared}
+            onLoaded={() => setIsModelLoaded(true)}
           />
           <ContactShadows position={[0, -1.5, 0]} opacity={0.5} blur={2.5} scale={10} />
           {/* <Environment preset="sunset" background blur={4} /> */}
@@ -623,7 +751,7 @@ function HoodieCustomizer() {
 
                         <span className="text-xs xl:text-sm">{patternScale.toFixed(2)}x</span>
                       </div>
-                      <input
+                      {/* <input
                         type="range"
                         min="2.0"
                         max="8"
@@ -631,23 +759,30 @@ function HoodieCustomizer() {
                         value={patternScale}
                         onChange={(e) => setPatternScale(parseFloat(e.target.value))}
                         className="w-full accent-[#D9D9D9] custom-range-slider"
+                      /> */}
+                      <input
+                        type="range"
+                        min="2.0"
+                        max="8"
+                        step="0.1"
+                        value={patternScale}
+                        onChange={(e) => {
+                          const newValue = parseFloat(e.target.value);
+                          setPatternScale(newValue);
+                          // Set the CSS variable directly when value changes
+                          e.target.style.setProperty('--range-progress', `${calculateProgress(newValue)}%`);
+                        }}
+                        className="w-full accent-[#D9D9D9] custom-range-slider"
+                        // Set the initial CSS variable inline
+                        style={{ '--range-progress': `${calculateProgress(patternScale)}%` }}
+                        // Add this ref to handle visibility changes
+                        ref={(el) => {
+                          if (el) {
+                            el.style.setProperty('--range-progress', `${calculateProgress(patternScale)}%`);
+                          }
+                        }}
                       />
                     </div>
-                      {/* <div className="space-y-1">
-                        <div className="flex justify-between">
-                          <span className="text-xs xl:text-sm mt-3">Pattern Opacity</span>
-                          <span className="text-xs xl:text-sm">{patternOpacity.toFixed(2)}</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="1"
-                          max="2"
-                          step="0.01"
-                          value={patternOpacity}
-                          onChange={(e) => setPatternOpacity(parseFloat(e.target.value))}
-                          className="w-full accent-[#D9D9D9] custom-range-slider"
-                        />
-                      </div> */}
                     <button
                       onClick={handleClearPattern}
                       className="glass-button mt-4 h-[10%] px-3 xl:px-4 py-1 xl:py-2 bg-white/30 backdrop-blur-xl text-white rounded-md text-md xl:text-base"
@@ -689,7 +824,7 @@ function HoodieCustomizer() {
                           type="text"
                           value={partColors[selectedTab]}
                           onChange={(e) => handleColorChange(e.target.value)}
-                          className="flex-1  bg-white/30 backdrop-blur-lg rounded-lg px-3 py-2 text-white"
+                          className="flex-1  bg-white/30 backdrop-blur-lg rounded-lg px-3 py-2 text-gray-600"
                           placeholder="#FFFFFF"
                         />
                       </div>
@@ -788,7 +923,7 @@ function HoodieCustomizer() {
                           <span className="text-sm text-gray-300 ml-1">Scale</span>
                           <span className="text-sm text-gray-300">{textureScale.toFixed(2)}x</span>
                         </div>
-                        <input
+                        {/* <input
                           type="range"
                           min="1"
                           max="2"
@@ -796,6 +931,28 @@ function HoodieCustomizer() {
                           value={textureScale}
                           onChange={(e) => setTextureScale(parseFloat(e.target.value))}
                           className="w-full accent-[#D9D9D9] ml-1 texture-scale-slider custom-range-slider"
+                        /> */}
+                        <input
+                          type="range"
+                          min="1"
+                          max="2"
+                          step="0.1"
+                          value={textureScale}
+                          onChange={(e) => {
+                            const newValue = parseFloat(e.target.value);
+                            setTextureScale(newValue);
+                            // Set the CSS variable directly when value changes
+                            e.target.style.setProperty('--range-progress', `${calculateProgress(newValue)}%`);
+                          }}
+                          className="w-full accent-[#D9D9D9] ml-1 texture-scale-slider custom-range-slider"
+                          // Set the initial CSS variable inline
+                          style={{ '--range-progress': `${calculateProgress(textureScale)}%` }}
+                          // Add this ref to handle visibility changes
+                          ref={(el) => {
+                            if (el) {
+                              el.style.setProperty('--range-progress', `${calculateProgress(textureScale)}%`);
+                            }
+                          }}
                         />
                       </div>
                     </div>
@@ -886,22 +1043,45 @@ function HoodieCustomizer() {
                             />
                           </div> */}
                           <div className="space-y-3 mt-5">
+                            <span className="text-sm text-white mt-3 ml-1">Text Style</span>
+                            {/* <select
+                              value={customTexts[selectedTextArea].style}
+                              onChange={(e) =>
+                                handleTextChange(selectedTextArea, "style", e.target.value)
+                              }
+                              className="w-[99%] p-2 bg-white/30 backdrop-blur-xl border border-slate-400 rounded-lg text-gray-500 ml-1"
+                            >
+                              <div>
+                                <option value="classic">Classic</option>
+                                <option value="bold">Bold</option>
+                                <option value="fancy">Fancy</option>
+                                <option value="modern">Modern</option>
+                              </div>
+                            </select> */}
+                            <select
+                              value={customTexts[selectedTextArea].style}
+                              onChange={(e) =>
+                                handleTextChange(selectedTextArea, "style", e.target.value)
+                              }
+                              className="w-[99%] p-2 bg-white/30 backdrop-blur-xl border border-slate-400 rounded-lg text-gray-500 ml-1"
+                            >
+                              {/* <div>
+                                <option value="classic">Classic</option>
+                                <option value="bold">Bold</option>
+                                <option value="fancy">Fancy</option>
+                                <option value="modern">Modern</option>
+                              </div> */}
+                             < div className="space-y-3 mt-5">
   <span className="text-sm text-white mt-3 ml-1">Text Style</span>
-  <select
+  <CustomDropdown
+    options={["classic", "bold", "fancy", "modern"]}
     value={customTexts[selectedTextArea].style}
-    onChange={(e) =>
-      handleTextChange(selectedTextArea, "style", e.target.value)
-    }
-    className="w-[99%] p-2 bg-gray-300 border border-slate-400 rounded-lg text-gray-500 ml-1"
-  >
-    <div>
-    <option value="classic" className="hover:bg-red-900">Classic</option>
-    <option value="bold">Bold</option>
-    <option value="fancy">Fancy</option>
-    <option value="modern">Modern</option>
-    </div>
-  </select>
+    onChange={(e) => handleTextChange(selectedTextArea, "style", e.target.value)}
+  />
 </div>
+                            </select>
+
+                          </div>
                           <div className="space-y-1 mt-5">
                             <span className="text-sm text-white mt-4 ml-1">Text Shape</span>
                             <select
@@ -935,7 +1115,7 @@ function HoodieCustomizer() {
                     Save
                   </button>
                   <button
-                    onClick={handleImageDownload}
+                    
                     className="glass-button px-6 xl:px-8 py-2 xl:py-3 rounded-md text-sm xl:text-base"
                   >
                     Add To Cart
@@ -950,7 +1130,7 @@ function HoodieCustomizer() {
                 <button
                   onClick={handleGLBDownload}
                   className="px-6 xl:px-8 py-2 xl:py-3 bg-opacity-10 bg-white backdrop-blur-md backdrop-saturate-150 text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm xl:text-base pointer-events-auto"
-                  
+
                 >
                   Save
                 </button>

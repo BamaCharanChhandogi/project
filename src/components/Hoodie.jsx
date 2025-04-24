@@ -93,6 +93,7 @@ function HoodieModel({
   activeTab,
   onClearPattern,
   onPatternCleared,
+  onLoaded
 }) {
   const { scene } = useGLTF("/patterns/TShirt.glb");
   const { raycaster, camera, gl: renderer, scene: fullScene } = useThree();
@@ -251,6 +252,13 @@ function HoodieModel({
       // after the pattern is verified to be cleared
     }
   }, [onClearPattern]);
+  useEffect(() => {
+    if (onLoaded) {
+      onLoaded(); // Inform parent that model is ready
+    }
+  }, [onLoaded]);
+
+
   useEffect(() => {
     // Only call when onClearPattern is set and the specific pattern is null
     if (onClearPattern && onPatternCleared && partPatterns[onClearPattern] === null) {
