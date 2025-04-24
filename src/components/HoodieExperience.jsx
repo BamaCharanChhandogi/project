@@ -477,10 +477,10 @@ function HoodieCustomizer() {
     { value: "#9B59B6", label: "Purple" },
   ];
   const textures = [
-    { value: "cotton", label: "Cotton", imageUrl: "/Equinox.jpg" },
-    { value: "fleece", label: "Fleece", imageUrl: "/Elementary.jpg" },
-    { value: "knit", label: "Knit", imageUrl: "/Legend.jpg" },
-    { value: "denim", label: "Denim", imageUrl: "/Legacy.jpg" },
+    { value: "cotton", label: "Cotton", imageUrl:"/8_flannelette tartan fabric texture-seamless.jpg" },
+    { value: "fleece", label: "Fleece", imageUrl:"/14_acrylic fabric tartan wallpapers texture-seamless.jpg" },
+    { value: "knit", label: "Knit", imageUrl:"/15_wool flannel fabric texture-seamless.jpg" },
+    { value: "denim", label: "Denim", imageUrl:"/29_wool silk tartan fabric texture-seamless.jpg" },
   ];
   const environments = [
     "sunset",
@@ -496,7 +496,7 @@ function HoodieCustomizer() {
   ]
   const [isModelLoaded, setIsModelLoaded] = useState(false);
   return (
-    <div className="overflow-hidden w-screen h-screen bg-gradient-to-l from-[#263D44] to-[#577A8B]">
+    <div className="overflow-hidden w-screen h-screen bg-gradient-to-l from-[#2e4650] to-[#456674]">
        {!isModelLoaded && <VideoLoader />}
       <Canvas
         shadows
@@ -909,10 +909,11 @@ function HoodieCustomizer() {
                             : "ring-1 ring-gray-400 hover:ring-white"
                             }`}
                         >
-                          <div
-                            className="w-full h-full bg-contain bg-center bg-no-repeat"
-                            style={{ backgroundImage: `url(${texture.imageUrl})` }}
-                          ></div>
+                          <img
+            src={texture.imageUrl}
+            alt={texture.label}
+            className="w-full h-full object-cover"
+          />
                         </button>
                       ))}
                     </div>
