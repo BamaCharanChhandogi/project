@@ -805,7 +805,7 @@ function HoodieCustomizer() {
                 {/* Text tab */}
                 {activeTab === "text" && (
                   <div className="h-full">
-                    <h3 className="text-xl font-medium mb-4 ml-1">Add Text</h3>
+                    <h3 className="text-xl font-medium mb-4 ml-1">Add Texts</h3>
                     <div className="flex flex-wrap gap-2 mb-6 ml-1">
                       {placementAreas2.map((area) => (
                         <button
@@ -814,7 +814,7 @@ function HoodieCustomizer() {
                             setSelectedTab(area.mapping);
                             setSelectedTextArea(area.mapping);
                           }}
-                          className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${selectedTab === area.mapping
+                          className={`glass-button px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${selectedTab === area.mapping
                             ? "bg-gray-500 text-white"
                             : "bg-white/30 backdrop-blur-xl text-white hover:bg-gray-500"
                             }`}
@@ -886,7 +886,7 @@ function HoodieCustomizer() {
                             />
                           </div> */}
                           <div className="space-y-3 mt-5">
-  <span className="text-sm text-white mt-3 ml-1">Text Styles</span>
+  <span className="text-sm text-white mt-3 ml-1">Text Style</span>
   <select
     value={customTexts[selectedTextArea].style}
     onChange={(e) =>
