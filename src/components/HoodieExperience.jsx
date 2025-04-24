@@ -26,7 +26,7 @@ function HoodieCustomizer() {
     rightSleeve: null,
     back: null,
   });
-
+  const iOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
   const [customTexts, setCustomTexts] = useState({
     front: { text: "", show: false, color: "#000000", background: "transparent", fontSize: 140, style: "classic", shape: "rectangle" },
     leftSleeve: { text: "", show: false, color: "#000000", background: "transparent", fontSize: 140, style: "classic", shape: "rectangle" },
@@ -886,7 +886,7 @@ function HoodieCustomizer() {
                             />
                           </div> */}
                           <div className="space-y-3 mt-5">
-  <span className="text-sm text-white mt-3 ml-1">Text Style</span>
+  <span className="text-sm text-white bg-red-900 mt-3 ml-1">Text Style</span>
   <select
     value={customTexts[selectedTextArea].style}
     onChange={(e) =>
@@ -930,13 +930,13 @@ function HoodieCustomizer() {
                 <div className="flex xl:justify-end justify-center space-x-4 py-2 pb-2 xl:mr-[-76px] xl:ml-0 ml-0 mt-2">
                   <button
                     onClick={handleGLBDownload}
-                    className="px-7 xl:px-8 py-3 xl:py-3 bg-opacity-10 bg-white backdrop-blur-md backdrop-saturate-150 text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm xl:text-base pointer-events-auto"
+                    className="glass-button px-6 xl:px-8 py-2 xl:py-3 rounded-md text-sm xl:text-base"
                   >
                     Save
                   </button>
                   <button
                     onClick={handleImageDownload}
-                    className="px-6 xl:px-8 py-2 xl:py-3 bg-opacity-10 bg-white backdrop-blur-md backdrop-saturate-150 text-white rounded-md hover:bg-white/20 shadow-md border border-white/30 text-sm xl:text-base pointer-events-auto"
+                    className="glass-button px-6 xl:px-8 py-2 xl:py-3 rounded-md text-sm xl:text-base"
                   >
                     Add To Cart
                   </button>
