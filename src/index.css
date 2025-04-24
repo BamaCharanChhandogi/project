@@ -39,4 +39,87 @@ body {
   width: 0 !important;
   height: 0 !important;
 }
+.custom-range-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+
+.custom-range-slider::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, white 0%, white var(--range-progress), #D9D9D9 var(--range-progress), #D9D9D9 100%);
+  height: 4px;
+  border-radius: 2px;
+}
+
+.custom-range-slider::-moz-range-track {
+  background: linear-gradient(to right, white 0%, white var(--range-progress), #D9D9D9 var(--range-progress), #D9D9D9 100%);
+  height: 4px;
+  border-radius: 2px;
+}
+
+.custom-range-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  cursor: pointer;
+  margin-top: -6px;
+}
+
+.custom-range-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  cursor: pointer;
+}
+input[type="color"] {
+  -webkit-appearance: none; /* Removes default styling in WebKit browsers */
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  padding: 0;
+  cursor: pointer;
+  background-color: transparent;
+}
+
+/* WebKit browsers (e.g., Chrome, Safari) */
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+  border-radius: 50%;
+}
+
+input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 50%;
+  padding: 0;
+}
+
+/* Firefox */
+input[type="color"]::-moz-color-swatch {
+  border: none;
+  border-radius: 50%;
+  padding: 0;
+}
+/* select option {
+  background-color:#d5d9dfe0 ;
+  color:gray; 
+ 
+  backdrop-filter: blur(10px);
+} */
+
+
+select {
+  background-color: #d5d9dfe0; /* Semi-transparent white */
+  color: gray;
+  backdrop-filter: blur(10px); /* Applies a blur effect to the background */
+}
+
+.abc:hover {
+  background-color: pink;
+}
+
 
