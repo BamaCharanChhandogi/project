@@ -886,7 +886,7 @@ function HoodieCustomizer() {
                             />
                           </div> */}
                           <div className="space-y-3 mt-5">
-  <span className="text-sm text-white bg-red-900 mt-3 ml-1">Text Style</span>
+  <span className="text-sm text-white mt-3 ml-1">Text Styles</span>
   <select
     value={customTexts[selectedTextArea].style}
     onChange={(e) =>
