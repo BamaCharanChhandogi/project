@@ -39,7 +39,7 @@ function HoodieCustomizer() {
   const [downloadGLBTrigger, setDownloadGLBTrigger] = useState(null);
   const [activeTab, setActiveTab] = useState("colors");
   const [selectedColor, setSelectedColor] = useState("#FFFFFF");
-  const [selectedTexture, setSelectedTexture] = useState("cotton"); // Changed to null
+  const [selectedTexture, setSelectedTexture] = useState("null"); // Changed to null
   const [selectedEnvironment, setSelectedEnvironment] = useState("studio");
   const [selectedTab, setSelectedTab] = useState("front");
   const [patternTab, setPatternTab] = useState("Front");
@@ -480,7 +480,6 @@ function HoodieCustomizer() {
     { value: "cotton", label: "Cotton", imageUrl:"/8_flannelette tartan fabric texture-seamless.jpg" },
     { value: "fleece", label: "Fleece", imageUrl:"/14_acrylic fabric tartan wallpapers texture-seamless.jpg" },
     { value: "knit", label: "Knit", imageUrl:"/15_wool flannel fabric texture-seamless.jpg" },
-    { value: "denim", label: "Denim", imageUrl:"/29_wool silk tartan fabric texture-seamless.jpg" },
   ];
   const environments = [
     "sunset",

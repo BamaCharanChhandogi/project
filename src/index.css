@@ -107,15 +107,6 @@ input[type="color"]::-moz-color-swatch {
   padding: 0;
 }
 
-select {
-  background-color: #d5d9dfe0; 
-  color: gray;
-  backdrop-filter: blur(10px); 
-}
-
-.abc:hover {
-  background-color: pink;
-}
 
 /* Ensure backdrop-filter is supported with fallbacks for buttons */
 @supports ((-webkit-backdrop-filter: blur(4px)) or (backdrop-filter: blur(4px))) {

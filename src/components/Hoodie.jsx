@@ -7,6 +7,8 @@ import { GLTFExporter } from "three/addons/exporters/GLTFExporter";
 const PatternMaterial = shaderMaterial(
   {
     baseTexture: null,
+    normalMap: null,
+    roughnessMap: null,
     patternTexture: null,
     baseColor: new THREE.Color("0xffffff"),
     patternColor: new THREE.Color(0xffffff),
@@ -16,20 +18,36 @@ const PatternMaterial = shaderMaterial(
     roughness: 0.7,
     metalness: 0.1,
     patternOpacity: 1.0,
+    useNormalMap: false,
+    useRoughnessMap: false,
   },
+  // Vertex shader needs normal and tangent calculation for the normal map
   `
     varying vec2 vUv;
     varying vec3 vPosition;
     varying vec3 vNormal;
+    varying vec3 vTangent;
+    varying vec3 vBitangent;
+    
     void main() {
       vUv = uv;
       vPosition = position;
       vNormal = normalize(normalMatrix * normal);
+      
+      // For normal mapping
+      vec3 tangent = normalize(normalMatrix * vec3(1.0, 0.0, 0.0));
+      vec3 bitangent = normalize(cross(vNormal, tangent));
+      vTangent = tangent;
+      vBitangent = bitangent;
+      
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }
   `,
+  // Fragment shader with normal and roughness maps
   `
     uniform sampler2D baseTexture;
+    uniform sampler2D normalMap;
+    uniform sampler2D roughnessMap;
     uniform sampler2D patternTexture;
     uniform vec3 baseColor;
     uniform vec3 patternColor;
@@ -37,21 +55,44 @@ const PatternMaterial = shaderMaterial(
     uniform float patternScale;
     uniform vec2 textureOffset;
     uniform float patternOpacity;
+    uniform float roughness;
+    uniform bool useNormalMap;
+    uniform bool useRoughnessMap;
+    
     varying vec2 vUv;
     varying vec3 vPosition;
     varying vec3 vNormal;
+    varying vec3 vTangent;
+    varying vec3 vBitangent;
+    
     void main() {
       vec2 scaledBaseUv = vUv * textureScale + textureOffset;
       vec4 baseTexel = texture2D(baseTexture, scaledBaseUv);
       vec4 baseColor4 = vec4(baseColor, 1.0);
       vec4 base = baseTexel * baseColor4;
+      
+      // Normal mapping
+      vec3 normal = vNormal;
+      if (useNormalMap) {
+        vec3 normalMap = texture2D(normalMap, scaledBaseUv).rgb * 2.0 - 1.0;
+        mat3 TBN = mat3(vTangent, vBitangent, vNormal);
+        normal = normalize(TBN * normalMap);
+      }
+      
+      // Roughness mapping
+      float materialRoughness = roughness;
+      if (useRoughnessMap) {
+        materialRoughness = texture2D(roughnessMap, scaledBaseUv).r;
+      }
+      
       vec2 scaledPatternUv = vUv * patternScale;
       vec4 patternTexel = texture2D(patternTexture, scaledPatternUv);
       vec4 pattern = vec4(patternTexel.rgb * patternColor, patternTexel.a);
+      
       if (pattern.a > 0.1) {
-       float alpha = pattern.a * patternOpacity;
+        float alpha = pattern.a * patternOpacity;
         vec4 result = mix(base, vec4(pattern.rgb, 1.0), alpha);
-       gl_FragColor = vec4(result.rgb, 1.0);
+        gl_FragColor = vec4(result.rgb, 1.0);
       } else {
         gl_FragColor = base;
       }
@@ -95,15 +136,28 @@ function HoodieModel({
   onPatternCleared,
   onLoaded
 }) {
-  const { scene } = useGLTF("/patterns/TShirt.glb");
+  const { scene } = useGLTF("/patterns/BamaFinal.glb");
   const { raycaster, camera, gl: renderer, scene: fullScene } = useThree();
 
-  const baseTextures = useTexture({
-    cotton: "/8_flannelette tartan fabric texture-seamless.jpg",
-    fleece: "/14_acrylic fabric tartan wallpapers texture-seamless.jpg",
-    knit: "/15_wool flannel fabric texture-seamless.jpg",
-    denim: "/29_wool silk tartan fabric texture-seamless.jpg",
-    polyester: "/74_navy blue fabric striped wallpaper texture-seamless.jpg",
+  // Load base textures separately
+  const baseColorTextures = useTexture({
+    cotton: "/patterns/Fabric017_4K_Color.jpg",
+    fleece: "/patterns/repeat.jpg",
+    knit: "/patterns/outdoor-polyester-fabric_albedo.jpg",
+  });
+
+  // Load normal maps separately
+  const normalTextures = useTexture({
+    cotton: "/patterns/Fabric017_4K_NormalGL.jpg",
+    fleece: "/patterns/outdoor-polyester-fabric_normal-ogl.jpg",
+    knit: "/patterns/outdoor-polyester-fabric_normal-ogl.jpg",
+  });
+
+  // Load roughness maps separately 
+  const roughnessTextures = useTexture({
+    cotton: "/patterns/Fabric017_4K_Roughness.jpg",
+    fleece: "/patterns/outdoor-polyester-fabric_roughness.jpg",
+    knit: "/patterns/outdoor-polyester-fabric_roughness.jpg",
   });
 
   const patternTextures = useTexture({
@@ -156,7 +210,7 @@ function HoodieModel({
     back: [0, Math.PI, 0],
     front: [0.00, 0.13, 0.00],
   });
-  
+
   const [decalPositions, setDecalPositions] = useState({
     chest: [0.01, 0.20, 0.12],
     leftSleeve: [-0.75, 0.10, -0.03],
@@ -164,7 +218,7 @@ function HoodieModel({
     back: [0, 0.2, -0.08],
     front: [0.01, 0.20, 0.12],
   });
-  
+
   const [decalUniformScales, setDecalUniformScales] = useState({
     chest: 0.14,
     leftSleeve: 0.155,
@@ -225,7 +279,7 @@ function HoodieModel({
     back: null,
     front: null,
   });
-  
+
   const updatePartPattern = (position) => {
     if (selectedPattern) {
       setPartPatterns(prev => ({
@@ -247,7 +301,7 @@ function HoodieModel({
         updated[onClearPattern] = null;
         return updated;
       });
-      
+
       // Don't reset the trigger here - let the parent component handle it
       // after the pattern is verified to be cleared
     }
@@ -257,7 +311,12 @@ function HoodieModel({
       onLoaded(); // Inform parent that model is ready
     }
   }, [onLoaded]);
-
+  useEffect(() => {
+    console.log("Base textures:", baseColorTextures);
+    console.log("Normal maps:", normalTextures);
+    console.log("Roughness maps:", roughnessTextures);
+    console.log("Pattern textures:", patternTextures);
+  }, [baseColorTextures, normalTextures, roughnessTextures, patternTextures]);
 
   useEffect(() => {
     // Only call when onClearPattern is set and the specific pattern is null
@@ -266,8 +325,8 @@ function HoodieModel({
       onPatternCleared();
     }
   }, [partPatterns, onClearPattern, onPatternCleared]);
-  
- 
+
+
 
   // Set zoom limits for OrbitControls
   useEffect(() => {
@@ -484,7 +543,7 @@ function HoodieModel({
 
   useEffect(() => {
     if (!scene) return;
-  
+
     const meshMap = {
       chest: null,
       leftSleeve: null,
@@ -492,26 +551,48 @@ function HoodieModel({
       back: null,
       front: null,
     };
-  
+
     const activePosition = activeTab ? tabToPositionMap[activeTab.toLowerCase()] : null;
-  
+
     if (activePosition && selectedPattern) {
       updatePartPattern(activePosition);
     }
-  
+
     scene.traverse((child) => {
       if (child.isMesh) {
         const partName = meshPartMapping[child.name];
         if (partName) {
-          meshMap[partName] = child;
           const partColor = partColors[partName] || "#FFFFFF";
+
+          // Get the selected texture data
+          // Corrected code
+          meshMap[partName] = child;
+          console.log(`Assigned mesh ${child.name} to ${partName}`);
   
-          let baseTexture = selectedTexture ? baseTextures[selectedTexture] : null;
-          if (baseTexture) {
+          let baseTexture = selectedTexture ? baseColorTextures[selectedTexture] : null;
+          let normalMap = selectedTexture ? normalTextures[selectedTexture] : null;
+          let roughnessMap = selectedTexture ? roughnessTextures[selectedTexture] : null;
+          let useNormalMap = false;
+          let useRoughnessMap = false;
+
+          if (selectedTexture && baseTexture) {
             baseTexture.wrapS = baseTexture.wrapT = THREE.RepeatWrapping;
             baseTexture.repeat.set(textureScale, textureScale);
             baseTexture.needsUpdate = true;
+
+            if (normalMap) {
+              normalMap.wrapS = normalMap.wrapT = THREE.RepeatWrapping;
+              normalMap.repeat.set(textureScale, textureScale);
+              normalMap.needsUpdate = true;
+            }
+
+            if (roughnessMap) {
+              roughnessMap.wrapS = roughnessMap.wrapT = THREE.RepeatWrapping;
+              roughnessMap.repeat.set(textureScale, textureScale);
+              roughnessMap.needsUpdate = true;
+            }
           } else {
+            // Create empty textures
             const emptyCanvas = document.createElement("canvas");
             emptyCanvas.width = emptyCanvas.height = 1;
             const emptyCtx = emptyCanvas.getContext("2d");
@@ -520,12 +601,12 @@ function HoodieModel({
             baseTexture = new THREE.Texture(emptyCanvas);
             baseTexture.needsUpdate = true;
           }
-  
+
           let patternTexture = null;
           let currPatternColor = "#FFFFFF";
           let currPatternScale = patternScale;
           let currPatternOpacity = patternOpacity;
-  
+
           const partPattern = partPatterns[partName];
           if (partPattern) {
             const patternTexturePath = patternSets[partPattern.pattern][0];
@@ -540,7 +621,7 @@ function HoodieModel({
             currPatternScale = patternScale;
             currPatternOpacity = patternOpacity;
           }
-  
+
           if (patternTexture) {
             patternTexture.wrapS = patternTexture.wrapT = THREE.RepeatWrapping;
             patternTexture.repeat.set(currPatternScale, currPatternScale);
@@ -553,9 +634,11 @@ function HoodieModel({
             patternTexture = new THREE.Texture(transparentCanvas);
             patternTexture.needsUpdate = true;
           }
-  
+
           const material = new PatternMaterial({
             baseTexture: baseTexture,
+            normalMap: normalMap,
+            roughnessMap: roughnessMap,
             patternTexture: patternTexture,
             baseColor: new THREE.Color(partColor),
             patternColor: new THREE.Color(currPatternColor),
@@ -565,20 +648,23 @@ function HoodieModel({
             roughness: roughness,
             metalness: 0.1,
             patternOpacity: currPatternOpacity,
+            useNormalMap: !!normalMap,
+  useRoughnessMap: !!roughnessMap,
+
           });
-  
+
           material.depthTest = true;
           material.depthWrite = true;
           material.polygonOffset = true;
           material.polygonOffsetFactor = -5;
           material.polygonOffsetUnits = -5;
           material.needsUpdate = true;
-  
+
           child.material = material;
         }
       }
     });
-  
+
     setDecalMeshes([meshMap.chest, meshMap.leftSleeve, meshMap.rightSleeve, meshMap.back, meshMap.front].filter(Boolean));
   }, [
     scene,
@@ -593,6 +679,7 @@ function HoodieModel({
     patternOpacity,
     activeTab,
     partPatterns,
+    meshPartMapping
   ]);
 
   useEffect(() => {
@@ -759,7 +846,7 @@ function HoodieModel({
       );
     }
   }, [onDownloadGLB, decalVisibility, selectedTexture, selectedPattern, patternColor, textureScale, roughness, patternScale, customLogos, customTexts]);
-  
+
   useEffect(() => {
     if (onDownloadImage) {
       const controlElements = [];
@@ -980,19 +1067,19 @@ function HoodieModel({
     setDragOffset({ x: 0, y: 0, z: 0 });
   };
   // Inside HoodieModel component
-useEffect(() => {
-  if (onClearPattern) {
-    setPartPatterns((prev) => ({
-      ...prev,
-      [onClearPattern]: null,
-    }));
-    
-    // Call the onPatternCleared callback after clearing the pattern
-    if (onPatternCleared) {
-      onPatternCleared();
+  useEffect(() => {
+    if (onClearPattern) {
+      setPartPatterns((prev) => ({
+        ...prev,
+        [onClearPattern]: null,
+      }));
+
+      // Call the onPatternCleared callback after clearing the pattern
+      if (onPatternCleared) {
+        onPatternCleared();
+      }
     }
-  }
-}, [onClearPattern, onPatternCleared]);
+  }, [onClearPattern, onPatternCleared]);
 
   useEffect(() => {
     renderer.domElement.style.cursor = cursorStyle;
@@ -1043,25 +1130,25 @@ useEffect(() => {
       <primitive object={scene} />
       {decalMeshes.map((mesh, index) => {
         if (!mesh) return null;
-  
+
         const decalConfigs = [
           { position: "front", meshName: "Front", side: THREE.FrontSide },
           { position: "leftSleeve", meshName: "Left_Sleeve", side: THREE.FrontSide },
           { position: "rightSleeve", meshName: "Right_Sleeve", side: THREE.FrontSide },
           { position: "back", meshName: "Back", side: THREE.FrontSide },
         ];
-  
+
         return decalConfigs.map((config) => {
           if (mesh.name !== config.meshName) return null;
-  
+
           const { position: meshPosition, side: sideProperty } = config;
           const isTextDecal = customTexts[meshPosition].show && textTextures[meshPosition];
           const textureToApply = isTextDecal ? textTextures[meshPosition] : customLogos[meshPosition];
           const isVisible = decalVisibility[meshPosition];
           const isSelected = meshPosition === selectedTab;
-  
+
           if (!textureToApply || !isVisible) return null;
-  
+
           const position = decalPositions[meshPosition];
           const rotation = decalRotations[meshPosition];
           const uniformScale = decalUniformScales[meshPosition];
@@ -1072,19 +1159,19 @@ useEffect(() => {
             dimensions.height * uniformScale * fontSizeAdjustment,
             1,
           ];
-  
+
           const getIconPositions = () => {
             const halfWidth = scale[0] / 2;
             const halfHeight = scale[1] / 2;
             const zOffset = 0.01;
-  
+
             const corners = {
               rotate: [-halfWidth, halfHeight, zOffset],
               delete: [halfWidth, halfHeight, zOffset],
               move: [-halfWidth, -halfHeight, zOffset],
               resize: [halfWidth, -halfHeight, zOffset],
             };
-  
+
             const isSleeve = meshPosition === "leftSleeve" || meshPosition === "rightSleeve";
             if (isSleeve) {
               const euler = new THREE.Euler(...rotation);
@@ -1095,7 +1182,7 @@ useEffect(() => {
                 corners[key] = [pos.x, pos.y, pos.z + zOffset];
               });
             }
-  
+
             const iconPositions = {};
             Object.keys(corners).forEach((key) => {
               const localPos = new THREE.Vector3(...corners[key]);
@@ -1105,12 +1192,12 @@ useEffect(() => {
                 position[2] + localPos.z,
               ];
             });
-  
+
             return iconPositions;
           };
-  
+
           const iconPositions = getIconPositions();
-  
+
           return (
             <group key={`${mesh.name}-${meshPosition}`}>
               <mesh geometry={mesh.geometry}>
@@ -1144,18 +1231,18 @@ useEffect(() => {
                     })
                   }
                 />
-  
+
                 {isSelected &&
                   Object.entries(iconPositions).map(([handle, pos]) => {
                     const iconTexture =
                       handle === "rotate"
                         ? rotateIconTexture
                         : handle === "delete"
-                        ? deleteIconTexture
-                        : handle === "move"
-                        ? moveIconTexture
-                        : resizeIconTexture;
-  
+                          ? deleteIconTexture
+                          : handle === "move"
+                            ? moveIconTexture
+                            : resizeIconTexture;
+
                     return (
                       <Decal
                         debug={false}
@@ -1190,7 +1277,7 @@ useEffect(() => {
                     );
                   })}
               </mesh>
-  
+
               {isSelected && (
                 <line>
                   <bufferGeometry attach="geometry">
