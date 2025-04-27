@@ -89,13 +89,18 @@ const PatternMaterial = shaderMaterial(
       vec4 patternTexel = texture2D(patternTexture, scaledPatternUv);
       vec4 pattern = vec4(patternTexel.rgb * patternColor, patternTexel.a);
       
-      if (pattern.a > 0.1) {
-        float alpha = pattern.a * patternOpacity;
-        vec4 result = mix(base, vec4(pattern.rgb, 1.0), alpha);
-        gl_FragColor = vec4(result.rgb, 1.0);
-      } else {
-        gl_FragColor = base;
-      }
+     if (pattern.a > 0.1) {
+  // Extract luminance/detail from base texture
+  float baseLuminance = (baseTexel.r + baseTexel.g + baseTexel.b) / 3.0;
+  // Adjust pattern color based on base texture luminance to preserve texture detail
+  vec3 detailedPattern = pattern.rgb * (0.6 + 0.6 * baseLuminance);
+  // Mix with original base using pattern opacity
+  float alpha = pattern.a * patternOpacity;
+  vec4 result = mix(base, vec4(detailedPattern, 1.0), alpha);
+  gl_FragColor = vec4(result.rgb, 1.0);
+} else {
+  gl_FragColor = base;
+}
     }
   `
 );

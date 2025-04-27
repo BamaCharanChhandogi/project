@@ -39,7 +39,7 @@ function HoodieCustomizer() {
   const [downloadGLBTrigger, setDownloadGLBTrigger] = useState(null);
   const [activeTab, setActiveTab] = useState("colors");
   const [selectedColor, setSelectedColor] = useState("#FFFFFF");
-  const [selectedTexture, setSelectedTexture] = useState("null"); // Changed to null
+  const [selectedTexture, setSelectedTexture] = useState("cotton"); // Changed to null
   const [selectedEnvironment, setSelectedEnvironment] = useState("studio");
   const [selectedTab, setSelectedTab] = useState("front");
   const [patternTab, setPatternTab] = useState("Front");
