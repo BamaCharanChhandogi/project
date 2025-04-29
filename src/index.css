@@ -107,6 +107,15 @@ input[type="color"]::-moz-color-swatch {
   padding: 0;
 }
 
+select {
+  background-color: #d5d9dfe0; 
+  color: gray;
+  backdrop-filter: blur(10px); 
+}
+
+.abc:hover {
+  background-color: pink;
+}
 
 /* Ensure backdrop-filter is supported with fallbacks for buttons */
 @supports ((-webkit-backdrop-filter: blur(4px)) or (backdrop-filter: blur(4px))) {
@@ -154,10 +163,20 @@ input[type="color"]::-moz-color-swatch {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   transition: all 0.2s ease;
 }
+.glass-button.selected {
+  background-color:rgba(255, 255, 255, 0.2);;
+  border-color:black;
+  color: white;
+}
 @supports (-webkit-touch-callout: none) {
   .glass-button {
     background-color: rgba(0, 0, 0, 0.3); /* Darker background for iOS */
     backdrop-filter: none; /* Disable backdrop filter on iOS */
+  }
+  .glass-button.selected {
+    background-color: rgba(255, 255, 255, 0.2);;
+    border-color: black;
+    color: white;
   }
 }
 
@@ -167,9 +186,11 @@ input[type="color"]::-moz-color-swatch {
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
   }
+  .glass-button.selected {
+    background-color: rgba(255, 255, 255, 0.2);;
+    border-color: black;
+    color: white;
+  }
 }
 
-.glass-button:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-  transform: translateY(-1px);
-}
+

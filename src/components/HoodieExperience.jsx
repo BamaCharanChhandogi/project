@@ -1,4 +1,3 @@
-
 import React, { useRef, Suspense, useState, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
 import {
@@ -39,7 +38,7 @@ function HoodieCustomizer() {
   const [downloadGLBTrigger, setDownloadGLBTrigger] = useState(null);
   const [activeTab, setActiveTab] = useState("colors");
   const [selectedColor, setSelectedColor] = useState("#FFFFFF");
-  const [selectedTexture, setSelectedTexture] = useState("cotton"); // Changed to null
+  const [selectedTexture, setSelectedTexture] = useState("null"); // Changed to null
   const [selectedEnvironment, setSelectedEnvironment] = useState("studio");
   const [selectedTab, setSelectedTab] = useState("front");
   const [patternTab, setPatternTab] = useState("Front");
@@ -85,11 +84,6 @@ function HoodieCustomizer() {
     const max = 8.0; // Match your max value
     return ((value - min) / (max - min)) * 100;
   };
-  // useEffect(() => {
-  //   if (clearPatternTrigger) {
-  //     setClearPatternTrigger(null); // Reset after processing
-  //   }
-  // }, [clearPatternTrigger]);
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
@@ -240,17 +234,6 @@ function HoodieCustomizer() {
     const max = 2; // Match your max value
     return ((value - min) / (max - min)) * 100;
   };
-  // useEffect(() => {
-  //   const range = document.querySelector('.custom-range-slider');
-  //   if (range) {
-  //     const min = parseFloat(range.min) || 0.8;
-  //     const max = parseFloat(range.max) || 2;
-  //     const value = parseFloat(range.value);
-  //     const percentage = ((value - min) / (max - min)) * 100;
-  //     range.style.setProperty('--range-progress', `${percentage}%`);
-  //   }
-  // }, [patternScale]);
-  // Make sure the useEffect runs on component mount
   useEffect(() => {
     const updateRangeProgress = () => {
       const range = document.querySelector('.custom-range-slider');
@@ -327,17 +310,14 @@ function HoodieCustomizer() {
             ...prev,
             [positionMapping[position]]: texture,
           }));
-          setCustomTexts((prev) => ({
-            ...prev,
-            [positionMapping[position]]: { ...prev[positionMapping[position]], show: false },
-          }));
+          // Remove the setCustomTexts call
         };
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleDeleteDecal = (position) => {
+  const handleDeleteDecal = (position, type) => {
     const positionMapping = {
       back: "leftChest",
       leftSleeve: "leftSleeve",
@@ -345,14 +325,16 @@ function HoodieCustomizer() {
       front: "rightChest",
     };
     const inputId = positionMapping[position];
-    setCustomLogos((prev) => ({
-      ...prev,
-      [position]: null,
-    }));
-    if (fileInputRefs.current[inputId]) {
-      fileInputRefs.current[inputId].value = "";
-    }
-    if (customTexts[position].show) {
+  
+    if (type === "image") {
+      setCustomLogos((prev) => ({
+        ...prev,
+        [position]: null,
+      }));
+      if (fileInputRefs.current[inputId]) {
+        fileInputRefs.current[inputId].value = "";
+      }
+    } else if (type === "text") {
       setCustomTexts((prev) => ({
         ...prev,
         [position]: { ...prev[position], text: "", show: false },
@@ -477,9 +459,9 @@ function HoodieCustomizer() {
     { value: "#9B59B6", label: "Purple" },
   ];
   const textures = [
-    { value: "cotton", label: "Cotton", imageUrl:"/8_flannelette tartan fabric texture-seamless.jpg" },
-    { value: "fleece", label: "Fleece", imageUrl:"/14_acrylic fabric tartan wallpapers texture-seamless.jpg" },
-    { value: "knit", label: "Knit", imageUrl:"/15_wool flannel fabric texture-seamless.jpg" },
+    { value: "fabric017", label: "fabric017", imageUrl:"/patterns/Fabric017_4K_Color.jpg" },
+    { value: "outdoorPolyester", label: "outdoorPolyester", imageUrl:"/patterns/outdoor-polyester-fabric_albedo.jpg" },
+    { value: "polyester", label: "polyester", imageUrl:"/patterns/repeat.jpg" },
   ];
   const environments = [
     "sunset",
@@ -495,7 +477,7 @@ function HoodieCustomizer() {
   ]
   const [isModelLoaded, setIsModelLoaded] = useState(false);
   return (
-    <div className="overflow-hidden w-screen h-screen bg-gradient-to-l from-[#2e4650] to-[#456674]">
+    <div className="overflow-hidden w-screen h-screen bg-gradient-to-l from-[#15333A] to-[#1F3D47]">
        {!isModelLoaded && <VideoLoader />}
       <Canvas
         shadows
@@ -526,8 +508,8 @@ function HoodieCustomizer() {
           }
         >
           
-          <ambientLight intensity={0.1} />
-          <directionalLight position={[5, 5, 5]} intensity={0.3} castShadow />
+          {/* <ambientLight intensity={0.1} /> */}
+          {/* <directionalLight position={[5, 5, 5]} intensity={0.1} castShadow /> */}
           <HoodieModel
             customLogos={customLogos}
             customTexts={customTexts}
@@ -558,10 +540,11 @@ function HoodieCustomizer() {
           {/* <Environment preset="sunset" background blur={4} /> */}
 
           <CustomEnvironment
-            path="/customizer-bg.jpg"
-            intensity={7} // Adjust this value between 0.1-0.5 to control brightness
-            blur={0.5} // Optional slight blur 
-          />
+        path="/customizer-bg.jpg"
+        intensity={0.1} // For reflections
+        backgroundIntensity={0.3} // Keep this very low for a darker background
+        useAsBackground={true}
+      />
           <OrbitControls
             ref={controlsRef}
             minPolarAngle={Math.PI / 6}
@@ -678,7 +661,7 @@ function HoodieCustomizer() {
             {/* Panel is conditionally rendered for mobile and medium, always shown for large screens */}
             <div
               className={`${window.innerWidth < 1280 && !panelVisible ? 'translate-y-full' : 'translate-y-0'}  transition-transform duration-700 ease-in-out 
-              w-full h-[45vh] xl:w-[100%] 2xl:w-[105%] 3xl:w-[120%] xl:h-[25rem] 2xl:h-[31rem] 3xl:h-[40rem] backdrop-blur-md backdrop-saturate-150 
+              w-full h-[45vh] xl:w-[90%] 2xl:w-[105%] 3xl:w-[120%] xl:h-[25rem] 2xl:h-[31rem] 3xl:h-[40rem] backdrop-blur-md backdrop-saturate-150 
               p-4 xl:p-6 flex flex-col text-white  bg-white/30 xl:rounded-xl
                mt-0 xl:mt-[30%] fixed bottom-0 left-0 xl:relative xl:transform-none pointer-events-auto`}
             >
@@ -705,7 +688,7 @@ function HoodieCustomizer() {
                         <button
                           key={tab}
                           onClick={() => setPatternTab(tab.toLowerCase())}
-                          className={`px-0 xl:px-0 py-1 mr-6 xl:py-2 text-xs xl:text-sm whitespace-nowrap text-left ml-1 ${patternTab === tab.toLowerCase() ? "text-white" : "text-[#D9D9D9]"
+                          className={`px-0 xl:px-0 py-1 mr-6 xl:py-2 text-xs xl:text-sm whitespace-nowrap text-left ml-1 ${patternTab === tab.toLowerCase() ? "text-white text-sm xl:text-base font-medium" : "text-[#D9D9D9]"
                             }`}
                         >
                           {tab}
@@ -795,14 +778,14 @@ function HoodieCustomizer() {
                 {/* Colors tab */}
                 {activeTab === "colors" && (
                   <div className="h-full">
-                    <h3 className="text-xl font-medium mb-4">Apply Colors to</h3>
+                    <h3 className="text-xl font-medium mb-4">Apply Color to</h3>
                     <div className="flex flex-wrap gap-2 mb-6">
                       {placementAreas.map((area) => (
                         <button
                           key={area.id}
                           onClick={() => setSelectedTab(area.mapping)}
                           className={`glass-button px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${selectedTab === area.mapping
-                            ? "bg-gray-500 text-white"
+                            ? "selected"
                             : "bg-white/30 backdrop-blur-xl text-white hover:bg-gray-500"
                             }`}
                         >
@@ -972,7 +955,7 @@ function HoodieCustomizer() {
                             setSelectedTextArea(area.mapping);
                           }}
                           className={`glass-button px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${selectedTab === area.mapping
-                            ? "bg-gray-500 text-white"
+                            ? "selected"
                             : "bg-white/30 backdrop-blur-xl text-white hover:bg-gray-500"
                             }`}
                         >
@@ -1086,17 +1069,17 @@ function HoodieCustomizer() {
 
             {/* Only show buttons when panel is visible on mobile and medium */}
             {(window.innerWidth >= 1280) && (
-              <div className="flex xl:justify-end justify-center space-x-4 py-2 pb-2 2xl:mr-[-18px] 3xl:mr-[-76px] xl:mr-[43px] ml-0 mt-2">
+              <div className="flex xl:justify-end justify-center space-x-4 py-2 pb-2 2xl:mr-[-18px] 3xl:mr-[-76px] xl:mr-[44px] ml-0 mt-2">
                 <button
                   onClick={handleGLBDownload}
-                  className="px-6 xl:px-8 py-2 xl:py-3 bg-opacity-10 bg-white backdrop-blur-md backdrop-saturate-150 text-white rounded-md hover:bg-white/20 shadow-md  text-sm xl:text-base pointer-events-auto"
+                  className="px-6 xl:px-8 py-2 xl:py-3 bg-opacity-10 bg-white/30 backdrop-blur-md backdrop-saturate-150 text-white rounded-md hover:bg-white/20 shadow-md  text-sm xl:text-base pointer-events-auto"
 
                 >
                   Save
                 </button>
                 <button
 
-                  className="px-6 xl:px-8 py-2 xl:py-3 bg-opacity-10 bg-white backdrop-blur-md backdrop-saturate-150 text-white rounded-md hover:bg-white/20 shadow-md  text-sm xl:text-base pointer-events-auto"
+                  className="px-6 xl:px-8 py-2 xl:py-3 bg-opacity-10 bg-white/30 backdrop-blur-md backdrop-saturate-150 text-white rounded-md hover:bg-white/20 shadow-md  text-sm xl:text-base pointer-events-auto"
                 >
                   Add To Cart
                 </button>
@@ -1109,4 +1092,4 @@ function HoodieCustomizer() {
   );
 }
 
-export default HoodieCustomizer; 
+export default HoodieCustomizer;
