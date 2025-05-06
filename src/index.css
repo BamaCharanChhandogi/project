@@ -33,3 +33,164 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
+
+.overflow-x-auto::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.custom-range-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+
+.custom-range-slider::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, white 0%, white var(--range-progress), #b6b2b2 var(--range-progress), #b6b2b2 100%);
+  height: 4px;
+  border-radius: 2px;
+}
+
+.custom-range-slider::-moz-range-track {
+  background: linear-gradient(to right, white 0%, white var(--range-progress), #b6b2b2 var(--range-progress), #b6b2b2 100%);
+  height: 4px;
+  border-radius: 2px;
+}
+
+.custom-range-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  cursor: pointer;
+  margin-top: -6px;
+}
+
+.custom-range-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+input[type="color"] {
+  -webkit-appearance: none; /* Removes default styling in WebKit browsers */
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  padding: 0;
+  cursor: pointer;
+  background-color: transparent;
+}
+
+/* WebKit browsers (e.g., Chrome, Safari) */
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+  border-radius: 50%;
+}
+
+input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 50%;
+  padding: 0;
+}
+
+/* Firefox */
+input[type="color"]::-moz-color-swatch {
+  border: none;
+  border-radius: 50%;
+  padding: 0;
+}
+
+select {
+  background-color: #d5d9dfe0; 
+  color: gray;
+  backdrop-filter: blur(10px); 
+}
+
+.abc:hover {
+  background-color: pink;
+}
+
+/* Ensure backdrop-filter is supported with fallbacks for buttons */
+@supports ((-webkit-backdrop-filter: blur(4px)) or (backdrop-filter: blur(4px))) {
+  .backdrop-blur-sm {
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+  }
+}
+
+@supports not ((-webkit-backdrop-filter: blur(4px)) or (backdrop-filter: blur(4px))) {
+  .backdrop-blur-sm {
+    background-color: rgba(255, 255, 255, 0.15); /* Fallback for browsers without backdrop-filter */
+  }
+}
+
+/* Specific styles for Save and Add to Cart buttons */
+.save-button, .add-to-cart-button {
+  background-color: rgba(255, 255, 255, 0.1); /* Semi-transparent white */
+  border: 1px solid rgba(255, 255, 255, 0.2); /* Subtle border */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); /* Light shadow */
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.save-button:hover, .add-to-cart-button:hover {
+  background-color: rgba(255, 255, 255, 0.2); /* Slightly more opaque on hover */
+  transform: translateY(-1px); /* Subtle lift effect */
+}
+
+@supports ((-webkit-backdrop-filter: blur(4px)) or (backdrop-filter: blur(4px))) {
+  .save-button, .add-to-cart-button {
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+  }
+}
+
+@supports not ((-webkit-backdrop-filter: blur(4px)) or (backdrop-filter: blur(4px))) {
+  .save-button, .add-to-cart-button {
+    background-color: rgba(255, 255, 255, 0.15); /* Fallback for no backdrop-filter */
+  }
+}
+.glass-button {
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+.glass-button.selected {
+  background-color:rgba(255, 255, 255, 0.2);;
+  border-color:white;
+  color: white;
+}
+@supports (-webkit-touch-callout: none) {
+  .glass-button {
+    background-color: rgba(0, 0, 0, 0.3); /* Darker background for iOS */
+    backdrop-filter: none; /* Disable backdrop filter on iOS */
+  }
+  .glass-button.selected {
+    background-color: rgba(255, 255, 255, 0.2);;
+    border-color: white;
+    color: white;
+  }
+}
+
+/* For other browsers */
+@supports not (-webkit-touch-callout: none) {
+  .glass-button {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .glass-button.selected {
+    background-color: rgba(255, 255, 255, 0.2);;
+    border-color: white;
+    color: white;
+  }
+}
+
+
