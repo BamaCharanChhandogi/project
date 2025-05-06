@@ -302,7 +302,7 @@ function HoodieModel({
   };
 
   const meshPartOrder = ["chest", "leftSleeve", "rightSleeve", "back", "front"];
-  const rotateIconTexture = useTexture("patterns/Rotates.png");
+  const rotateIconTexture = useTexture("patterns/Wastes.png");
   const deleteIconTexture = useTexture("patterns/Wastes.png");
   const resizeIconTexture = useTexture("patterns/Zooms.png");
   const moveIconTexture = useTexture("patterns/Expands.png");
