@@ -305,7 +305,7 @@ function HoodieModel({
   
   const deleteIconTexture = useTexture("/patterns/Wastes.png");
   const resizeIconTexture = useTexture("/patterns/Zooms.png");
-  const rotateIconTexture = useTexture("patterns/Rotating.png");
+  const rotateIconTexture = useTexture("/patterns/Rotating.png");
   const moveIconTexture = useTexture("/patterns/Expands.png");
 
   const hoodieRef = useRef();
