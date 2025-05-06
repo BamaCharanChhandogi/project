@@ -165,7 +165,7 @@ select {
 }
 .glass-button.selected {
   background-color:rgba(255, 255, 255, 0.2);;
-  border-color:black;
+  border-color:white;
   color: white;
 }
 @supports (-webkit-touch-callout: none) {
@@ -175,7 +175,7 @@ select {
   }
   .glass-button.selected {
     background-color: rgba(255, 255, 255, 0.2);;
-    border-color: black;
+    border-color: white;
     color: white;
   }
 }
@@ -188,7 +188,7 @@ select {
   }
   .glass-button.selected {
     background-color: rgba(255, 255, 255, 0.2);;
-    border-color: black;
+    border-color: white;
     color: white;
   }
 }

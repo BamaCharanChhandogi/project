@@ -298,13 +298,14 @@ function HoodieModel({
     back: "back",
     "left sleeve": "leftSleeve",
     "right sleeve": "rightSleeve",
+    all:"all"
   };
 
   const meshPartOrder = ["chest", "leftSleeve", "rightSleeve", "back", "front"];
-  const rotateIconTexture = useTexture("/Rotate1.jpg");
-  const deleteIconTexture = useTexture("/Delete.jpeg");
-  const resizeIconTexture = useTexture("/Zoom.png");
-  const moveIconTexture = useTexture("/Move.webp");
+  const rotateIconTexture = useTexture("patterns/Rotating.png");
+  const deleteIconTexture = useTexture("patterns/Wastes.png");
+  const resizeIconTexture = useTexture("patterns/Zooms.png");
+  const moveIconTexture = useTexture("patterns/Expands.png");
 
   const hoodieRef = useRef();
   const [decalMeshes, setDecalMeshes] = useState([]);
@@ -461,7 +462,7 @@ function HoodieModel({
 
   parts.forEach((partName) => {
     const partColor = partColors[partName] || "#FFFFFF";
-
+  
     let baseTexture, normalTexture, roughnessTexture;
     if (selectedTexture === "fabric017") {
       baseTexture = fabric017Textures.base;
@@ -475,23 +476,13 @@ function HoodieModel({
       baseTexture = polyesterTextures.base;
       normalTexture = polyesterTextures.normal;
       roughnessTexture = polyesterTextures.roughness;
-    } else {
-      // const emptyCanvas = document.createElement("canvas");
-      // emptyCanvas.width = emptyCanvas.height = 1;
-      // const emptyCtx = emptyCanvas.getContext("2d");
-      // emptyCtx.fillStyle = "#FFFFFF";
-      // emptyCtx.fillRect(0, 0, 1, 1);
-      // baseTexture = new THREE.Texture(emptyCanvas);
-      // baseTexture.needsUpdate = true;
-      // normalTexture = baseTexture.clone();
-      // roughnessTexture = baseTexture.clone();
     }
-
+  
     let patternTexture = null;
     let currPatternColor = "#FFFFFF";
     let currPatternScale = patternScale;
     let currPatternOpacity = patternOpacity;
-
+  
     const partPattern = partPatterns[partName];
     if (partPattern) {
       const patternTexturePath = patternSets[partPattern.pattern][0];
@@ -499,14 +490,15 @@ function HoodieModel({
       currPatternColor = partPattern.color;
       currPatternScale = partPattern.scale;
       currPatternOpacity = partPattern.opacity;
-    } else if (activePosition === partName && selectedPattern) {
+    } else if ((activePosition === partName || activePosition === "all") && selectedPattern) {
+      // Apply pattern to this part if activePosition is "all" or matches the part
       const patternTexturePath = patternSets[selectedPattern][0];
       patternTexture = patternTextures[patternTexturePath];
       currPatternColor = patternColor;
       currPatternScale = patternScale;
       currPatternOpacity = patternOpacity;
     }
-
+  
     if (!patternTexture) {
       const transparentCanvas = document.createElement("canvas");
       transparentCanvas.width = transparentCanvas.height = 1;
@@ -515,7 +507,7 @@ function HoodieModel({
       patternTexture = new THREE.Texture(transparentCanvas);
       patternTexture.needsUpdate = true;
     }
-
+  
     const material = usePatternMaterial({
       baseTexture,
       normalTexture,
@@ -531,24 +523,34 @@ function HoodieModel({
       side: THREE.DoubleSide,
       patternOpacity: currPatternOpacity,
     });
-
-    console.log(
-      `Material uniforms for ${partName} - baseTexture: ${
-        baseTexture ? baseTexture.image?.src : "null"
-      }, normalTexture: ${normalTexture ? normalTexture.image?.src : "null"}`
-    );
+  
     material.depthTest = true;
     material.depthWrite = true;
     material.polygonOffset = true;
     material.polygonOffsetFactor = -5;
     material.polygonOffsetUnits = -5;
     material.needsUpdate = true;
-
+  
     materials[partName] = material;
   });
 
   const updatePartPattern = (position) => {
-    if (selectedPattern) {
+    if (position === "all") {
+      setPartPatterns({
+        front: { pattern: selectedPattern, color: patternColor, scale: patternScale, opacity: patternOpacity },
+        leftSleeve: { pattern: selectedPattern, color: patternColor, scale: patternScale, opacity: patternOpacity },
+        rightSleeve: { pattern: selectedPattern, color: patternColor, scale: patternScale, opacity: patternOpacity },
+        back: { pattern: selectedPattern, color: patternColor, scale: patternScale, opacity: patternOpacity },
+        chest: { pattern: selectedPattern, color: patternColor, scale: patternScale, opacity: patternOpacity },
+      });
+      console.log("Updated partPatterns for all:", {
+        front: { pattern: selectedPattern, color: patternColor, scale: patternScale, opacity: patternOpacity },
+        leftSleeve: { pattern: selectedPattern, color: patternColor, scale: patternScale, opacity: patternOpacity },
+        rightSleeve: { pattern: selectedPattern, color: patternColor, scale: patternScale, opacity: patternOpacity },
+        back: { pattern: selectedPattern, color: patternColor, scale: patternScale, opacity: patternOpacity },
+        chest: { pattern: selectedPattern, color: patternColor, scale: patternScale, opacity: patternOpacity },
+      });
+    } else {
       setPartPatterns((prev) => ({
         ...prev,
         [position]: {
@@ -558,15 +560,33 @@ function HoodieModel({
           opacity: patternOpacity,
         },
       }));
+      console.log(`Updated partPatterns for ${position}:`, {
+        pattern: selectedPattern,
+        color: patternColor,
+        scale: patternScale,
+        opacity: patternOpacity,
+      });
     }
   };
 
   useEffect(() => {
     if (onClearPattern) {
-      setPartPatterns((prev) => ({
-        ...prev,
-        [onClearPattern]: null,
-      }));
+      if (onClearPattern === "all") {
+        // Clear patterns for all parts
+        setPartPatterns({
+          front: null,
+          leftSleeve: null,
+          rightSleeve: null,
+          back: null,
+          chest: null,
+        });
+      } else {
+        // Clear pattern for specific part
+        setPartPatterns((prev) => ({
+          ...prev,
+          [onClearPattern]: null,
+        }));
+      }
       if (onPatternCleared) {
         onPatternCleared();
       }
